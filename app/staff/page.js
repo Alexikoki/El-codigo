@@ -18,21 +18,19 @@ export default function StaffPage() {
     if (!t || rol !== 'camarero') { router.push('/login'); return }
     setToken(t)
     setCamarero(JSON.parse(c))
-
-    // Cargar historial del día desde localStorage (offline-first)
     const h = localStorage.getItem('historial_verificaciones')
     if (h) setHistorial(JSON.parse(h))
   }, [])
 
-  const verificar = async (idCliente) => {
-    if (!idCliente?.trim()) return
+  const verificar = async (qrPersonal) => {
+    if (!qrPersonal?.trim()) return
     setCargando(true)
     setResultado(null)
 
     const res = await fetch('/api/verificar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ clienteId: idCliente.trim() })
+      body: JSON.stringify({ qrPersonal: qrPersonal.trim() })
     })
 
     const data = await res.json()
@@ -44,7 +42,6 @@ export default function StaffPage() {
     }
 
     const entrada = {
-      id: data.cliente.id,
       nombre: data.cliente.nombre,
       personas: data.cliente.num_personas,
       hora: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
@@ -53,7 +50,6 @@ export default function StaffPage() {
     const nuevoHistorial = [entrada, ...historial].slice(0, 50)
     setHistorial(nuevoHistorial)
     localStorage.setItem('historial_verificaciones', JSON.stringify(nuevoHistorial))
-
     setResultado({ ok: true, cliente: data.cliente })
     setQrInput('')
   }
@@ -67,7 +63,6 @@ export default function StaffPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white border-b px-6 py-4 flex justify-between items-center">
         <div>
           <h1 className="text-xl font-bold text-gray-800">Panel de verificación</h1>
@@ -79,13 +74,12 @@ export default function StaffPage() {
       </div>
 
       <div className="max-w-lg mx-auto p-6 space-y-6">
-        {/* Escáner / Input */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
-          <h2 className="font-semibold text-gray-700 mb-4">Verificar cliente</h2>
+          <h2 className="font-semibold text-gray-700 mb-4">Escanear QR del cliente</h2>
           <div className="flex gap-2">
             <input
               type="text"
-              placeholder="ID del cliente o escanea QR"
+              placeholder="Escanea el QR del cliente aquí"
               value={qrInput}
               onChange={e => setQrInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && verificar(qrInput)}
@@ -100,9 +94,11 @@ export default function StaffPage() {
               {cargando ? '...' : 'Verificar'}
             </button>
           </div>
+          <p className="text-xs text-gray-400 mt-2">
+            El cliente debe mostrar el QR que recibió por email
+          </p>
         </div>
 
-        {/* Resultado */}
         {resultado && (
           <div className={`rounded-2xl p-6 text-center ${resultado.ok ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
             {resultado.ok ? (
@@ -110,7 +106,8 @@ export default function StaffPage() {
                 <div className="text-5xl mb-3">✅</div>
                 <h3 className="text-xl font-bold text-green-800">{resultado.cliente.nombre}</h3>
                 <p className="text-green-600 mt-1">{resultado.cliente.num_personas} persona{resultado.cliente.num_personas > 1 ? 's' : ''}</p>
-                <p className="text-sm text-green-500 mt-2">{resultado.cliente.email}</p>
+                <p className="text-sm text-green-500 mt-1">{resultado.cliente.email}</p>
+                <p className="text-xs text-green-400 mt-2">El cliente recibirá el formulario de valoración al salir</p>
               </>
             ) : (
               <>
@@ -121,7 +118,6 @@ export default function StaffPage() {
           </div>
         )}
 
-        {/* Historial del día */}
         {historial.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <div className="flex justify-between items-center mb-4">

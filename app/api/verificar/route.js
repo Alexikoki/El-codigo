@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { verificarToken, extraerToken } from '../../../lib/jwt'
+import { verificarFirmaQR } from '../../../lib/qr'
 import { registrarAudit } from '../../../lib/audit'
 import { rateLimit, getIP } from '../../../lib/rateLimit'
 
@@ -20,9 +21,15 @@ export async function POST(request) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
-  const { clienteId } = await request.json()
+  const { qrPersonal } = await request.json()
+  if (!qrPersonal) {
+    return NextResponse.json({ error: 'Falta el QR' }, { status: 400 })
+  }
+
+  // Verificar firma del QR personal
+  const clienteId = verificarFirmaQR(qrPersonal)
   if (!clienteId) {
-    return NextResponse.json({ error: 'Falta el ID del cliente' }, { status: 400 })
+    return NextResponse.json({ error: 'QR inválido' }, { status: 400 })
   }
 
   // Buscar cliente
@@ -42,7 +49,7 @@ export async function POST(request) {
   }
 
   // Verificar cliente
-  const { error } = await supabaseAdmin
+  await supabaseAdmin
     .from('clientes')
     .update({
       verificado: true,
@@ -50,10 +57,6 @@ export async function POST(request) {
       verificado_por: payload.camareroId
     })
     .eq('id', clienteId)
-
-  if (error) {
-    return NextResponse.json({ error: 'Error al verificar' }, { status: 500 })
-  }
 
   await registrarAudit({
     tabla: 'clientes',
@@ -63,5 +66,5 @@ export async function POST(request) {
     ip
   })
 
-  return NextResponse.json({ ok: true, cliente: { ...cliente, verificado: true } })
+  return NextResponse.json({ ok: true, cliente })
 }
