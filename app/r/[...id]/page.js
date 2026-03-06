@@ -1,11 +1,12 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams } from 'next/navigation'
 
 export default function FormularioClientePage() {
-  const { id } = useParams()
+  const params = useParams()
+  const id = Array.isArray(params.id) ? params.id.join('-') : params.id
   const [form, setForm] = useState({ nombre: '', email: '', numPersonas: 1 })
-  const [estado, setEstado] = useState('formulario') // formulario | enviando | exito | error
+  const [estado, setEstado] = useState('formulario')
   const [error, setError] = useState('')
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
@@ -50,7 +51,8 @@ export default function FormularioClientePage() {
         <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md text-center">
           <div className="text-6xl mb-4">✅</div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">¡Registro completado!</h2>
-          <p className="text-gray-500">Te esperamos. Muestra este mensaje a la llegada.</p>
+          <p className="text-gray-500">Te hemos enviado un email con tu QR personal de descuento.</p>
+          <p className="text-gray-400 text-sm mt-2">Muéstralo al camarero cuando llegues.</p>
         </div>
       </div>
     )
@@ -60,7 +62,7 @@ export default function FormularioClientePage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-1">Bienvenido</h1>
-        <p className="text-center text-gray-400 text-sm mb-8">Rellena tus datos para completar el registro</p>
+        <p className="text-center text-gray-400 text-sm mb-8">Rellena tus datos para recibir tu descuento</p>
 
         <div className="space-y-4">
           <input
@@ -101,7 +103,7 @@ export default function FormularioClientePage() {
           disabled={estado === 'enviando'}
           className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50"
         >
-          {estado === 'enviando' ? 'Registrando...' : 'Confirmar registro'}
+          {estado === 'enviando' ? 'Enviando...' : 'Confirmar registro'}
         </button>
       </div>
     </div>
