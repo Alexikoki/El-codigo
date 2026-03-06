@@ -1,9 +1,8 @@
 'use client'
 import { useState } from 'react'
-import { useParams } from 'next/navigation'
 
-export default function FormularioClientePage() {
-  const { id } = useParams()
+export default function FormularioClientePage({ params }) {
+  const id = params.id
   const [form, setForm] = useState({ nombre: '', email: '', numPersonas: 1 })
   const [estado, setEstado] = useState('formulario')
   const [error, setError] = useState('')
