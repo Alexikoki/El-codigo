@@ -1,11 +1,18 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function FormularioClientePage({ params }) {
-  const id = params.id
+  const [id, setId] = useState('')
   const [form, setForm] = useState({ nombre: '', email: '', numPersonas: 1 })
   const [estado, setEstado] = useState('formulario')
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    // Extraer el ID directamente de la URL
+    const segmentos = window.location.pathname.split('/')
+    const token = segmentos[segmentos.length - 1]
+    setId(token)
+  }, [])
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
@@ -16,6 +23,10 @@ export default function FormularioClientePage({ params }) {
     }
     if (!form.email.includes('@')) {
       setError('Email no válido')
+      return
+    }
+    if (!id) {
+      setError('Error: QR no válido')
       return
     }
     setError('')
