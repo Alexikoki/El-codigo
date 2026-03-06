@@ -19,7 +19,7 @@ export default function SuperAdminPage() {
     const res = await fetch('/api/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password, tipo: email })
     })
     const data = await res.json()
     if (!res.ok || data.rol !== 'superadmin') {
