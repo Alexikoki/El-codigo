@@ -1,21 +1,14 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { verificarFirmaQR } from '../../../../lib/qr'
 import { rateLimit, getIP } from '../../../../lib/rateLimit'
 
 export async function GET(request, { params }) {
-  const { id } = params
-
-  // Verificar firma del QR personal
-  const clienteId = verificarFirmaQR(id)
-  if (!clienteId) {
-    return NextResponse.json({ error: 'QR inválido' }, { status: 400 })
-  }
+  const id = Array.isArray(params.id) ? params.id.join('-') : params.id
 
   const { data: cliente } = await supabaseAdmin
     .from('clientes')
     .select('*, empresas(nombre, descuento)')
-    .eq('id', clienteId)
+    .eq('id', id)
     .single()
 
   if (!cliente) {
@@ -33,21 +26,12 @@ export async function GET(request, { params }) {
 }
 
 export async function POST(request, { params }) {
-  const { id } = params
+  const id = Array.isArray(params.id) ? params.id.join('-') : params.id
   const ip = getIP(request)
 
   const { bloqueado } = rateLimit(ip, 5, 60000)
   if (bloqueado) {
-    return NextResponse.json(
-      { error: 'Demasiados intentos.' },
-      { status: 429 }
-    )
-  }
-
-  // Verificar firma del QR personal
-  const clienteId = verificarFirmaQR(id)
-  if (!clienteId) {
-    return NextResponse.json({ error: 'QR inválido' }, { status: 400 })
+    return NextResponse.json({ error: 'Demasiados intentos.' }, { status: 429 })
   }
 
   const { gasto, valoracion } = await request.json()
@@ -60,11 +44,10 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: 'Valoración inválida' }, { status: 400 })
   }
 
-  // Verificar que no haya valorado ya
   const { data: cliente } = await supabaseAdmin
     .from('clientes')
     .select('valoracion, empresa_id')
-    .eq('id', clienteId)
+    .eq('id', id)
     .single()
 
   if (!cliente) {
@@ -75,7 +58,6 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: 'Ya has valorado' }, { status: 400 })
   }
 
-  // Guardar valoración
   await supabaseAdmin
     .from('clientes')
     .update({
@@ -85,12 +67,12 @@ export async function POST(request, { params }) {
       verificado: true,
       verificado_at: new Date().toISOString()
     })
-    .eq('id', clienteId)
+    .eq('id', id)
 
   await supabaseAdmin
     .from('valoraciones')
     .insert({
-      cliente_id: clienteId,
+      cliente_id: id,
       empresa_id: cliente.empresa_id,
       gasto,
       valoracion

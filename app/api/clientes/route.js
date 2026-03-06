@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
-import { verificarFirmaQR } from '../../../lib/qr'
 import { rateLimit, getIP } from '../../../lib/rateLimit'
 import { registrarAudit } from '../../../lib/audit'
+import { enviarQRPersonal } from '../../../lib/email'
 
 export async function POST(request) {
   const ip = getIP(request)
 
-  // Rate limiting: max 20 registros por minuto por IP
   const { bloqueado } = rateLimit(ip, 20, 60000)
   if (bloqueado) {
     return NextResponse.json(
@@ -22,17 +21,11 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
   }
 
-  // Verificar firma del QR
-  const tokenValido = verificarFirmaQR(qrToken)
-  if (!tokenValido) {
-    return NextResponse.json({ error: 'QR inválido' }, { status: 400 })
-  }
-
-  // Buscar referidor
+  // Buscar referidor con empresa y descuento
   const { data: referidor } = await supabaseAdmin
     .from('referidores')
-    .select('*, empresas(*)')
-    .eq('qr_token', tokenValido)
+    .select('*, empresas(id, nombre, descuento)')
+    .eq('qr_token', qrToken)
     .eq('activo', true)
     .single()
 
@@ -57,6 +50,25 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Error al registrar' }, { status: 500 })
   }
 
+  // Guardar qr_personal con el ID del cliente
+  await supabaseAdmin
+    .from('clientes')
+    .update({ qr_personal: cliente.id })
+    .eq('id', cliente.id)
+
+  // Enviar email con QR personal
+  try {
+    await enviarQRPersonal({
+      nombre,
+      email,
+      clienteId: cliente.id,
+      empresaNombre: referidor.empresas.nombre,
+      descuento: referidor.empresas.descuento
+    })
+  } catch (e) {
+    console.error('Error enviando email:', e)
+  }
+
   await registrarAudit({
     tabla: 'clientes',
     accion: 'registro',
@@ -65,5 +77,5 @@ export async function POST(request) {
     ip
   })
 
-  return NextResponse.json({ ok: true, cliente }, { status: 201 })
+  return NextResponse.json({ ok: true }, { status: 201 })
 }
