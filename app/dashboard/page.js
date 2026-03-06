@@ -47,7 +47,7 @@ export default function DashboardPage() {
     if (res.ok) {
       setReferidores([data.referidor, ...referidores])
       setNuevoReferidor('')
-      setQrVisible({ id: data.referidor.id, url: data.qrUrl })
+      setQrVisible({ id: data.referidor.id, url: data.qrUrl, imagen: data.qrImage })
     }
   }
 
@@ -89,7 +89,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white border-b px-6 py-4 flex justify-between items-center">
         <div>
           <h1 className="text-xl font-bold text-gray-800">{empresa?.nombre}</h1>
@@ -101,7 +100,6 @@ export default function DashboardPage() {
       </div>
 
       <div className="max-w-4xl mx-auto p-6">
-        {/* Tabs */}
         <div className="flex gap-2 mb-6">
           {['stats', 'referidores', 'clientes'].map(t => (
             <button
@@ -116,7 +114,6 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Stats */}
         {tab === 'stats' && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
@@ -133,7 +130,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Referidores */}
         {tab === 'referidores' && (
           <div className="space-y-4">
             <div className="bg-white rounded-xl p-4 shadow-sm flex gap-2">
@@ -154,18 +150,23 @@ export default function DashboardPage() {
             </div>
 
             {qrVisible && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
-                <p className="text-sm font-medium text-blue-800 mb-2">QR creado. Comparte esta URL:</p>
-                <p className="text-xs text-blue-600 break-all mb-3">{qrVisible.url}</p>
-                <button
-                  onClick={() => { navigator.clipboard.writeText(qrVisible.url); }}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
-                >
-                  Copiar enlace
-                </button>
-                <button onClick={() => setQrVisible(null)} className="ml-2 text-sm text-gray-400 hover:text-gray-600">
-                  Cerrar
-                </button>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+                <p className="text-sm font-medium text-blue-800 mb-4">QR listo para compartir</p>
+                {qrVisible.imagen && (
+                  <img src={qrVisible.imagen} alt="QR" className="w-48 h-48 mx-auto mb-4 rounded-lg" />
+                )}
+                <p className="text-xs text-blue-600 break-all mb-4">{qrVisible.url}</p>
+                <div className="flex justify-center gap-2">
+                  <button
+                    onClick={() => navigator.clipboard.writeText(qrVisible.url)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
+                  >
+                    Copiar enlace
+                  </button>
+                  <button onClick={() => setQrVisible(null)} className="text-sm text-gray-400 hover:text-gray-600 px-4 py-2">
+                    Cerrar
+                  </button>
+                </div>
               </div>
             )}
 
@@ -191,7 +192,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Clientes */}
         {tab === 'clientes' && (
           <div className="space-y-4">
             <div className="flex justify-end">
@@ -208,6 +208,7 @@ export default function DashboardPage() {
                   <div>
                     <p className="font-medium text-gray-800">{c.nombre}</p>
                     <p className="text-sm text-gray-400">{c.email} · {c.num_personas} persona{c.num_personas > 1 ? 's' : ''}</p>
+                    {c.gasto && <p className="text-sm text-green-600 font-medium">{c.gasto}€ · {'⭐'.repeat(c.valoracion)}</p>}
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                     c.verificado ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'

@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { verificarToken, extraerToken } from '../../../lib/jwt'
-import { generarQRToken, firmarToken } from '../../../lib/qr'
+import { generarQRToken, generarQRImage } from '../../../lib/qr'
 import { registrarAudit } from '../../../lib/audit'
-import { getIP } from '../../../lib/rateLimit'
 
 export async function GET(request) {
   const payload = verificarToken(extraerToken(request))
@@ -15,13 +14,13 @@ export async function GET(request) {
     .from('referidores')
     .select('*')
     .eq('empresa_id', payload.empresaId)
+    .eq('activo', true)
     .order('created_at', { ascending: false })
 
-  return NextResponse.json({ referidores })
+  return NextResponse.json({ referidores: referidores || [] })
 }
 
 export async function POST(request) {
-  const ip = getIP(request)
   const payload = verificarToken(extraerToken(request))
   if (!payload || payload.rol !== 'empresa') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -32,16 +31,18 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Falta el nombre' }, { status: 400 })
   }
 
-  // Generar QR token firmado
-  const tokenBase = generarQRToken()
-  const qrToken = firmarToken(tokenBase)
+  const qrToken = generarQRToken()
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+  const qrUrl = `${appUrl}/r/${qrToken}`
+  const qrImage = await generarQRImage(qrUrl)
 
   const { data: referidor, error } = await supabaseAdmin
     .from('referidores')
     .insert({
       empresa_id: payload.empresaId,
       nombre,
-      qr_token: tokenBase
+      qr_token: qrToken,
+      activo: true
     })
     .select()
     .single()
@@ -55,18 +56,13 @@ export async function POST(request) {
     accion: 'crear',
     registroId: referidor.id,
     empresaId: payload.empresaId,
-    ip
+    ip: request.headers.get('x-forwarded-for') || 'unknown'
   })
 
-  // URL del QR
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  const qrUrl = `${baseUrl}/r/${qrToken}`
-
-  return NextResponse.json({ referidor, qrUrl }, { status: 201 })
+  return NextResponse.json({ referidor, qrUrl, qrImage }, { status: 201 })
 }
 
 export async function DELETE(request) {
-  const ip = getIP(request)
   const payload = verificarToken(extraerToken(request))
   if (!payload || payload.rol !== 'empresa') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -74,23 +70,11 @@ export async function DELETE(request) {
 
   const { id } = await request.json()
 
-  const { error } = await supabaseAdmin
+  await supabaseAdmin
     .from('referidores')
     .update({ activo: false })
     .eq('id', id)
     .eq('empresa_id', payload.empresaId)
-
-  if (error) {
-    return NextResponse.json({ error: 'Error al eliminar' }, { status: 500 })
-  }
-
-  await registrarAudit({
-    tabla: 'referidores',
-    accion: 'desactivar',
-    registroId: id,
-    empresaId: payload.empresaId,
-    ip
-  })
 
   return NextResponse.json({ ok: true })
 }
