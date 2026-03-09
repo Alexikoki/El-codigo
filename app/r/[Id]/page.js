@@ -1,18 +1,28 @@
 'use client'
 import { useState, useEffect } from 'react'
 
-export default function FormularioClientePage({ params }) {
+export default function FormularioClientePage() {
   const [id, setId] = useState('')
+  const [referidor, setReferidor] = useState(null)
   const [form, setForm] = useState({ nombre: '', email: '', numPersonas: 1 })
-  const [estado, setEstado] = useState('formulario')
+  const [estado, setEstado] = useState('cargando')
   const [error, setError] = useState('')
 
   useEffect(() => {
-    // Extraer el ID directamente de la URL
     const segmentos = window.location.pathname.split('/')
     const token = segmentos[segmentos.length - 1]
     setId(token)
+    cargarReferidor(token)
   }, [])
+
+  const cargarReferidor = async (token) => {
+    const res = await fetch(`/api/referidor-publico?token=${token}`)
+    if (res.ok) {
+      const data = await res.json()
+      setReferidor(data)
+    }
+    setEstado('formulario')
+  }
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
@@ -23,10 +33,6 @@ export default function FormularioClientePage({ params }) {
     }
     if (!form.email.includes('@')) {
       setError('Email no válido')
-      return
-    }
-    if (!id) {
-      setError('Error: QR no válido')
       return
     }
     setError('')
@@ -54,6 +60,14 @@ export default function FormularioClientePage({ params }) {
     setEstado('exito')
   }
 
+  if (estado === 'cargando') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-400">Cargando...</p>
+      </div>
+    )
+  }
+
   if (estado === 'exito') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -70,8 +84,17 @@ export default function FormularioClientePage({ params }) {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center text-gray-800 mb-1">Bienvenido</h1>
-        <p className="text-center text-gray-400 text-sm mb-8">Rellena tus datos para recibir tu descuento</p>
+
+        {referidor && (
+          <div className="text-center mb-6">
+            <p className="text-sm text-gray-400">Reserva con</p>
+            <h2 className="text-2xl font-bold text-blue-600">{referidor.nombre}</h2>
+            <p className="text-sm text-gray-400 mt-1">{referidor.empresaNombre}</p>
+          </div>
+        )}
+
+        <h1 className="text-xl font-bold text-center text-gray-800 mb-1">Bienvenido</h1>
+        <p className="text-center text-gray-400 text-sm mb-6">Rellena tus datos para recibir tu descuento</p>
 
         <div className="space-y-4">
           <input
