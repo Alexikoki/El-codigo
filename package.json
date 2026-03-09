@@ -12,6 +12,7 @@
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/supabase-js": "^2.98.0",
     "bcryptjs": "^3.0.3",
+    "html5-qrcode": "^2.3.8",
     "jsonwebtoken": "^9.0.3",
     "next": "16.1.6",
     "qrcode": "^1.5.4",
