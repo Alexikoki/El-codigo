@@ -1,47 +1,46 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { rateLimit, getIP } from '../../../lib/rateLimit'
-import { registrarAudit } from '../../../lib/audit'
-import { enviarQRPersonal } from '../../../lib/email'
+import { generarCodigoConfirmacion } from '../../../lib/qr'
+import { enviarCodigoConfirmacion } from '../../../lib/email'
 
 export async function POST(request) {
   const ip = getIP(request)
-
   const { bloqueado } = rateLimit(ip, 20, 60000)
   if (bloqueado) {
-    return NextResponse.json(
-      { error: 'Demasiados intentos. Espera 1 minuto.' },
-      { status: 429 }
-    )
+    return NextResponse.json({ error: 'Demasiados intentos' }, { status: 429 })
   }
 
-  const { nombre, email, numPersonas, qrToken } = await request.json()
+  const { nombre, email, numPersonas, qrToken, lugarId } = await request.json()
 
-  if (!nombre || !email || !qrToken) {
+  if (!nombre || !email || !qrToken || !lugarId) {
     return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
   }
 
-  // Buscar referidor con empresa y descuento
   const { data: referidor } = await supabaseAdmin
     .from('referidores')
-    .select('*, empresas(id, nombre, descuento)')
+    .select('id')
     .eq('qr_token', qrToken)
     .eq('activo', true)
     .single()
 
   if (!referidor) {
-    return NextResponse.json({ error: 'QR no encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'QR no válido' }, { status: 404 })
   }
 
-  // Registrar cliente
+  const codigo = generarCodigoConfirmacion()
+  const expira = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+
   const { data: cliente, error } = await supabaseAdmin
     .from('clientes')
     .insert({
       referidor_id: referidor.id,
-      empresa_id: referidor.empresa_id,
+      lugar_id: lugarId,
       nombre,
       email,
-      num_personas: numPersonas || 1
+      num_personas: numPersonas || 1,
+      codigo_confirmacion: codigo,
+      codigo_expira_at: expira
     })
     .select()
     .single()
@@ -50,32 +49,11 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Error al registrar' }, { status: 500 })
   }
 
-  // Guardar qr_personal con el ID del cliente
-  await supabaseAdmin
-    .from('clientes')
-    .update({ qr_personal: cliente.id })
-    .eq('id', cliente.id)
-
-  // Enviar email con QR personal
   try {
-    await enviarQRPersonal({
-      nombre,
-      email,
-      clienteId: cliente.id,
-      empresaNombre: referidor.empresas.nombre,
-      descuento: referidor.empresas.descuento
-    })
+    await enviarCodigoConfirmacion({ nombre, email, codigo })
   } catch (e) {
     console.error('Error enviando email:', e)
   }
 
-  await registrarAudit({
-    tabla: 'clientes',
-    accion: 'registro',
-    registroId: cliente.id,
-    empresaId: referidor.empresa_id,
-    ip
-  })
-
-  return NextResponse.json({ ok: true }, { status: 201 })
+  return NextResponse.json({ ok: true, clienteId: cliente.id }, { status: 201 })
 }

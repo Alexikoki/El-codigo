@@ -1,70 +1,49 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { verificarToken, extraerToken } from '../../../lib/jwt'
-import { verificarFirmaQR } from '../../../lib/qr'
-import { registrarAudit } from '../../../lib/audit'
-import { rateLimit, getIP } from '../../../lib/rateLimit'
 
 export async function POST(request) {
-  const ip = getIP(request)
-
-  const { bloqueado } = rateLimit(ip, 30, 60000)
-  if (bloqueado) {
-    return NextResponse.json(
-      { error: 'Demasiados intentos. Espera 1 minuto.' },
-      { status: 429 }
-    )
-  }
-
   const payload = verificarToken(extraerToken(request))
-  if (!payload || payload.rol !== 'camarero') {
+  if (!payload || payload.rol !== 'staff') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
-  const { qrPersonal } = await request.json()
-  if (!qrPersonal) {
-    return NextResponse.json({ error: 'Falta el QR' }, { status: 400 })
-  }
+  const { clienteId } = await request.json()
 
-  // Verificar firma del QR personal
-  const clienteId = verificarFirmaQR(qrPersonal)
-  if (!clienteId) {
-    return NextResponse.json({ error: 'QR inválido' }, { status: 400 })
-  }
-
-  // Buscar cliente
   const { data: cliente } = await supabaseAdmin
     .from('clientes')
-    .select('*')
+    .select('*, lugares(nombre)')
     .eq('id', clienteId)
-    .eq('empresa_id', payload.empresaId)
+    .eq('lugar_id', payload.lugarId)
     .single()
 
   if (!cliente) {
-    return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'QR no válido para este local' }, { status: 404 })
+  }
+
+  if (!cliente.confirmado) {
+    return NextResponse.json({ error: 'Cliente no ha confirmado su email' }, { status: 400 })
+  }
+
+  if (new Date() > new Date(cliente.qr_expira_at)) {
+    return NextResponse.json({ error: 'QR expirado' }, { status: 400 })
   }
 
   if (cliente.verificado) {
-    return NextResponse.json({ error: 'Cliente ya verificado' }, { status: 400 })
+    return NextResponse.json({ error: 'QR ya utilizado' }, { status: 400 })
   }
 
-  // Verificar cliente
   await supabaseAdmin
     .from('clientes')
-    .update({
-      verificado: true,
-      verificado_at: new Date().toISOString(),
-      verificado_por: payload.camareroId
-    })
+    .update({ verificado: true, verificado_at: new Date().toISOString() })
     .eq('id', clienteId)
 
-  await registrarAudit({
-    tabla: 'clientes',
-    accion: 'verificacion',
-    registroId: clienteId,
-    empresaId: payload.empresaId,
-    ip
+  return NextResponse.json({
+    ok: true,
+    cliente: {
+      nombre: cliente.nombre,
+      numPersonas: cliente.num_personas,
+      email: cliente.email
+    }
   })
-
-  return NextResponse.json({ ok: true, cliente })
 }

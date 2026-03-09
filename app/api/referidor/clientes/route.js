@@ -4,14 +4,15 @@ import { verificarToken, extraerToken } from '../../../../lib/jwt'
 
 export async function GET(request) {
   const payload = verificarToken(extraerToken(request))
-  if (!payload || payload.rol !== 'superadmin') {
+  if (!payload || payload.rol !== 'referidor') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
-  const { data: clientes } = await supabaseAdmin
+  const { data } = await supabaseAdmin
     .from('clientes')
-    .select('*')
+    .select('*, lugares(nombre)')
+    .eq('referidor_id', payload.referidorId)
     .order('created_at', { ascending: false })
 
-  return NextResponse.json({ clientes: clientes || [] })
+  return NextResponse.json({ clientes: data || [] })
 }

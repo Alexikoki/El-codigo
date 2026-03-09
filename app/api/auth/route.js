@@ -1,74 +1,53 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { generarToken } from '../../../lib/jwt'
-import { rateLimit, getIP } from '../../../lib/rateLimit'
-import { registrarAudit } from '../../../lib/audit'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request) {
-  const ip = getIP(request)
-
-  // Rate limiting: max 5 intentos por minuto
-  const { bloqueado } = rateLimit(ip, 5, 60000)
-  if (bloqueado) {
-    return NextResponse.json(
-      { error: 'Demasiados intentos. Espera 1 minuto.' },
-      { status: 429 }
-    )
-  }
-
   const { email, password, tipo } = await request.json()
 
   if (!email || !password) {
     return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
   }
 
-  // Login admin
-  if (tipo === 'admin' && email === 'admin') {
-    const valido = password === process.env.ADMIN_PASSWORD
-    if (!valido) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
-    const token = generarToken({ rol: 'admin' })
-    return NextResponse.json({ token, rol: 'admin' })
+  // Superadmin
+  if (tipo === 'superadmin') {
+    if (password === process.env.SUPERADMIN_PASSWORD) {
+      const token = generarToken({ rol: 'superadmin' })
+      return NextResponse.json({ token, rol: 'superadmin' })
+    }
+    return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
   }
 
-  // Login superadmin
-  if (tipo === 'superadmin' && email === 'superadmin') {
-    const valido = password === process.env.SUPERADMIN_PASSWORD
-    if (!valido) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
-    const token = generarToken({ rol: 'superadmin' })
-    return NextResponse.json({ token, rol: 'superadmin' })
+  // Referidor
+  if (tipo === 'referidor') {
+    const { data: referidor } = await supabaseAdmin
+      .from('referidores')
+      .select('*')
+      .eq('email', email)
+      .eq('activo', true)
+      .single()
+
+    if (!referidor) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
+    const ok = await bcrypt.compare(password, referidor.password_hash)
+    if (!ok) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
+
+    const token = generarToken({ rol: 'referidor', referidorId: referidor.id, nombre: referidor.nombre })
+    return NextResponse.json({ token, rol: 'referidor', referidor: { id: referidor.id, nombre: referidor.nombre, email: referidor.email } })
   }
 
-  // Login empresa
-  const { data: empresa } = await supabaseAdmin
-    .from('empresas')
-    .select('*')
+  // Staff
+  const { data: staff } = await supabaseAdmin
+    .from('staff')
+    .select('*, lugares(nombre)')
     .eq('email', email)
     .eq('activo', true)
     .single()
 
-  if (empresa) {
-    const valido = await bcrypt.compare(password, empresa.password_hash)
-    if (!valido) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
-    const token = generarToken({ rol: 'empresa', empresaId: empresa.id })
-    await registrarAudit({ tabla: 'empresas', accion: 'login', registroId: empresa.id, empresaId: empresa.id, ip })
-    return NextResponse.json({ token, rol: 'empresa', empresa })
-  }
+  if (!staff) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
+  const ok = await bcrypt.compare(password, staff.password_hash)
+  if (!ok) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
 
-  // Login camarero
-  const { data: camarero } = await supabaseAdmin
-    .from('camareros')
-    .select('*')
-    .eq('email', email)
-    .eq('activo', true)
-    .single()
-
-  if (camarero) {
-    const valido = await bcrypt.compare(password, camarero.password_hash)
-    if (!valido) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
-    const token = generarToken({ rol: 'camarero', camareroId: camarero.id, empresaId: camarero.empresa_id })
-    return NextResponse.json({ token, rol: 'camarero', camarero })
-  }
-
-  return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
+  const token = generarToken({ rol: 'staff', staffId: staff.id, lugarId: staff.lugar_id, nombre: staff.nombre })
+  return NextResponse.json({ token, rol: 'staff', staff: { id: staff.id, nombre: staff.nombre, lugarNombre: staff.lugares.nombre } })
 }
