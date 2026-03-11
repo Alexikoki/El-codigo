@@ -85,6 +85,7 @@ export async function GET(request) {
         }
 
         // Convertimos la plantilla a Buffer Stream para descarga HTTP
+        // eslint-disable-next-line react-hooks/error-boundaries
         const stream = await renderToStream(<FacturaPDF datos={datosCompilados} />)
 
         // Devolvemos la respuesta como un flujo de archivo PDF puro

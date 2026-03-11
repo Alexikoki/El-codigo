@@ -4,7 +4,6 @@ import { useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, ChevronRight, Mail, MapPin, Users, TicketPercent } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
-import { useTranslations } from 'next-intl'
 
 export default function FormularioClientePage() {
   const [qrToken, setQrToken] = useState('')
@@ -16,8 +15,6 @@ export default function FormularioClientePage() {
   const [codigo, setCodigo] = useState('')
   const [error, setError] = useState('')
   const [cfToken, setCfToken] = useState('')
-  const t = useTranslations('Formulario')
-
   const params = useParams()
 
   useEffect(() => {
@@ -48,11 +45,11 @@ export default function FormularioClientePage() {
 
   const handleSubmit = async () => {
     if (!form.nombre || !form.email || !form.lugarId) {
-      setError(t('clubError'))
+      setError('Por favor rellena el local al que asistes');
       return
     }
     if (!form.email.includes('@')) { setError('Email no válido'); return }
-    if (!cfToken) { setError(t('captchaError')); return }
+    if (!cfToken) { setError('Por favor, completa el Captcha'); return }
 
     setError('')
     setEstado('enviando')
@@ -210,9 +207,9 @@ export default function FormularioClientePage() {
 
             {referidor && (
               <div className="text-center mb-8 pb-6 border-b border-white/5">
-                <p className="text-xs tracking-widest text-gray-500 uppercase mb-2">{t('subtitle')}</p>
+                <p className="text-xs tracking-widest text-gray-500 uppercase mb-2">Pase VIP de Invitado</p>
                 <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
-                  {t('title')} - {referidor.nombre}
+                  Lista de - {referidor.nombre}
                 </h2>
               </div>
             )}
@@ -223,7 +220,7 @@ export default function FormularioClientePage() {
                 <input
                   type="text"
                   name="nombre"
-                  placeholder={t('namePlaceholder')}
+                  placeholder="Tu Nombre y Apellidos"
                   value={form.nombre}
                   onChange={handleChange}
                   className="w-full bg-black/20 border border-white/10 hover:border-white/20 focus:border-blue-500 rounded-xl pl-12 pr-4 py-3.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-gray-600"
@@ -235,7 +232,7 @@ export default function FormularioClientePage() {
                 <input
                   type="email"
                   name="email"
-                  placeholder={t('emailPlaceholder')}
+                  placeholder="Tu Correo Electrónico"
                   value={form.email}
                   onChange={handleChange}
                   className="w-full bg-black/20 border border-white/10 hover:border-white/20 focus:border-blue-500 rounded-xl pl-12 pr-4 py-3.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-gray-600"
@@ -265,7 +262,7 @@ export default function FormularioClientePage() {
                     onChange={handleChange}
                     className="w-full bg-black/20 border border-white/10 hover:border-white/20 focus:border-blue-500 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all appearance-none"
                   >
-                    <option className="bg-gray-900" value="">{t('lugarPlaceholder')}</option>
+                    <option className="bg-gray-900" value="">Selecciona el Local / Discoteca</option>
                     {lugares.map(l => (
                       <option className="bg-gray-900" key={l.id} value={l.id}>{l.nombre}</option>
                     ))}
@@ -304,7 +301,7 @@ export default function FormularioClientePage() {
               onClick={handleSubmit}
               className="w-full mt-6 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.2)] hover:shadow-[0_0_30px_rgba(59,130,246,0.4)]"
             >
-              {t('submitBtn')} <ChevronRight size={18} />
+              Generar mi Código <ChevronRight size={18} />
             </button>
           </motion.div>
         )}

@@ -281,7 +281,7 @@ export default function AgenciaPage() {
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
                         <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-md glass-panel p-6 rounded-3xl">
-                            <h3 className="text-xl font-bold mb-4">Añadir Promotor</h4>
+                            <h3 className="text-xl font-bold mb-4">Añadir Promotor</h3>
                             <form onSubmit={handleCrearPromotor} className="space-y-4">
                                 <div>
                                     <label className="text-xs text-gray-400 mb-1 block">Nombre/Alias</label>

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '../../../../../lib/supabase'
-import { verificarToken, extraerToken } from '../../../../../lib/jwt'
-import { generarQRToken } from '../../../../../lib/qr'
+import { supabaseAdmin } from '../../../../lib/supabase'
+import { verificarToken, extraerToken } from '../../../../lib/jwt'
+import { generarQRToken } from '../../../../lib/qr'
 import bcrypt from 'bcryptjs'
 
 export async function GET(request) {

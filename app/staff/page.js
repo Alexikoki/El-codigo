@@ -2,8 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera, LogOut, CheckCircle2, AlertCircle, History, Maximize } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { Camera, LogOut, CheckCircle2, AlertCircle, History, Maximize, Users } from 'lucide-react'
 
 export default function StaffPage() {
   const [staff, setStaff] = useState(null)
@@ -14,7 +13,6 @@ export default function StaffPage() {
   const [historial, setHistorial] = useState([])
   const html5QrRef = useRef(null)
   const router = useRouter()
-  const t = useTranslations('Scanner')
 
   useEffect(() => {
     const t = localStorage.getItem('token')
@@ -49,8 +47,7 @@ export default function StaffPage() {
           () => { } // Ignorar advertencias de escaneo
         )
       } catch (e) {
-        setEscaneando(false)
-        setError(t('cameraError'))
+        setError('Error al acceder a la cámara')
       }
     }, 300)
   }
@@ -70,7 +67,7 @@ export default function StaffPage() {
     })
 
     const data = await res.json()
-    if (!res.ok) { setError(data.error || t('invalid')); return }
+    if (!res.ok) { setError(data?.error || 'QR no válido o ya usado'); return }
 
     setResultado(data)
     setHistorial(prev => [{
@@ -101,9 +98,7 @@ export default function StaffPage() {
         className="sticky top-0 z-50 glass-panel border-b-0 border-white/5 px-6 py-4 flex justify-between items-center"
       >
         <div>
-          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-            {t('title')}
-          </h1>
+          Escanear Código QR
           <p className="text-xs text-gray-400 font-light">{staff?.nombre} · {staff?.lugarNombre}</p>
         </div>
         <button
@@ -132,15 +127,14 @@ export default function StaffPage() {
                 <div className="w-24 h-24 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-blue-500/20 group-hover:scale-110 transition-transform duration-500">
                   <Maximize size={40} className="text-blue-400" />
                 </div>
-
-                <h2 className="text-xl font-bold text-white mb-2">{t('title')}</h2>
-                <p className="text-gray-400 text-sm mb-8 font-light">{t('subtitle')}</p>
+                <h2 className="text-xl font-bold text-white mb-2">Escanear Invitación</h2>
+                <p className="text-gray-400 text-sm mb-8 font-light">Enfoca el código de barras</p>
 
                 <button
                   onClick={iniciarEscaner}
                   className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold py-4 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] transition-all"
                 >
-                  <Camera size={20} /> {t('scanQr')}
+                  <Camera size={20} /> Abrir Escáner
                 </button>
               </div>
             </motion.div>
@@ -207,13 +201,13 @@ export default function StaffPage() {
                   onClick={() => router.push(`/valorar/${resultado.cliente.id}`)}
                   className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all flex items-center justify-center gap-2"
                 >
-                  {t('successValoration')}
+                  Registrar Consumo y Ganancias
                 </button>
                 <button
                   onClick={() => setResultado(null)}
                   className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-white font-medium py-3 rounded-xl transition-all"
                 >
-                  {t('scanQr')}
+                  Escanear a otra persona
                 </button>
               </div>
             </motion.div>
@@ -222,56 +216,60 @@ export default function StaffPage() {
         </AnimatePresence>
 
         {/* ERROR FLOTANTE */}
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            className="w-full mt-6 bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-center"
-          >
-            <AlertCircle className="text-red-400 mx-auto mb-2" size={24} />
-            <p className="text-red-300 font-medium text-sm mb-2">{error}</p>
-            <button onClick={() => setError('')} className="text-xs text-red-400 hover:text-red-300 underline">
-              Intentar de nuevo
-            </button>
-          </motion.div>
-        )}
+        {
+          error && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              className="w-full mt-6 bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-center"
+            >
+              <AlertCircle className="text-red-400 mx-auto mb-2" size={24} />
+              <p className="text-red-300 font-medium text-sm mb-2">{error}</p>
+              <button onClick={() => setError('')} className="text-xs text-red-400 hover:text-red-300 underline">
+                Intentar de nuevo
+              </button>
+            </motion.div>
+          )
+        }
 
         {/* HISTORIAL (Solo si hay) */}
-        {historial.length > 0 && !escaneando && !resultado && (
-          <motion.div
-            variants={containerVars} initial="hidden" animate="show"
-            className="w-full mt-8"
-          >
-            <h3 className="text-sm font-semibold text-gray-500 mb-4 flex items-center gap-2">
-              <History size={16} /> Verificados últimamente
-            </h3>
-            <div className="space-y-3">
-              {historial.map((h, i) => (
-                <motion.div
-                  key={i} variants={itemVars}
-                  className="flex justify-between items-center py-3 px-4 bg-white/5 border border-white/5 rounded-xl"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                      <CheckCircle2 size={16} />
+        {
+          historial.length > 0 && !escaneando && !resultado && (
+            <motion.div
+              variants={containerVars} initial="hidden" animate="show"
+              className="w-full mt-8"
+            >
+              <h3 className="text-sm font-semibold text-gray-500 mb-4 flex items-center gap-2">
+                <History size={16} /> Verificados últimamente
+              </h3>
+              <div className="space-y-3">
+                {historial.map((h, i) => (
+                  <motion.div
+                    key={i} variants={itemVars}
+                    className="flex justify-between items-center py-3 px-4 bg-white/5 border border-white/5 rounded-xl"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <CheckCircle2 size={16} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-white">{h.nombre}</p>
+                        <p className="text-xs text-gray-400">{h.personas} {h.personas > 1 ? 'personas' : 'persona'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-white">{h.nombre}</p>
-                      <p className="text-xs text-gray-400">{h.personas} {h.personas > 1 ? 'personas' : 'persona'}</p>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-xs text-gray-500 font-mono">{h.hora}</span>
+                      <button onClick={() => router.push(`/valorar/${h.id}`)} className="text-xs text-blue-400 hover:text-blue-300 underline">
+                        Valorar
+                      </button>
                     </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="text-xs text-gray-500 font-mono">{h.hora}</span>
-                    <button onClick={() => router.push(`/valorar/${h.id}`)} className="text-xs text-blue-400 hover:text-blue-300 underline">
-                      Valorar
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )
+        }
 
-      </main>
-    </div>
+      </main >
+    </div >
   )
 }

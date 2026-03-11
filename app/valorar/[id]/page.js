@@ -2,21 +2,18 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Star, Euro, CheckCircle2, HeartHandshake, MapPin } from 'lucide-react'
-import { useTranslations } from 'next-intl'
-
 export default function ValorarPage({ params }) {
   const [info, setInfo] = useState(null)
   const [estado, setEstado] = useState('cargando') // cargando, formulario, enviando, exito, yaValorado
   const [gasto, setGasto] = useState('')
   const [valoracion, setValoracion] = useState(0)
   const [error, setError] = useState('')
-  const t = useTranslations('Scanner')
 
   useEffect(() => {
     cargarInfo()
   }, [])
 
-  const cargarInfo = async () => {
+  async function cargarInfo() {
     const typeofWindow = typeof window !== 'undefined'
     if (!typeofWindow) return;
 
@@ -35,7 +32,7 @@ export default function ValorarPage({ params }) {
   }
 
   const handleSubmit = async () => {
-    if (!gasto || !valoracion) { setError(t('gastoObligatorio')); return }
+    if (!gasto || !valoracion) { setError('Introduce tu gasto y valoración'); return }
     setError('')
     setEstado('enviando')
 
@@ -128,7 +125,7 @@ export default function ValorarPage({ params }) {
                 <Star size={32} />
               </motion.div>
               <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400 mb-1">
-                {t('successValoration')}
+                Valorar Experiencia
               </h1>
               {info && (
                 <p className="text-sm font-medium text-gray-400 flex items-center justify-center gap-1.5 mt-2">
@@ -141,7 +138,7 @@ export default function ValorarPage({ params }) {
 
               {/* Bloque Gasto */}
               <div>
-                <label className="text-sm font-medium text-gray-300 mb-2 block">{t('amountPlaceholder')}</label>
+                <label className="text-sm font-medium text-gray-300 mb-2 block">Gasto Estimado (€)</label>
                 <div className="relative">
                   <Euro className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                   <input
@@ -156,7 +153,7 @@ export default function ValorarPage({ params }) {
 
               {/* Bloque Estrellas */}
               <div>
-                <label className="text-sm font-medium text-gray-300 mb-3 block text-center">{t('stars')}</label>
+                <label className="text-sm font-medium text-gray-300 mb-3 block text-center">Valoración (1-5 Estrellas)</label>
                 <div className="flex gap-2 justify-center">
                   {[1, 2, 3, 4, 5].map(n => (
                     <motion.button
@@ -188,7 +185,7 @@ export default function ValorarPage({ params }) {
               disabled={estado === 'enviando'}
               className="w-full mt-8 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.2)] hover:shadow-[0_0_30px_rgba(168,85,247,0.4)] disabled:opacity-50"
             >
-              {estado === 'enviando' ? '...' : t('confirm')}
+              {estado === 'enviando' ? '...' : 'Confirmar'}
             </button>
           </motion.div>
         )}
