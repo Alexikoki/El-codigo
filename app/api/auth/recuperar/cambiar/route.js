@@ -65,3 +65,4 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Error interno de cifrado.' }, { status: 500 })
     }
 }
+

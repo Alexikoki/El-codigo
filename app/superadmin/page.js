@@ -145,7 +145,7 @@ export default function SuperadminPage() {
           </div>
         </div>
         <button
-          onClick={() => { localStorage.clear(); router.push('/login') }}
+          onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).finally(() => { localStorage.clear(); router.push('/login') }) }}
           className="flex items-center gap-2 text-sm text-gray-400 hover:text-red-400 transition-colors"
         >
           <LogOut size={16} /> <span className="hidden sm:inline">Desconectar</span>
@@ -428,3 +428,4 @@ export default function SuperadminPage() {
     </div>
   )
 }
+

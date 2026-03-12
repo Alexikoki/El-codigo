@@ -9,10 +9,6 @@ export default function ValorarPage({ params }) {
   const [valoracion, setValoracion] = useState(0)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    cargarInfo()
-  }, [])
-
   async function cargarInfo() {
     const typeofWindow = typeof window !== 'undefined'
     if (!typeofWindow) return;
@@ -30,6 +26,11 @@ export default function ValorarPage({ params }) {
       setEstado('error')
     }
   }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    cargarInfo()
+  }, [])
 
   const handleSubmit = async () => {
     if (!gasto || !valoracion) { setError('Introduce tu gasto y valoración'); return }

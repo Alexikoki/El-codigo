@@ -65,3 +65,4 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Fallo enviando correo de recuperación.' }, { status: 500 })
     }
 }
+

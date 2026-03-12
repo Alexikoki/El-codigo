@@ -3,7 +3,7 @@ import { renderToStream } from '@react-pdf/renderer'
 import React from 'react'
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { supabaseAdmin } from '../../../lib/supabase'
-import { verificarToken, extraerToken } from '../../../lib/jwt'
+import { verificarToken, extraerTokenDeCookie } from '../../../lib/jwt'
 
 // Definimos estilos básicos para el PDF
 const styles = StyleSheet.create({
@@ -62,7 +62,7 @@ const FacturaPDF = ({ datos }) => (
 
 export async function GET(request) {
     try {
-        const payload = verificarToken(extraerToken(request))
+        const payload = verificarToken(extraerTokenDeCookie(request))
         if (!payload || payload.rol !== 'superadmin') {
             return NextResponse.json({ error: 'Prohibido: Solo Superadmin puede emitir pagos.' }, { status: 403 })
         }
@@ -101,3 +101,4 @@ export async function GET(request) {
         return NextResponse.json({ error: 'Fallo al empaquetar PDF.' }, { status: 500 })
     }
 }
+

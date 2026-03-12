@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { verificarToken, extraerToken } from '../../../../lib/jwt'
+import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
 
 export async function GET(request) {
     try {
-        const payload = verificarToken(extraerToken(request))
+        const payload = verificarToken(extraerTokenDeCookie(request))
         if (!payload || payload.rol !== 'superadmin') {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
         }
@@ -46,3 +46,4 @@ export async function GET(request) {
         return NextResponse.json({ error: 'Fallo procesando los motores gráficos.' }, { status: 500 })
     }
 }
+

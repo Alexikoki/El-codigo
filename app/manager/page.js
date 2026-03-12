@@ -73,7 +73,7 @@ export default function ManagerPage() {
                     <p className="text-sm text-gray-400 font-light">{manager?.lugarNombre} ({manager?.nombre})</p>
                 </div>
                 <button
-                    onClick={() => { localStorage.clear(); router.push('/login') }}
+                    onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).finally(() => { localStorage.clear(); router.push('/login') }) }}
                     className="flex items-center gap-2 text-sm text-gray-400 hover:text-red-400 transition-colors"
                 >
                     <LogOut size={16} />
@@ -151,3 +151,4 @@ export default function ManagerPage() {
         </div>
     )
 }
+

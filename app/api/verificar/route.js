@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
-import { verificarToken, extraerToken } from '../../../lib/jwt'
+import { verificarToken, extraerTokenDeCookie } from '../../../lib/jwt'
 
 export async function POST(request) {
   try {
-    const payload = verificarToken(extraerToken(request))
+    const payload = verificarToken(extraerTokenDeCookie(request))
     if (!payload || payload.rol !== 'staff') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }

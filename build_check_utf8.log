@@ -1,0 +1,74 @@
+﻿
+> el-codigo@0.1.0 build
+> next build
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 5.3s
+  Running TypeScript ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/30) ...
+  Generating static pages using 11 workers (7/30) 
+  Generating static pages using 11 workers (14/30) 
+  Generating static pages using 11 workers (22/30) 
+node.exe : The width(-1) and height(-1) of 
+chart should be greater than 0,
+En línea: 1 Carácter: 1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+    (The width(-1) a...greater than 0,:Str  
+  ing) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommand 
+   Error
+ 
+       please check the style of container, 
+or the props width(100%) and height(85%),
+       or add a minWidth(0) or 
+minHeight(undefined) or use 
+aspect(undefined) to control the
+       height and width.
+Ô£ô Generating static pages using 11 workers (30/30) in 536.8ms
+  Finalizing page optimization ...
+
+Route (app)
+Ôöî Ôùï /
+Ôö£ Ôùï /_not-found
+Ôö£ Ôùï /agencia
+Ôö£ ãÆ /api/agencias/promotores
+Ôö£ ãÆ /api/analytics/agencia
+Ôö£ ãÆ /api/analytics/manager
+Ôö£ ãÆ /api/analytics/referidor
+Ôö£ ãÆ /api/analytics/superadmin
+Ôö£ ãÆ /api/auth
+Ôö£ ãÆ /api/auth/logout
+Ôö£ ãÆ /api/auth/recuperar
+Ôö£ ãÆ /api/auth/recuperar/cambiar
+Ôö£ ãÆ /api/clientes
+Ôö£ ãÆ /api/confirmar
+Ôö£ ãÆ /api/facturas
+Ôö£ ãÆ /api/lugares
+Ôö£ ãÆ /api/referidor/clientes
+Ôö£ ãÆ /api/referidores
+Ôö£ ãÆ /api/referidores/publico
+Ôö£ ãÆ /api/registro
+Ôö£ ãÆ /api/staff
+Ôö£ ãÆ /api/valorar/[id]
+Ôö£ ãÆ /api/verificar
+Ôö£ Ôùï /login
+Ôö£ Ôùï /manager
+Ôö£ ãÆ /r/[id]
+Ôö£ Ôùï /referidor
+Ôö£ Ôùï /reset-password
+Ôö£ Ôùï /staff
+Ôö£ Ôùï /superadmin
+Ôöö ãÆ /valorar/[id]
+
+
+Ôùï  (Static)   prerendered as static content
+ãÆ  (Dynamic)  server-rendered on demand
+

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
-import { verificarToken, extraerToken } from '../../../lib/jwt'
+import { verificarToken, extraerTokenDeCookie } from '../../../lib/jwt'
 import bcrypt from 'bcryptjs'
 
 export async function GET(request) {
-  const payload = verificarToken(extraerToken(request))
+  const payload = verificarToken(extraerTokenDeCookie(request))
   if (!payload || payload.rol !== 'superadmin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
@@ -18,7 +18,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const payload = verificarToken(extraerToken(request))
+  const payload = verificarToken(extraerTokenDeCookie(request))
   if (!payload || payload.rol !== 'superadmin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
