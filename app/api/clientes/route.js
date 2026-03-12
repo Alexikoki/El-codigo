@@ -19,11 +19,10 @@ export async function POST(request) {
     }
 
     // Validación lado servidor del Turnstile de Cloudflare
-    // En producción cambiar el secret por el real usando process.env.TURNSTILE_SECRET_KEY
     const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `secret=1x0000000000000000000000000000000AA&response=${cfToken}`
+      body: `secret=${process.env.TURNSTILE_SECRET_KEY}&response=${cfToken}`
     })
 
     const verifyJson = await verifyRes.json()
