@@ -2,30 +2,33 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { LogOut, Copy, ExternalLink, Users, Calendar, CheckCircle2, Clock, QrCode, BarChart3, TrendingUp } from 'lucide-react'
+import { LogOut, Copy, Users, Calendar, CheckCircle2, Clock, QrCode, BarChart3, TrendingUp, Receipt, Euro, ChevronLeft, ChevronRight } from 'lucide-react'
 import QRCode from 'qrcode'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 export default function ReferidorPage() {
   const [referidor, setReferidor] = useState(null)
-  const [token, setToken] = useState(null)
   const [tab, setTab] = useState('dashboard')
   const [clientes, setClientes] = useState([])
   const [analytics, setAnalytics] = useState({ chartData: [], stats: { exitosMios: 0, comisionesLiquidadas: 0 } })
-  const [copiado, setCargando] = useState(true)
+  const [cargando, setCargando] = useState(true)
   const [copiadoMsj, setCopiado] = useState(false)
   const [qrImageUrl, setQrImageUrl] = useState('')
+  // Historial de pagos
+  const [historial, setHistorial] = useState([])
+  const [historialStats, setHistorialStats] = useState({ totalConversiones: 0, totalGasto: 0, totalComision: 0 })
+  const [historialPagina, setHistorialPagina] = useState(1)
+  const [historialTotalPag, setHistorialTotalPag] = useState(1)
+  const [historialCargando, setHistorialCargando] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    const t = localStorage.getItem('token')
     const rol = localStorage.getItem('rol')
     const r = localStorage.getItem('referidor')
-    if (!t || rol !== 'referidor') { router.push('/login'); return }
+    if (!r || rol !== 'referidor') { router.push('/login'); return }
     const referidorObj = JSON.parse(r)
-    setToken(t)
     setReferidor(referidorObj)
-    cargarClientes(t)
+    cargarClientes()
 
     // Generar el QR
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
@@ -37,26 +40,36 @@ export default function ReferidorPage() {
 
   }, [])
 
-  const cargarClientes = async (t) => {
+  const cargarClientes = async () => {
     try {
-      const headers = { Authorization: `Bearer ${t}` }
       const [resC, resA] = await Promise.all([
-        fetch('/api/referidor/clientes', { headers }),
-        fetch('/api/analytics/referidor', { headers })
+        fetch('/api/referidor/clientes', { credentials: 'include' }),
+        fetch('/api/analytics/referidor', { credentials: 'include' })
       ])
-
-      if (resC.ok) {
-        const data = await resC.json()
-        setClientes(data.clientes || [])
-      }
-
-      if (resA.ok) {
-        setAnalytics(await resA.json())
-      }
+      if (resC.ok) { const data = await resC.json(); setClientes(data.clientes || []) }
+      if (resA.ok) { setAnalytics(await resA.json()) }
     } catch (e) {
       console.error(e)
     } finally {
       setCargando(false)
+    }
+  }
+
+  const cargarHistorial = async (pagina = 1) => {
+    setHistorialCargando(true)
+    try {
+      const res = await fetch(`/api/referidor/historial?pagina=${pagina}`, { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        setHistorial(data.historial || [])
+        setHistorialTotalPag(data.totalPaginas || 1)
+        setHistorialPagina(data.paginaActual || 1)
+        setHistorialStats({ totalConversiones: data.totalConversiones, totalGasto: data.totalGasto, totalComision: data.totalComision })
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setHistorialCargando(false)
     }
   }
 
@@ -69,8 +82,9 @@ export default function ReferidorPage() {
 
   const tabs = [
     { id: 'dashboard', label: 'Rendimiento', icon: <BarChart3 size={16} /> },
-    { id: 'qr', label: 'Mi Tarjeta QR', icon: <QrCode size={16} /> },
-    { id: 'clientes', label: 'Invitados', icon: <Users size={16} /> }
+    { id: 'qr', label: 'Mi QR', icon: <QrCode size={16} /> },
+    { id: 'clientes', label: 'Invitados', icon: <Users size={16} /> },
+    { id: 'historial', label: 'Pagos', icon: <Receipt size={16} />, onSelect: () => cargarHistorial(1) }
   ]
 
   const appUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_APP_URL || window.location.origin) : ''
@@ -124,9 +138,8 @@ export default function ReferidorPage() {
             {tabs.map(t => (
               <button
                 key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex-1 flex flex-col items-center justify-center py-3 text-xs md:text-sm font-medium rounded-xl transition-all relative z-10 ${tab === t.id ? 'text-white' : 'text-gray-500 hover:text-gray-300'
-                  }`}
+                onClick={() => { setTab(t.id); t.onSelect?.() }}
+                className={`flex-1 flex flex-col items-center justify-center py-3 text-xs md:text-sm font-medium rounded-xl transition-all relative z-10 ${tab === t.id ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
               >
                 {tab === t.id && (
                   <motion.div
@@ -277,6 +290,84 @@ export default function ReferidorPage() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+            {/* HISTORIAL DE PAGOS */}
+            {tab === 'historial' && (
+              <div className="space-y-6">
+                {/* Tarjetas resumen */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-blue-500 text-center">
+                    <p className="text-xs text-gray-400 mb-1">Conversiones</p>
+                    <p className="text-2xl font-bold text-white">{historialStats.totalConversiones}</p>
+                  </div>
+                  <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-purple-500 text-center">
+                    <p className="text-xs text-gray-400 mb-1">Volumen</p>
+                    <p className="text-2xl font-bold text-white">{historialStats.totalGasto.toFixed(0)}€</p>
+                  </div>
+                  <div className="glass-panel p-4 rounded-2xl border-l-4 border-l-emerald-500 text-center">
+                    <p className="text-xs text-gray-400 mb-1">Comisión Total</p>
+                    <p className="text-2xl font-bold text-emerald-400">{historialStats.totalComision.toFixed(2)}€</p>
+                  </div>
+                </div>
+
+                {/* Tabla */}
+                <div className="glass-panel rounded-2xl overflow-hidden">
+                  {historialCargando ? (
+                    <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" /></div>
+                  ) : historial.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">
+                      <Receipt size={40} className="mx-auto mb-3 opacity-20" />
+                      <p>Aún no hay conversiones registradas</p>
+                    </div>
+                  ) : (
+                    <>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-white/5 text-gray-400 text-xs uppercase tracking-wider">
+                            <th className="text-left p-4">Cliente</th>
+                            <th className="text-right p-4 hidden sm:table-cell">Fecha</th>
+                            <th className="text-right p-4">Gasto</th>
+                            <th className="text-right p-4"><Euro size={12} className="inline" /> Comisión</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {historial.map((v, i) => (
+                            <tr key={v.id} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}>
+                              <td className="p-4">
+                                <p className="font-medium text-white">{v.clientes?.nombre || 'Anónimo'}</p>
+                                <p className="text-xs text-gray-500">{v.clientes?.num_personas} pers.</p>
+                              </td>
+                              <td className="p-4 text-right text-gray-400 hidden sm:table-cell">
+                                {new Date(v.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                              </td>
+                              <td className="p-4 text-right text-white font-mono">{v.gasto?.toFixed(2)}€</td>
+                              <td className="p-4 text-right">
+                                <span className="text-emerald-400 font-bold font-mono">
+                                  +{(v.comision_referidor || 0).toFixed(2)}€
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {/* Paginación */}
+                      {historialTotalPag > 1 && (
+                        <div className="flex justify-center items-center gap-4 p-4 border-t border-white/5">
+                          <button onClick={() => cargarHistorial(historialPagina - 1)} disabled={historialPagina <= 1}
+                            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 transition-colors">
+                            <ChevronLeft size={16} />
+                          </button>
+                          <span className="text-sm text-gray-400">{historialPagina} / {historialTotalPag}</span>
+                          <button onClick={() => cargarHistorial(historialPagina + 1)} disabled={historialPagina >= historialTotalPag}
+                            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 transition-colors">
+                            <ChevronRight size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </motion.div>

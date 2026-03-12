@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { verificarToken, extraerTokenDeCookie } from '../../../lib/jwt'
+import { enviarNotificacionPush } from '../../../lib/webpush'
+
+export const runtime = 'nodejs' // web-push requiere Node.js runtime
 
 export async function POST(request) {
   try {
@@ -38,6 +41,29 @@ export async function POST(request) {
       .from('clientes')
       .update({ verificado: true, verificado_at: new Date().toISOString() })
       .eq('id', clienteId)
+
+    // === NOTIFICACIÓN PUSH AL REFERIDOR ===
+    if (cliente.referidor_id) {
+      const { data: subs } = await supabaseAdmin
+        .from('push_subscriptions')
+        .select('subscription, id')
+        .eq('referidor_id', cliente.referidor_id)
+
+      if (subs && subs.length > 0) {
+        const notifPayload = {
+          title: '¡Turista validado! 🎉',
+          body: `${cliente.nombre} (${cliente.num_personas} pers.) ha entrado en ${cliente.lugares?.nombre}`,
+          url: '/referidor'
+        }
+
+        for (const sub of subs) {
+          const result = await enviarNotificacionPush(sub.subscription, notifPayload)
+          if (result.expirada) {
+            await supabaseAdmin.from('push_subscriptions').delete().eq('id', sub.id)
+          }
+        }
+      }
+    }
 
     return NextResponse.json({
       ok: true,

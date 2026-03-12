@@ -1,41 +1,70 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
-import { LogOut, BarChart3, TrendingDown, Building2, Receipt } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { LogOut, BarChart3, TrendingDown, Building2, Receipt, Activity, Zap } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { createClient } from '@supabase/supabase-js'
 
 export default function ManagerPage() {
     const [manager, setManager] = useState(null)
-    const [token, setToken] = useState(null)
     const [analytics, setAnalytics] = useState({ chartData: [], stats: { operaciones: 0, volumenEuros: 0, deudaAcumulada: 0 } })
     const [cargando, setCargando] = useState(true)
+    const [ultimaValidacion, setUltimaValidacion] = useState(null) // Ticker realtime
+    const [segsDesde, setSegsDesde] = useState(null)
     const router = useRouter()
 
     useEffect(() => {
-        const t = localStorage.getItem('token')
         const rol = localStorage.getItem('rol')
         const m = localStorage.getItem('manager')
 
-        if (!t || rol !== 'manager') {
+        if (!m || rol !== 'manager') {
             router.push('/login')
             return
         }
 
         const managerObj = JSON.parse(m)
-        setToken(t)
         setManager(managerObj)
-        cargarAnalytics(t)
+        cargarAnalytics()
+
+        // === SUPABASE REALTIME ===
+        // Crear cliente solo con la clave pública (no necesita service role)
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        )
+
+        const canal = supabase
+            .channel('validaciones-manager')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'valoraciones',
+                filter: `lugar_id=eq.${managerObj.lugarId || '00000000-0000-0000-0000-000000000000'}`
+            }, (payload) => {
+                setUltimaValidacion(payload.new)
+                setSegsDesde(0)
+                // Recargar las estadísticas para actualizar los contadores
+                cargarAnalytics()
+            })
+            .subscribe()
+
+        // Actualizar el ticker de "hace X segundos" cada segundo
+        const intervalo = setInterval(() => {
+            setSegsDesde(prev => prev !== null ? prev + 1 : null)
+        }, 1000)
+
+        return () => {
+            supabase.removeChannel(canal)
+            clearInterval(intervalo)
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router])
 
-    const cargarAnalytics = async (t) => {
+    const cargarAnalytics = async () => {
         try {
-            const headers = { Authorization: `Bearer ${t}` }
-            const resA = await fetch('/api/analytics/manager', { headers })
-
-            if (resA.ok) {
-                setAnalytics(await resA.json())
-            }
+            const resA = await fetch('/api/analytics/manager', { credentials: 'include' })
+            if (resA.ok) { setAnalytics(await resA.json()) }
         } catch (e) {
             console.error(e)
         } finally {
@@ -94,6 +123,27 @@ export default function ManagerPage() {
                         </div>
                     ) : (
                         <motion.div variants={itemVars} className="space-y-6">
+
+                            {/* Ticker Realtime */}
+                            <AnimatePresence>
+                                {ultimaValidacion && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0 }}
+                                        className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 rounded-xl p-3.5 text-sm"
+                                    >
+                                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse flex-shrink-0" />
+                                        <Zap size={14} className="text-green-400 flex-shrink-0" />
+                                        <span className="text-green-300 font-medium">
+                                            Validación en tiempo real
+                                        </span>
+                                        <span className="text-gray-400 text-xs ml-auto">
+                                            {segsDesde !== null ? `Hace ${segsDesde}s` : 'Ahora'}
+                                        </span>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
                             {/* Tarjetas Superiores */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
