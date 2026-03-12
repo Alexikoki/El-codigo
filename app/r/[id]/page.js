@@ -291,7 +291,7 @@ export default function FormularioClientePage() {
 
             <div className="mt-6 flex justify-center">
               <Turnstile
-                siteKey="0x4AAAAAAA2T__3S_7WjL-m7" // Test Dummy Key. En produccion debe usar una variable de entorno.
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
                 onSuccess={(token) => setCfToken(token)}
                 options={{ theme: 'dark' }}
               />
