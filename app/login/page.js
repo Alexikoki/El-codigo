@@ -106,7 +106,6 @@ export default function LoginPage() {
     { id: 'staff', label: 'Staff', icon: <UserCheck size={16} /> },
     { id: 'referidor', label: 'Referidor', icon: <Lock size={16} /> },
     { id: 'agencia', label: 'Agencia', icon: <Briefcase size={16} /> },
-    { id: 'manager', label: 'Club', icon: <Building size={16} /> },
     { id: 'superadmin', label: 'Admin', icon: <Shield size={16} /> }
   ]
 
@@ -213,7 +212,7 @@ export default function LoginPage() {
 
             <div className="flex justify-center my-4 overflow-hidden rounded-xl">
               <Turnstile
-                siteKey="0x4AAAAAACpXF2TRN9DaZ_nL" // Clave Pública de Cloudflare para elcodigo.vercel.app
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
                 onSuccess={(token) => setCfToken(token)}
                 options={{ theme: 'dark' }}
               />

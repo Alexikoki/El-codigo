@@ -248,8 +248,8 @@ export default function FormularioClientePage() {
                     onChange={handleChange}
                     className="w-full bg-black/20 border border-white/10 hover:border-white/20 focus:border-blue-500 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all appearance-none"
                   >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                      <option className="bg-gray-900" key={n} value={n}>{n} pax</option>
+                    {Array.from({ length: 20 }, (_, i) => i + 1).map(n => (
+                      <option className="bg-gray-900" key={n} value={n}>{n} {n === 1 ? 'persona' : 'personas'}</option>
                     ))}
                   </select>
                 </div>

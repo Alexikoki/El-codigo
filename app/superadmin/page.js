@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogOut, MapPin, Users, UserCheck, Plus, Shield, Search, CheckCircle2, XCircle, BarChart3, TrendingUp, HandCoins, FileText } from 'lucide-react'
+import { LogOut, MapPin, Users, UserCheck, Plus, Shield, Search, CheckCircle2, XCircle, BarChart3, TrendingUp, HandCoins, FileText, Pencil } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -14,26 +14,24 @@ export default function SuperadminPage() {
   const [staff, setStaff] = useState([])
   const [analytics, setAnalytics] = useState({ chartData: [], stats: { operaciones: 0, volumenEuros: 0, comisionGenerada: 0 } })
   const [cargando, setCargando] = useState(true)
-  const [modal, setModal] = useState(null)
+  const [modal, setModal] = useState(null) // 'lugar' | 'referidor' | 'staff'
+  const [modalEditar, setModalEditar] = useState(null) // lugar a editar
   const [form, setForm] = useState({})
   const router = useRouter()
 
   useEffect(() => {
-    const t = localStorage.getItem('token')
     const rol = localStorage.getItem('rol')
-    if (!t || rol !== 'superadmin') { router.push('/login'); return }
-    setToken(t)
-    cargarDatos(t)
+    if (rol !== 'superadmin') { router.push('/login'); return }
+    cargarDatos()
   }, [])
 
-  const cargarDatos = async (t) => {
+  const cargarDatos = async () => {
     setCargando(true)
-    const headers = { Authorization: `Bearer ${t}` }
     const [resL, resR, resS, resA] = await Promise.all([
-      fetch('/api/lugares', { headers }),
-      fetch('/api/referidores', { headers }),
-      fetch('/api/staff', { headers }),
-      fetch('/api/analytics/superadmin', { headers })
+      fetch('/api/lugares', { credentials: 'include' }),
+      fetch('/api/referidores', { credentials: 'include' }),
+      fetch('/api/staff', { credentials: 'include' }),
+      fetch('/api/analytics/superadmin', { credentials: 'include' })
     ])
     const [dataL, dataR, dataS, dataA] = await Promise.all([resL.json(), resR.json(), resS.json(), resA.json()])
     setLugares(dataL.lugares || [])
@@ -58,7 +56,8 @@ export default function SuperadminPage() {
 
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(body)
     })
 
@@ -66,10 +65,28 @@ export default function SuperadminPage() {
       toast.success(`${modal === 'lugar' ? 'Local' : modal} creado correctamente.`)
       setModal(null)
       setForm({})
-      cargarDatos(token)
+      cargarDatos()
     } else {
       const data = await res.json()
       toast.error(data.error || 'Error al crear el registro.')
+    }
+  }
+
+  const handleEditar = async () => {
+    if (!modalEditar) return
+    const res = await fetch('/api/lugares', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ id: modalEditar.id, descuento: parseInt(form.descuento || modalEditar.descuento), nombre: form.nombre || modalEditar.nombre })
+    })
+    if (res.ok) {
+      toast.success('Local actualizado.')
+      setModalEditar(null)
+      setForm({})
+      cargarDatos()
+    } else {
+      toast.error('Error al actualizar.')
     }
   }
 
@@ -77,15 +94,15 @@ export default function SuperadminPage() {
     const url = tipo === 'lugar' ? '/api/lugares' : '/api/referidores'
     const res = await fetch(url, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ id, activo: !activo })
     })
-
     if (res.ok) {
       toast.success(activo ? `${tipo} pausado.` : `${tipo} reactivado.`)
-      cargarDatos(token)
+      cargarDatos()
     } else {
-      toast.error('Gasto rechazado. Token de sesión no válido.')
+      toast.error('No autorizado.')
     }
   }
 
@@ -93,7 +110,7 @@ export default function SuperadminPage() {
     toast.loading('Generando PDF...', { id: 'pdf' })
     try {
       const res = await fetch(`/api/facturas?referidorid=${referidorId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        credentials: 'include'
       })
       if (!res.ok) throw new Error('Fallo al generar el PDF')
 
@@ -266,13 +283,20 @@ export default function SuperadminPage() {
                     <div className="p-2 bg-white/5 rounded-lg border border-white/10">
                       <MapPin size={20} className="text-gray-300" />
                     </div>
-                    <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-full font-bold border ${l.activo ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
-                      }`}>
+                    <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-full font-bold border ${l.activo ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                       {l.activo ? 'Operativo' : 'Pausado'}
                     </span>
                   </div>
                   <h3 className="text-lg font-bold text-white mb-1">{l.nombre}</h3>
-                  <p className="text-sm text-gray-400 mb-4">{l.tipo} · <span className="text-blue-400 font-medium">{l.descuento}% Descuento</span></p>
+                  <p className="text-sm text-gray-400 mb-1">{l.tipo}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-400 font-bold text-lg">{l.descuento}%</span>
+                    <span className="text-xs text-gray-500">descuento turistas</span>
+                    <button onClick={() => { setModalEditar(l); setForm({ descuento: l.descuento, nombre: l.nombre }) }}
+                      className="ml-auto text-gray-500 hover:text-blue-400 transition-colors p-1 rounded-lg hover:bg-blue-500/10">
+                      <Pencil size={14} />
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
                   <p className="text-xs text-gray-500 truncate pr-4" title={l.direccion}>{l.direccion}</p>
@@ -425,7 +449,54 @@ export default function SuperadminPage() {
           </div>
         )}
       </AnimatePresence>
+      {/* MODAL EDITAR LUGAR */}
+      <AnimatePresence>
+        {modalEditar && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 px-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => { setModalEditar(null); setForm({}) }}
+            />
+            <motion.div
+              variants={modalVars} initial="hidden" animate="show" exit="exit"
+              className="glass-panel border border-white/10 rounded-3xl p-6 sm:p-8 w-full max-w-sm relative z-10 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Pencil size={18} className="text-blue-400" /> Editar Local
+                </h2>
+                <button onClick={() => { setModalEditar(null); setForm({}) }} className="text-gray-500 hover:text-white transition-colors">
+                  <XCircle size={24} />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-gray-400 ml-1 mb-1 block">Nombre del local</label>
+                  <input value={form.nombre || ''} onChange={e => setForm({ ...form, nombre: e.target.value })}
+                    className="w-full bg-black/30 border border-white/10 focus:border-blue-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-colors" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 ml-1 mb-1 block">Comisión / Descuento para turistas (%)</label>
+                  <input type="number" min="1" max="100" value={form.descuento || ''}
+                    onChange={e => setForm({ ...form, descuento: parseInt(e.target.value) })}
+                    className="w-full bg-black/30 border border-white/10 focus:border-blue-500 rounded-xl px-4 py-3 text-sm text-white focus:outline-none transition-colors" />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-8">
+                <button onClick={() => { setModalEditar(null); setForm({}) }}
+                  className="flex-1 bg-white/5 border border-white/10 text-gray-300 py-3 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={handleEditar}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white py-3 rounded-xl text-sm font-medium shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all">
+                  Guardar Cambios
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
-
