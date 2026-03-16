@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogOut, MapPin, Users, UserCheck, Plus, Shield, Search, CheckCircle2, XCircle, BarChart3, TrendingUp, HandCoins, FileText, Pencil } from 'lucide-react'
+import { LogOut, MapPin, Users, UserCheck, Plus, Shield, Search, CheckCircle2, XCircle, BarChart3, TrendingUp, HandCoins, FileText, Pencil, Download } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -118,6 +118,24 @@ export default function SuperadminPage() {
 
   const appUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_APP_URL || window.location.origin) : ''
 
+  const exportarExcel = async () => {
+    toast.loading('Generando Excel...', { id: 'xlsx' })
+    try {
+      const res = await fetch('/api/export/xlsx', { credentials: 'include' })
+      if (!res.ok) throw new Error('Fallo al generar el Excel')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `ElCodigo_Export_${new Date().toISOString().split('T')[0]}.xlsx`
+      document.body.appendChild(a); a.click()
+      window.URL.revokeObjectURL(url)
+      toast.success('Excel descargado', { id: 'xlsx' })
+    } catch (e) {
+      toast.error(e.message, { id: 'xlsx' })
+    }
+  }
+
   const tabs = [
     { id: 'analytics', label: 'Métricas', icon: <BarChart3 size={15} /> },
     { id: 'lugares', label: 'Locales', icon: <MapPin size={15} /> },
@@ -185,6 +203,12 @@ export default function SuperadminPage() {
           {/* ANALYTICS */}
           {tab === 'analytics' && (
             <div className="space-y-5">
+              <div className="flex justify-end">
+                <button onClick={exportarExcel}
+                  className="flex items-center gap-2 border border-[#e5e7eb] bg-white hover:bg-[#f3f4f6] text-[#374151] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                  <Download size={14} /> Exportar Excel
+                </button>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="glass-panel p-5 border-t-2 border-t-[#1e3a5f]">
                   <p className="text-xs text-[#6b7280] mb-1">Total Operaciones</p>
