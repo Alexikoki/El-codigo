@@ -6,7 +6,6 @@ import { Camera, LogOut, CheckCircle2, AlertCircle, History, Maximize, Users } f
 
 export default function StaffPage() {
   const [staff, setStaff] = useState(null)
-  const [token, setToken] = useState(null)
   const [escaneando, setEscaneando] = useState(false)
   const [resultado, setResultado] = useState(null)
   const [error, setError] = useState('')
@@ -15,12 +14,20 @@ export default function StaffPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const t = localStorage.getItem('token')
     const rol = localStorage.getItem('rol')
     const s = localStorage.getItem('staff')
-    if (!t || rol !== 'staff') { router.push('/login'); return }
-    setToken(t)
-    setStaff(JSON.parse(s))
+    if (s && rol === 'staff') { setStaff(JSON.parse(s)); return }
+
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.rol === 'staff') {
+          localStorage.setItem('rol', 'staff')
+          localStorage.setItem('staff', JSON.stringify(data.staff))
+          setStaff(data.staff)
+        } else { router.push('/login') }
+      })
+      .catch(() => router.push('/login'))
   }, [])
 
   const iniciarEscaner = async () => {
@@ -44,7 +51,7 @@ export default function StaffPage() {
             const clienteId = partes[partes.length - 1]
             await verificarQR(clienteId)
           },
-          () => { } // Ignorar advertencias de escaneo
+          () => {}
         )
       } catch (e) {
         setError('Error al acceder a la cámara')
@@ -55,14 +62,15 @@ export default function StaffPage() {
   const pararEscaner = async () => {
     try {
       if (html5QrRef.current) { await html5QrRef.current.stop(); html5QrRef.current = null }
-    } catch (e) { }
+    } catch (e) {}
     setEscaneando(false)
   }
 
   const verificarQR = async (clienteId) => {
     const res = await fetch('/api/verificar', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ clienteId })
     })
 
@@ -78,198 +86,162 @@ export default function StaffPage() {
     }, ...prev.slice(0, 9)])
   }
 
-  // Framer Motion Variants
-  const containerVars = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { staggerChildren: 0.1 } }
-  }
-
-  const itemVars = {
-    hidden: { opacity: 0, scale: 0.95 },
-    show: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  const cardVars = {
+    hidden: { opacity: 0, scale: 0.97 },
+    show: { opacity: 1, scale: 1, transition: { duration: 0.2 } }
   }
 
   return (
-    <div className="min-h-screen pb-12">
-      {/* Navbar Glass */}
-      <motion.nav
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="sticky top-0 z-50 glass-panel border-b-0 border-white/5 px-6 py-4 flex justify-between items-center"
-      >
+    <div className="min-h-screen bg-[#fafaf8] pb-12">
+
+      {/* Navbar */}
+      <nav className="sticky top-0 z-50 bg-white border-b border-[#e5e7eb] px-6 py-4 flex justify-between items-center">
         <div>
-          Escanear Código QR
-          <p className="text-xs text-gray-400 font-light">{staff?.nombre} · {staff?.lugarNombre}</p>
+          <p className="text-base font-semibold text-[#111111]">Escanear Código QR</p>
+          <p className="text-xs text-[#6b7280]">{staff?.nombre} · {staff?.lugarNombre}</p>
         </div>
         <button
           onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).finally(() => { localStorage.clear(); router.push('/login') }) }}
-          className="flex items-center gap-2 text-sm text-gray-400 hover:text-red-400 transition-colors"
+          className="flex items-center gap-2 text-sm text-[#6b7280] hover:text-red-500 transition-colors"
         >
-          <LogOut size={16} />
+          <LogOut size={15} />
           <span>Salir</span>
         </button>
-      </motion.nav>
+      </nav>
 
-      <main className="max-w-xl mx-auto p-6 mt-6 elevate-3d flex flex-col items-center">
-
+      <main className="max-w-md mx-auto p-5 mt-6 flex flex-col items-center">
         <AnimatePresence mode="wait">
 
-          {/* ESTADO 1: INICIAL (Botón escanear) */}
+          {/* ESTADO INICIAL */}
           {!escaneando && !resultado && (
-            <motion.div
-              key="inicial"
-              variants={itemVars} initial="hidden" animate="show" exit="hidden"
-              className="w-full"
-            >
-              <div className="glass-panel glass-panel-hover rounded-3xl p-8 text-center relative overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent pointer-events-none" />
-
-                <div className="w-24 h-24 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-blue-500/20 group-hover:scale-110 transition-transform duration-500">
-                  <Maximize size={40} className="text-blue-400" />
+            <motion.div key="inicial" variants={cardVars} initial="hidden" animate="show" exit="hidden" className="w-full">
+              <div className="bg-white border border-[#e5e7eb] rounded-2xl p-8 text-center shadow-sm">
+                <div className="w-20 h-20 bg-[#f0f4f8] rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Maximize size={36} className="text-[#1e3a5f]" />
                 </div>
-                <h2 className="text-xl font-bold text-white mb-2">Escanear Invitación</h2>
-                <p className="text-gray-400 text-sm mb-8 font-light">Enfoca el código de barras</p>
+                <h2 className="text-lg font-bold text-[#111111] mb-2">Escanear Invitación</h2>
+                <p className="text-[#6b7280] text-sm mb-7">Enfoca el código QR del cliente</p>
 
                 <button
                   onClick={iniciarEscaner}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold py-4 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] transition-all"
+                  className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3.5 rounded-xl transition-colors"
                 >
-                  <Camera size={20} /> Abrir Escáner
+                  <Camera size={18} /> Abrir Escáner
                 </button>
               </div>
             </motion.div>
           )}
 
-          {/* ESTADO 2: CÁMARA ACTIVA */}
+          {/* CÁMARA ACTIVA */}
           {escaneando && (
-            <motion.div
-              key="escaneando"
-              variants={itemVars} initial="hidden" animate="show" exit="hidden"
-              className="w-full glass-panel rounded-3xl p-6"
-            >
-              <div className="flex justify-between items-center mb-4">
-                <p className="text-sm font-semibold text-blue-400 flex items-center gap-2">
-                  <Camera size={16} /> Escaneando QR...
-                </p>
-                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
-              </div>
-
-              <div className="relative rounded-2xl overflow-hidden border-2 border-white/10 bg-black aspect-square">
-                {/* El div donde html5-qrcode inyecta el video */}
-                <div id="qr-reader" className="w-full h-full object-cover" />
-
-                {/* Overlay visual para apuntar */}
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                  <div className="w-48 h-48 border-2 border-blue-500 opacity-50 rounded-xl rounded-tl-[2rem] rounded-br-[2rem]" />
+            <motion.div key="escaneando" variants={cardVars} initial="hidden" animate="show" exit="hidden" className="w-full">
+              <div className="bg-white border border-[#e5e7eb] rounded-2xl p-5 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <p className="text-sm font-medium text-[#374151] flex items-center gap-2">
+                    <Camera size={15} className="text-[#1e3a5f]" /> Escaneando...
+                  </p>
+                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
                 </div>
-              </div>
 
-              <button
-                onClick={pararEscaner}
-                className="w-full mt-6 bg-white/5 hover:bg-white/10 text-gray-300 font-medium py-3 rounded-xl border border-white/10 transition-colors"
-              >
-                Cancelar
-              </button>
+                <div className="relative rounded-xl overflow-hidden border border-[#e5e7eb] bg-black aspect-square">
+                  <div id="qr-reader" className="w-full h-full" />
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div className="w-48 h-48 border-2 border-[#1e3a5f] opacity-60 rounded-xl" />
+                  </div>
+                </div>
+
+                <button
+                  onClick={pararEscaner}
+                  className="w-full mt-4 border border-[#e5e7eb] text-[#6b7280] hover:bg-[#f3f4f6] font-medium py-3 rounded-xl transition-colors text-sm"
+                >
+                  Cancelar
+                </button>
+              </div>
             </motion.div>
           )}
 
-          {/* ESTADO 3: RESULTADO EXITOSO */}
+          {/* RESULTADO EXITOSO */}
           {resultado && (
-            <motion.div
-              key="resultado"
-              variants={itemVars} initial="hidden" animate="show" exit="hidden"
-              className="w-full glass-panel rounded-3xl p-8 text-center relative overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent pointer-events-none" />
-
-              <motion.div
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(52,211,153,0.3)]"
-              >
-                <CheckCircle2 size={48} className="text-white" />
-              </motion.div>
-
-              <h2 className="text-3xl font-bold text-white mb-1">{resultado.cliente.nombre}</h2>
-              <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-1.5 rounded-full text-emerald-400 text-sm font-medium mb-8 mt-2">
-                <Users size={16} /> {resultado.cliente.numPersonas} {resultado.cliente.numPersonas > 1 ? 'personas' : 'persona'}
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => router.push(`/valorar/${resultado.cliente.id}`)}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all flex items-center justify-center gap-2"
+            <motion.div key="resultado" variants={cardVars} initial="hidden" animate="show" exit="hidden" className="w-full">
+              <div className="bg-white border border-[#e5e7eb] rounded-2xl p-8 text-center shadow-sm">
+                <motion.div
+                  initial={{ scale: 0 }} animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  className="w-16 h-16 bg-green-50 border border-green-200 rounded-full flex items-center justify-center mx-auto mb-5"
                 >
-                  Registrar Consumo y Ganancias
-                </button>
-                <button
-                  onClick={() => setResultado(null)}
-                  className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-white font-medium py-3 rounded-xl transition-all"
-                >
-                  Escanear a otra persona
-                </button>
+                  <CheckCircle2 size={32} className="text-green-600" />
+                </motion.div>
+
+                <h2 className="text-xl font-bold text-[#111111] mb-1">{resultado.cliente.nombre}</h2>
+                <div className="inline-flex items-center gap-1.5 bg-[#f0f4f8] px-3 py-1.5 rounded-full text-[#1e3a5f] text-sm font-medium mb-7">
+                  <Users size={14} /> {resultado.cliente.numPersonas} {resultado.cliente.numPersonas > 1 ? 'personas' : 'persona'}
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={() => router.push(`/valorar/${resultado.cliente.id}`)}
+                    className="w-full bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                  >
+                    Registrar Consumo
+                  </button>
+                  <button
+                    onClick={() => setResultado(null)}
+                    className="w-full border border-[#e5e7eb] text-[#6b7280] hover:bg-[#f3f4f6] font-medium py-3 rounded-xl transition-colors text-sm"
+                  >
+                    Escanear otra persona
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
 
         </AnimatePresence>
 
-        {/* ERROR FLOTANTE */}
-        {
-          error && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              className="w-full mt-6 bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-center"
-            >
-              <AlertCircle className="text-red-400 mx-auto mb-2" size={24} />
-              <p className="text-red-300 font-medium text-sm mb-2">{error}</p>
-              <button onClick={() => setError('')} className="text-xs text-red-400 hover:text-red-300 underline">
-                Intentar de nuevo
-              </button>
-            </motion.div>
-          )
-        }
+        {/* ERROR */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="w-full mt-5 bg-red-50 border border-red-200 rounded-xl p-4 text-center"
+          >
+            <AlertCircle className="text-red-400 mx-auto mb-2" size={20} />
+            <p className="text-red-600 text-sm font-medium mb-2">{error}</p>
+            <button onClick={() => setError('')} className="text-xs text-red-400 hover:text-red-500 underline">
+              Intentar de nuevo
+            </button>
+          </motion.div>
+        )}
 
-        {/* HISTORIAL (Solo si hay) */}
-        {
-          historial.length > 0 && !escaneando && !resultado && (
-            <motion.div
-              variants={containerVars} initial="hidden" animate="show"
-              className="w-full mt-8"
-            >
-              <h3 className="text-sm font-semibold text-gray-500 mb-4 flex items-center gap-2">
-                <History size={16} /> Verificados últimamente
-              </h3>
-              <div className="space-y-3">
-                {historial.map((h, i) => (
-                  <motion.div
-                    key={i} variants={itemVars}
-                    className="flex justify-between items-center py-3 px-4 bg-white/5 border border-white/5 rounded-xl"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                        <CheckCircle2 size={16} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-white">{h.nombre}</p>
-                        <p className="text-xs text-gray-400">{h.personas} {h.personas > 1 ? 'personas' : 'persona'}</p>
-                      </div>
+        {/* HISTORIAL */}
+        {historial.length > 0 && !escaneando && !resultado && (
+          <div className="w-full mt-7">
+            <h3 className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider mb-3 flex items-center gap-2">
+              <History size={13} /> Verificados hoy
+            </h3>
+            <div className="space-y-2">
+              {historial.map((h, i) => (
+                <div key={i} className="flex justify-between items-center py-3 px-4 bg-white border border-[#e5e7eb] rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-full bg-green-50 border border-green-200 flex items-center justify-center">
+                      <CheckCircle2 size={14} className="text-green-600" />
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="text-xs text-gray-500 font-mono">{h.hora}</span>
-                      <button onClick={() => router.push(`/valorar/${h.id}`)} className="text-xs text-blue-400 hover:text-blue-300 underline">
-                        Valorar
-                      </button>
+                    <div>
+                      <p className="text-sm font-medium text-[#111111]">{h.nombre}</p>
+                      <p className="text-xs text-[#9ca3af]">{h.personas} {h.personas > 1 ? 'personas' : 'persona'}</p>
                     </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )
-        }
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-xs text-[#9ca3af] font-mono">{h.hora}</span>
+                    <button onClick={() => router.push(`/valorar/${h.id}`)} className="text-xs text-[#1e3a5f] hover:underline">
+                      Valorar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-      </main >
-    </div >
+      </main>
+    </div>
   )
 }

@@ -1,55 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  /* Fondo Espacial Oscuro Profundo: azul/morado muy oscuro casi negro */
-  --bg-space: #05060f; 
-  --text-primary: #ffffff;
-  --text-secondary: #9ca3af;
-  
-  /* Gradientes de Acento Premium */
-  --accent-blue: #3b82f6;
-  --accent-purple: #8b5cf6;
+  --bg-base: #fafaf8;
+  --bg-surface: #ffffff;
+  --text-primary: #111111;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+
+  --accent: #1e3a5f;
+  --accent-hover: #15294a;
+  --border: #e5e7eb;
+  --border-subtle: #f3f4f6;
 }
 
 body {
-  background-color: var(--bg-space);
-  background-image: 
-    radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 35%),
-    radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 35%);
+  background-color: var(--bg-base);
   color: var(--text-primary);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
   overflow-x: hidden;
-  /* Suavizado en scroll y motion */
   scroll-behavior: smooth;
 }
 
-/* 
-  Utilidad Antigravity Glassmorphism (Glass Panel) 
-  Fondo semi-transparente, desenfoque y borde sutil
-*/
 @layer utilities {
+  /* Card limpia con borde sutil — reemplaza glass-panel */
   .glass-panel {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
   }
 
   .glass-panel-hover {
-    transition: all 0.3s ease-out;
-  }
-  
-  .glass-panel-hover:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
   }
 
-  /* Efecto de elevación z-axis */
-  .elevate-3d {
-    perspective: 1000px;
-    transform-style: preserve-3d;
+  .glass-panel-hover:hover {
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
+    border-color: #d1d5db;
   }
 }

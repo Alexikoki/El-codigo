@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, Mail, ShieldAlert, ArrowRight, UserCheck, Shield, Briefcase, Building } from 'lucide-react'
+import { Lock, Mail, ShieldAlert, ArrowRight, UserCheck, Shield, Briefcase } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
 
 export default function LoginPage() {
@@ -11,7 +11,6 @@ export default function LoginPage() {
   const [cargando, setCargando] = useState(false)
   const [cfToken, setCfToken] = useState('')
 
-  // Estado para el modal de recuperación
   const [showRecuperar, setShowRecuperar] = useState(false)
   const [emailRecuperar, setEmailRecuperar] = useState('')
   const [msgRecuperar, setMsgRecuperar] = useState({ tipo: '', texto: '' })
@@ -43,7 +42,6 @@ export default function LoginPage() {
         return
       }
 
-      localStorage.setItem('token', data.token)
       localStorage.setItem('rol', data.rol)
 
       if (data.rol === 'superadmin') router.push('/superadmin')
@@ -96,148 +94,123 @@ export default function LoginPage() {
     }
   }
 
-  // Framer Motion Variants
-  const containerVars = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } }
-  }
-
   const tabs = [
-    { id: 'staff', label: 'Staff', icon: <UserCheck size={16} /> },
-    { id: 'referidor', label: 'Referidor', icon: <Lock size={16} /> },
-    { id: 'agencia', label: 'Agencia', icon: <Briefcase size={16} /> },
-    { id: 'superadmin', label: 'Admin', icon: <Shield size={16} /> }
+    { id: 'staff', label: 'Staff', icon: <UserCheck size={15} /> },
+    { id: 'referidor', label: 'Referidor', icon: <Lock size={15} /> },
+    { id: 'agencia', label: 'Agencia', icon: <Briefcase size={15} /> },
+    { id: 'superadmin', label: 'Admin', icon: <Shield size={15} /> }
   ]
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-
-      {/* Background Orbs / Glow */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
+    <div className="min-h-screen bg-[#fafaf8] flex items-center justify-center p-4">
 
       <motion.div
-        variants={containerVars}
-        initial="hidden"
-        animate="show"
-        className="w-full max-w-md z-10 elevate-3d"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-md"
       >
+        {/* Header */}
         <div className="text-center mb-8">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, type: "spring" }}
-            className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl flex items-center justify-center mx-auto border border-white/10 mb-4 shadow-[0_0_30px_rgba(59,130,246,0.15)]"
-          >
-            <Lock className="text-blue-400" size={32} />
-          </motion.div>
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-            El Código
-          </h1>
-          <p className="text-gray-400 text-sm mt-2 font-light">Acceso seguro al sistema</p>
+          <div className="w-12 h-12 bg-[#1e3a5f] rounded-xl flex items-center justify-center mx-auto mb-4">
+            <Lock className="text-white" size={22} />
+          </div>
+          <h1 className="text-2xl font-bold text-[#111111]">El Código</h1>
+          <p className="text-[#6b7280] text-sm mt-1">Acceso seguro al sistema</p>
         </div>
 
-        <div className="glass-panel rounded-3xl p-8 relative overflow-hidden">
+        {/* Card */}
+        <div className="bg-white border border-[#e5e7eb] rounded-2xl p-8 shadow-sm">
 
-          {/* Tabs Neumorfismo Oscuro */}
-          <div className="flex flex-wrap bg-black/40 p-1 rounded-xl mb-8 border border-white/5 relative z-10 gap-y-1">
+          {/* Tabs */}
+          <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-7 gap-1">
             {tabs.map(t => (
               <button
                 key={t.id}
                 onClick={() => { setForm({ ...form, tipo: t.id }); setError('') }}
-                className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3 text-xs font-medium rounded-lg transition-all relative z-10 ${form.tipo === t.id ? 'text-white' : 'text-gray-500 hover:text-gray-300'
-                  }`}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-xs font-medium rounded-lg transition-all relative ${
+                  form.tipo === t.id ? 'bg-white text-[#111111] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'
+                }`}
               >
-                {form.tipo === t.id && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-0 bg-white/10 border border-white/10 rounded-lg shadow-sm"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <span className="relative z-20 flex items-center gap-1.5">{t.icon} {t.label}</span>
+                {t.icon}
+                {t.label}
               </button>
             ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
-            <div className="space-y-4">
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                <input
-                  type="text"
-                  name="email"
-                  placeholder="Usuario o Correo electrónico"
-                  value={form.email}
-                  onChange={handleChange}
-                  className="w-full bg-black/20 border border-white/10 hover:border-white/20 focus:border-blue-500 rounded-xl pl-12 pr-4 py-3.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-gray-600"
-                />
-              </div>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={16} />
+              <input
+                type="text"
+                name="email"
+                placeholder="Usuario o correo electrónico"
+                value={form.email}
+                onChange={handleChange}
+                className="w-full border border-[#e5e7eb] hover:border-[#d1d5db] focus:border-[#1e3a5f] rounded-lg pl-10 pr-4 py-3 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white"
+              />
+            </div>
 
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                <input
-                  type="password"
-                  name="password"
-                  placeholder="Contraseña"
-                  value={form.password}
-                  onChange={handleChange}
-                  className="w-full bg-black/20 border border-white/10 hover:border-white/20 focus:border-blue-500 rounded-xl pl-12 pr-4 py-3.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-gray-600"
-                />
-              </div>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={16} />
+              <input
+                type="password"
+                name="password"
+                placeholder="Contraseña"
+                value={form.password}
+                onChange={handleChange}
+                className="w-full border border-[#e5e7eb] hover:border-[#d1d5db] focus:border-[#1e3a5f] rounded-lg pl-10 pr-4 py-3 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white"
+              />
             </div>
 
             <AnimatePresence>
               {error && (
                 <motion.div
-                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                  animate={{ opacity: 1, height: 'auto', marginTop: 16 }}
-                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                  className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-xl flex items-center gap-2"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-red-50 border border-red-200 text-red-600 text-sm p-3 rounded-lg flex items-center gap-2"
                 >
-                  <ShieldAlert size={16} /> {error}
+                  <ShieldAlert size={15} /> {error}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <div className="flex justify-end mt-2">
+            <div className="flex justify-end">
               <button
                 type="button"
                 onClick={() => setShowRecuperar(true)}
-                className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                className="text-xs text-[#1e3a5f] hover:text-[#15294a] font-medium transition-colors"
               >
                 ¿Olvidaste tu contraseña?
               </button>
             </div>
 
-            <div className="flex justify-center my-4 overflow-hidden rounded-xl">
+            <div className="flex justify-center py-2">
               <Turnstile
                 siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
                 onSuccess={(token) => setCfToken(token)}
-                options={{ theme: 'dark' }}
+                options={{ theme: 'light' }}
               />
             </div>
 
             <button
               type="submit"
               disabled={cargando}
-              className="w-full mt-4 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(59,130,246,0.2)] hover:shadow-[0_0_30px_rgba(59,130,246,0.4)] disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               {cargando ? (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                  className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full"
-                />
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <>Acceder al panel <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>
+                <>Acceder al panel <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" /></>
               )}
             </button>
           </form>
         </div>
       </motion.div>
 
-      {/* Modal de Recuperación */}
+      {/* Modal Recuperación */}
       <AnimatePresence>
         {showRecuperar && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -245,42 +218,42 @@ export default function LoginPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/30"
               onClick={() => setShowRecuperar(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.97, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-sm glass-panel p-6 rounded-3xl"
+              exit={{ opacity: 0, scale: 0.97, y: 10 }}
+              className="relative w-full max-w-sm bg-white border border-[#e5e7eb] rounded-2xl p-6 shadow-lg"
             >
-              <h3 className="text-xl font-semibold mb-2">Recuperar Acceso</h3>
-              <p className="text-zinc-400 text-sm mb-6">Te enviaremos un enlace mágico seguro a tu correo para restablecer tu contraseña.</p>
+              <h3 className="text-lg font-semibold text-[#111111] mb-1">Recuperar Acceso</h3>
+              <p className="text-[#6b7280] text-sm mb-5">Te enviaremos un enlace seguro a tu correo para restablecer tu contraseña.</p>
 
               <form onSubmit={handleRecuperar} className="space-y-4">
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={16} />
                   <input
                     type="email"
                     value={emailRecuperar}
                     onChange={(e) => setEmailRecuperar(e.target.value)}
                     placeholder="Tu email registrado"
-                    className="w-full bg-black/20 border border-white/10 focus:border-blue-500 rounded-xl pl-12 pr-4 py-3 text-sm text-white focus:outline-none transition-all"
+                    className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg pl-10 pr-4 py-3 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white"
                   />
                 </div>
 
                 {msgRecuperar.texto && (
-                  <p className={`text-sm ${msgRecuperar.tipo === 'error' ? 'text-red-400' : 'text-emerald-400'}`}>
+                  <p className={`text-sm ${msgRecuperar.tipo === 'error' ? 'text-red-500' : 'text-green-600'}`}>
                     {msgRecuperar.texto}
                   </p>
                 )}
 
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setShowRecuperar(false)} className="px-4 py-3 text-sm text-zinc-400 hover:text-white transition-colors">
+                <div className="flex gap-2 pt-1">
+                  <button type="button" onClick={() => setShowRecuperar(false)} className="px-4 py-2.5 text-sm text-[#6b7280] hover:text-[#374151] transition-colors">
                     Cancelar
                   </button>
-                  <button type="submit" disabled={cargando} className="flex-1 bg-white text-black font-semibold rounded-xl py-3 text-sm hover:bg-zinc-200 transition-colors">
-                    {cargando ? 'Revisando...' : 'Enviar enlace'}
+                  <button type="submit" disabled={cargando} className="flex-1 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium rounded-lg py-2.5 text-sm transition-colors disabled:opacity-50">
+                    {cargando ? 'Enviando...' : 'Enviar enlace'}
                   </button>
                 </div>
               </form>
@@ -288,7 +261,6 @@ export default function LoginPage() {
           </div>
         )}
       </AnimatePresence>
-
     </div>
   )
 }

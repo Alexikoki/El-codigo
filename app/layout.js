@@ -16,7 +16,7 @@ export const metadata = {
   title: "El Código — Sistema de Referidos QR",
   description: "Plataforma de referidos QR para hostelería y turismo. Traquea comisiones, valida clientes y gestiona tu equipo.",
   manifest: "/manifest.json",
-  themeColor: "#3b82f6",
+  themeColor: "#fafaf8",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -25,7 +25,7 @@ export const metadata = {
 };
 
 export const viewport = {
-  themeColor: "#3b82f6",
+  themeColor: "#fafaf8",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -48,12 +48,14 @@ export default function RootLayout({ children }) {
           position="bottom-center"
           toastOptions={{
             style: {
-              background: '#1A1A1B',
-              color: '#fff',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '12px',
+              background: '#ffffff',
+              color: '#111111',
+              border: '1px solid #e5e7eb',
+              borderRadius: '10px',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+              fontSize: '14px',
             },
-            success: { iconTheme: { primary: '#3b82f6', secondary: '#fff' } }
+            success: { iconTheme: { primary: '#1e3a5f', secondary: '#fff' } }
           }}
         />
         {/* Registrador del Service Worker PWA */}
