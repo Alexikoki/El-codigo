@@ -19,6 +19,7 @@ export default function SuperadminPage() {
   const [confirmPago, setConfirmPago] = useState(null)
   const [filtroEstado, setFiltroEstado] = useState('')
   const [filtroReferidor, setFiltroReferidor] = useState('')
+  const [busqueda, setBusqueda] = useState('')
   const [cargando, setCargando] = useState(true)
   const [modal, setModal] = useState(null)
   const [modalEditar, setModalEditar] = useState(null)
@@ -218,7 +219,7 @@ export default function SuperadminPage() {
         {/* Tabs */}
         <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-6 gap-1 overflow-x-auto">
           {tabs.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
+            <button key={t.id} onClick={() => { setTab(t.id); setBusqueda('') }}
               className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                 tab === t.id ? 'bg-white text-[#111111] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'
               }`}
@@ -233,7 +234,7 @@ export default function SuperadminPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
             <div className="relative w-full sm:w-56">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={15} />
-              <input type="text" placeholder="Buscar..." className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none transition-colors bg-white placeholder:text-[#9ca3af]" />
+              <input type="text" placeholder="Buscar..." value={busqueda} onChange={e => setBusqueda(e.target.value)} className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none transition-colors bg-white placeholder:text-[#9ca3af]" />
             </div>
             <button
               onClick={() => { setModal(tab === 'lugares' ? 'lugar' : tab === 'referidores' ? 'referidor' : 'staff'); setForm({ descuento: tab === 'lugares' ? 10 : undefined }) }}
@@ -300,7 +301,7 @@ export default function SuperadminPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
             {/* LUGARES */}
-            {tab === 'lugares' && lugares.map(l => (
+            {tab === 'lugares' && lugares.filter(l => !busqueda || l.nombre?.toLowerCase().includes(busqueda.toLowerCase()) || l.tipo?.toLowerCase().includes(busqueda.toLowerCase())).map(l => (
               <div key={l.id} className="glass-panel glass-panel-hover p-5 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start mb-3">
@@ -334,7 +335,7 @@ export default function SuperadminPage() {
             ))}
 
             {/* REFERIDORES */}
-            {tab === 'referidores' && referidores.map(r => (
+            {tab === 'referidores' && referidores.filter(r => !busqueda || r.nombre?.toLowerCase().includes(busqueda.toLowerCase()) || r.email?.toLowerCase().includes(busqueda.toLowerCase())).map(r => (
               <div key={r.id} className="glass-panel glass-panel-hover p-5 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start mb-3">
@@ -367,7 +368,7 @@ export default function SuperadminPage() {
             ))}
 
             {/* STAFF */}
-            {tab === 'staff' && staff.map(s => (
+            {tab === 'staff' && staff.filter(s => !busqueda || s.nombre?.toLowerCase().includes(busqueda.toLowerCase()) || s.email?.toLowerCase().includes(busqueda.toLowerCase())).map(s => (
               <div key={s.id} className="glass-panel p-5 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start mb-3">
@@ -388,15 +389,26 @@ export default function SuperadminPage() {
             ))}
 
             {/* EMPTY STATE */}
-            {!cargando && (
-              (tab === 'lugares' && lugares.length === 0) ||
-              (tab === 'referidores' && referidores.length === 0) ||
-              (tab === 'staff' && staff.length === 0)
-            ) && (
-              <div className="col-span-full py-12 text-center text-[#9ca3af] border border-dashed border-[#e5e7eb] rounded-xl bg-white text-sm">
-                Aún no hay registros aquí.
-              </div>
-            )}
+            {!cargando && (() => {
+              const q = busqueda.toLowerCase()
+              const lFiltered = lugares.filter(l => !q || l.nombre?.toLowerCase().includes(q) || l.tipo?.toLowerCase().includes(q))
+              const rFiltered = referidores.filter(r => !q || r.nombre?.toLowerCase().includes(q) || r.email?.toLowerCase().includes(q))
+              const sFiltered = staff.filter(s => !q || s.nombre?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q))
+              const isEmpty =
+                (tab === 'lugares' && lFiltered.length === 0) ||
+                (tab === 'referidores' && rFiltered.length === 0) ||
+                (tab === 'staff' && sFiltered.length === 0)
+              if (!isEmpty) return null
+              const sinDatos =
+                (tab === 'lugares' && lugares.length === 0) ||
+                (tab === 'referidores' && referidores.length === 0) ||
+                (tab === 'staff' && staff.length === 0)
+              return (
+                <div className="col-span-full py-12 text-center text-[#9ca3af] border border-dashed border-[#e5e7eb] rounded-xl bg-white text-sm">
+                  {sinDatos ? 'Aún no hay registros aquí.' : `Sin resultados para "${busqueda}".`}
+                </div>
+              )
+            })()}
           </div>
 
           {/* LIQUIDACIONES */}
