@@ -21,6 +21,9 @@ export default function SuperadminPage() {
   const [filtroEstado, setFiltroEstado] = useState('')
   const [filtroReferidor, setFiltroReferidor] = useState('')
   const [busqueda, setBusqueda] = useState('')
+  const [filtroFecha, setFiltroFecha] = useState('mes')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
   const [cargando, setCargando] = useState(true)
   const [modal, setModal] = useState(null)
   const [modalEditar, setModalEditar] = useState(null)
@@ -44,22 +47,48 @@ export default function SuperadminPage() {
 
   const cargarDatos = async () => {
     setCargando(true)
-    const [resL, resR, resS, resA, resLiq, resAg] = await Promise.all([
+    const [resL, resR, resS, resLiq, resAg] = await Promise.all([
       fetch('/api/lugares', { credentials: 'include' }),
       fetch('/api/referidores', { credentials: 'include' }),
       fetch('/api/staff', { credentials: 'include' }),
-      fetch('/api/analytics/superadmin', { credentials: 'include' }),
       fetch('/api/liquidaciones', { credentials: 'include' }),
       fetch('/api/agencias', { credentials: 'include' })
     ])
-    const [dataL, dataR, dataS, dataA, dataLiq, dataAg] = await Promise.all([resL.json(), resR.json(), resS.json(), resA.json(), resLiq.json(), resAg.json()])
+    const [dataL, dataR, dataS, dataLiq, dataAg] = await Promise.all([resL.json(), resR.json(), resS.json(), resLiq.json(), resAg.json()])
     setLugares(dataL.lugares || [])
     setReferidores(dataR.referidores || [])
     setStaff(dataS.staff || [])
-    if (resA.ok) setAnalytics(dataA)
     setLiquidaciones(dataLiq.liquidaciones || [])
     setAgencias(dataAg.agencias || [])
     setCargando(false)
+    cargarAnalytics('mes')
+  }
+
+  const cargarAnalytics = async (preset, customDesde, customHasta) => {
+    const hoy = new Date()
+    let desde = '', hasta = ''
+    if (preset === 'hoy') {
+      desde = hoy.toISOString().split('T')[0]
+      hasta = desde
+    } else if (preset === 'semana') {
+      const lunes = new Date(hoy); lunes.setDate(hoy.getDate() - hoy.getDay() + 1)
+      desde = lunes.toISOString().split('T')[0]
+      hasta = hoy.toISOString().split('T')[0]
+    } else if (preset === 'mes') {
+      desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0]
+      hasta = hoy.toISOString().split('T')[0]
+    } else if (preset === 'año') {
+      desde = new Date(hoy.getFullYear(), 0, 1).toISOString().split('T')[0]
+      hasta = hoy.toISOString().split('T')[0]
+    } else if (preset === 'custom') {
+      desde = customDesde || fechaDesde
+      hasta = customHasta || fechaHasta
+    }
+    const params = new URLSearchParams()
+    if (desde) params.set('desde', desde)
+    if (hasta) params.set('hasta', hasta)
+    const res = await fetch(`/api/analytics/superadmin?${params}`, { credentials: 'include' })
+    if (res.ok) setAnalytics(await res.json())
   }
 
   const crearLiquidacion = async () => {
@@ -268,9 +297,31 @@ export default function SuperadminPage() {
           {/* ANALYTICS */}
           {tab === 'analytics' && (
             <div className="space-y-5">
-              <div className="flex justify-end">
+              <div className="flex flex-col sm:flex-row justify-between gap-3">
+                {/* Presets */}
+                <div className="flex flex-wrap gap-1.5">
+                  {[['hoy','Hoy'],['semana','Semana'],['mes','Mes'],['año','Año'],['todo','Todo']].map(([key, label]) => (
+                    <button key={key} onClick={() => { setFiltroFecha(key); cargarAnalytics(key) }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                        filtroFecha === key
+                          ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]'
+                          : 'bg-white text-[#6b7280] border-[#e5e7eb] hover:bg-[#f3f4f6]'
+                      }`}>{label}</button>
+                  ))}
+                  <div className="flex gap-1.5 items-center">
+                    <input type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)}
+                      className="border border-[#e5e7eb] rounded-lg px-2 py-1.5 text-xs text-[#374151] bg-white focus:outline-none focus:border-[#1e3a5f]" />
+                    <span className="text-xs text-[#9ca3af]">—</span>
+                    <input type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)}
+                      className="border border-[#e5e7eb] rounded-lg px-2 py-1.5 text-xs text-[#374151] bg-white focus:outline-none focus:border-[#1e3a5f]" />
+                    <button onClick={() => { setFiltroFecha('custom'); cargarAnalytics('custom') }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium border bg-white text-[#6b7280] border-[#e5e7eb] hover:bg-[#f3f4f6] transition-colors">
+                      Aplicar
+                    </button>
+                  </div>
+                </div>
                 <button onClick={exportarExcel}
-                  className="flex items-center gap-2 border border-[#e5e7eb] bg-white hover:bg-[#f3f4f6] text-[#374151] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                  className="flex items-center gap-2 border border-[#e5e7eb] bg-white hover:bg-[#f3f4f6] text-[#374151] px-4 py-2 rounded-lg text-sm font-medium transition-colors self-start">
                   <Download size={14} /> Exportar Excel
                 </button>
               </div>
@@ -595,14 +646,24 @@ export default function SuperadminPage() {
                     </div>
                     <div className="flex items-center gap-4 sm:flex-col sm:items-end">
                       <p className="text-xl font-bold text-[#111111]">{parseFloat(liq.importe).toFixed(2)}€</p>
-                      {liq.estado === 'pendiente' && (
-                        <button
-                          onClick={() => setConfirmPago(liq)}
-                          className="text-xs flex items-center gap-1.5 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg transition-colors font-medium"
-                        >
-                          <CheckCircle2 size={12} /> Marcar pagado
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        {liq.referidor_id && liq.referidores?.nombre && (
+                          <button
+                            onClick={() => descargarFactura(liq.referidor_id, liq.referidores.nombre)}
+                            className="text-xs flex items-center gap-1.5 bg-[#f0f4f8] hover:bg-[#dce6f0] text-[#1e3a5f] border border-[#dce6f0] px-3 py-1.5 rounded-lg transition-colors font-medium"
+                          >
+                            <FileText size={12} /> PDF
+                          </button>
+                        )}
+                        {liq.estado === 'pendiente' && (
+                          <button
+                            onClick={() => setConfirmPago(liq)}
+                            className="text-xs flex items-center gap-1.5 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg transition-colors font-medium"
+                          >
+                            <CheckCircle2 size={12} /> Marcar pagado
+                          </button>
+                        )}
+                      </div>
                       {liq.estado === 'pagado' && liq.pagado_at && (
                         <p className="text-[10px] text-[#9ca3af]">
                           Pagado el {new Date(liq.pagado_at).toLocaleDateString('es-ES')}

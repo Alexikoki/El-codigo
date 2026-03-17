@@ -9,11 +9,18 @@ export async function GET(request) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
         }
 
-        // Obtenemos todas las valoraciones confirmadas (Gasto depositado en el local)
-        const { data: records, error } = await supabaseAdmin
+        const { searchParams } = new URL(request.url)
+        const desde = searchParams.get('desde')
+        const hasta = searchParams.get('hasta')
+
+        let query = supabaseAdmin
             .from('valoraciones')
             .select('gasto, created_at')
             .order('created_at', { ascending: true })
+        if (desde) query = query.gte('created_at', desde)
+        if (hasta) query = query.lte('created_at', hasta + 'T23:59:59.999Z')
+
+        const { data: records, error } = await query
 
         if (error) throw error
 

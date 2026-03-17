@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
+import { rateLimit, getIP } from '../../../../lib/rateLimit'
 
 // GET — lista de clientes verificados hoy en el local del staff
 export async function GET(request) {
@@ -48,6 +49,9 @@ export async function GET(request) {
 
 // POST — confirmar consumo real + foto del ticket
 export async function POST(request) {
+  const { bloqueado } = rateLimit(getIP(request), 60, 60000) // 60 confirmaciones/min por IP
+  if (bloqueado) return NextResponse.json({ error: 'Demasiadas peticiones' }, { status: 429 })
+
   const payload = verificarToken(extraerTokenDeCookie(request))
   if (!payload || payload.rol !== 'staff') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

@@ -50,3 +50,11 @@ next-env.d.ts
 .gemini
 antigravity
 antigravity-awesome-skills-main
+
+# Claude Code
+.claude/
+
+# Playwright
+/playwright-report/
+/test-results/
+/tests/screenshots/

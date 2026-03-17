@@ -13,12 +13,15 @@ export default function ManagerPage() {
   const [cargando, setCargando] = useState(true)
   const [ultimaValidacion, setUltimaValidacion] = useState(null)
   const [segsDesde, setSegsDesde] = useState(null)
+  const [filtroFecha, setFiltroFecha] = useState('todo')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
   const router = useRouter()
 
   useEffect(() => {
     const rol = localStorage.getItem('rol')
     const m = localStorage.getItem('manager')
-    if (m && rol === 'manager') { setManager(JSON.parse(m)); cargarAnalytics(); return }
+    if (m && rol === 'manager') { setManager(JSON.parse(m)); cargarAnalytics('todo'); return }
 
     fetch('/api/auth/me', { credentials: 'include' })
       .then(res => res.json())
@@ -27,7 +30,7 @@ export default function ManagerPage() {
           localStorage.setItem('rol', 'manager')
           localStorage.setItem('manager', JSON.stringify(data.manager))
           setManager(data.manager)
-          cargarAnalytics()
+          cargarAnalytics('todo')
         } else { router.push('/login') }
       })
       .catch(() => router.push('/login'))
@@ -65,9 +68,21 @@ export default function ManagerPage() {
     }
   }, [manager])
 
-  const cargarAnalytics = async () => {
+  const cargarAnalytics = async (preset, desde, hasta) => {
     try {
-      const res = await fetch('/api/analytics/manager', { credentials: 'include' })
+      const hoy = new Date()
+      const fmt = d => d.toISOString().split('T')[0]
+      let d = '', h = ''
+      if (preset === 'hoy') { d = fmt(hoy); h = fmt(hoy) }
+      else if (preset === 'semana') { const s = new Date(hoy); s.setDate(hoy.getDate() - 6); d = fmt(s); h = fmt(hoy) }
+      else if (preset === 'mes') { const s = new Date(hoy); s.setDate(1); d = fmt(s); h = fmt(hoy) }
+      else if (preset === 'año') { d = `${hoy.getFullYear()}-01-01`; h = fmt(hoy) }
+      else if (preset === 'custom') { d = desde || ''; h = hasta || '' }
+      const params = new URLSearchParams()
+      if (d) params.set('desde', d)
+      if (h) params.set('hasta', h)
+      const url = `/api/analytics/manager${params.toString() ? '?' + params.toString() : ''}`
+      const res = await fetch(url, { credentials: 'include' })
       if (res.ok) setAnalytics(await res.json())
     } catch (e) {
       console.error(e)
@@ -165,11 +180,33 @@ export default function ManagerPage() {
             </div>
 
             {/* Gráfica */}
-            <div className="glass-panel p-5 h-[320px]">
-              <h3 className="text-sm font-semibold text-[#111111] mb-4 flex items-center gap-2">
-                <TrendingDown size={15} className="text-red-400" /> Histórico de Comisiones
-              </h3>
-              <ResponsiveContainer width="100%" height="85%">
+            <div className="glass-panel p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+                <h3 className="text-sm font-semibold text-[#111111] flex items-center gap-2 flex-shrink-0">
+                  <TrendingDown size={15} className="text-red-400" /> Histórico de Comisiones
+                </h3>
+                <div className="flex flex-wrap gap-1.5 sm:ml-auto">
+                  {[['hoy','Hoy'],['semana','Semana'],['mes','Mes'],['año','Año'],['todo','Todo']].map(([key, label]) => (
+                    <button key={key}
+                      onClick={() => { setFiltroFecha(key); cargarAnalytics(key) }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${filtroFecha === key ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]' : 'bg-white text-[#6b7280] border-[#e5e7eb] hover:bg-[#f3f4f6]'}`}
+                    >{label}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mb-3 items-center">
+                  <input type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)}
+                    className="text-xs border border-[#e5e7eb] rounded-lg px-2.5 py-1.5 text-[#374151] bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a5f]" />
+                  <span className="text-xs text-[#9ca3af]">→</span>
+                  <input type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)}
+                    className="text-xs border border-[#e5e7eb] rounded-lg px-2.5 py-1.5 text-[#374151] bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a5f]" />
+                  <button onClick={() => { setFiltroFecha('custom'); cargarAnalytics('custom', fechaDesde, fechaHasta) }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#1e3a5f] text-white border border-[#1e3a5f] hover:bg-[#162d4a] transition-colors">
+                    Aplicar
+                  </button>
+              </div>
+              <div className="h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={analytics.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorDeuda" x1="0" y1="0" x2="0" y2="1">
@@ -184,6 +221,7 @@ export default function ManagerPage() {
                   <Area type="monotone" dataKey="deudaTotal" name="Comisión al Código" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorDeuda)" />
                 </AreaChart>
               </ResponsiveContainer>
+              </div>
             </div>
 
             {/* Clientes de Hoy */}

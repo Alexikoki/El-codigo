@@ -11,12 +11,19 @@ export async function GET(request) {
 
         const managerLugarId = payload.lugarId
 
-        // Obtenemos todas las valoraciones confirmadas pero limitadas al local del Manager
-        const { data: records, error } = await supabaseAdmin
+        const { searchParams } = new URL(request.url)
+        const desde = searchParams.get('desde')
+        const hasta = searchParams.get('hasta')
+
+        let query = supabaseAdmin
             .from('valoraciones')
             .select('gasto, comision_lugar, created_at')
             .eq('lugar_id', managerLugarId)
             .order('created_at', { ascending: true })
+        if (desde) query = query.gte('created_at', desde)
+        if (hasta) query = query.lte('created_at', hasta + 'T23:59:59.999Z')
+
+        const { data: records, error } = await query
 
         // Clientes de hoy
         const hoyInicio = new Date()
