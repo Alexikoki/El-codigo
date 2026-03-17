@@ -17,7 +17,7 @@ export async function POST(request) {
 
         // 0. Verificamos el CAPTCHA con Cloudflare
         const cfFormData = new FormData();
-        cfFormData.append('secret', '1x0000000000000000000000000000000AA'); // Test Dummy Secret
+        cfFormData.append('secret', process.env.TURNSTILE_SECRET_KEY);
         cfFormData.append('response', cfToken);
 
         const cfVerify = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {

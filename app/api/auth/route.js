@@ -75,8 +75,8 @@ export async function POST(request) {
 
     // Verificación Cloudflare Turnstile
     let isHuman = false
-    if (cfToken.startsWith('1x0000000000000000000000000000000AA')) {
-      isHuman = true // Bypass solo para test local
+    if (process.env.NODE_ENV === 'development' && cfToken.startsWith('1x0000000000000000000000000000000AA')) {
+      isHuman = true // Bypass solo para test local en desarrollo
     } else {
       const cfFormData = new FormData()
       cfFormData.append('secret', process.env.TURNSTILE_SECRET_KEY)

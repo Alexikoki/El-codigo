@@ -14,22 +14,17 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Falta email' }, { status: 400 })
         }
 
-        // Buscamos si el email existe (puede ser referidor o staff)
+        // Búsqueda en paralelo para evitar timing attacks por enumeración de usuarios
         let user = null
         let tabla = ''
 
-        const { data: referidor } = await supabaseAdmin.from('referidores').select('id, nombre').eq('email', email).single()
+        const [{ data: referidor }, { data: staff }] = await Promise.all([
+            supabaseAdmin.from('referidores').select('id, nombre').eq('email', email).single(),
+            supabaseAdmin.from('staff').select('id, nombre').eq('email', email).single()
+        ])
 
-        if (referidor) {
-            user = referidor
-            tabla = 'referidores'
-        } else {
-            const { data: staff } = await supabaseAdmin.from('staff').select('id, nombre').eq('email', email).single()
-            if (staff) {
-                user = staff
-                tabla = 'staff'
-            }
-        }
+        if (referidor) { user = referidor; tabla = 'referidores' }
+        else if (staff) { user = staff; tabla = 'staff' }
 
         // Por seguridad, si no existe no damos pistas exactas para evitar email scraping
         if (!user) {

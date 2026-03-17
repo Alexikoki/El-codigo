@@ -62,8 +62,16 @@ export async function POST(request) {
   const gastoConfirmado = parseFloat(formData.get('gastoConfirmado'))
   const foto = formData.get('foto')
 
-  if (!clienteId || isNaN(gastoConfirmado) || gastoConfirmado <= 0) {
+  if (!clienteId || !Number.isFinite(gastoConfirmado) || gastoConfirmado <= 0 || gastoConfirmado > 100000) {
     return NextResponse.json({ error: 'Faltan datos o importe inválido' }, { status: 400 })
+  }
+
+  // Validar foto si se proporcionó
+  const MAX_FOTO_SIZE = 5 * 1024 * 1024 // 5MB
+  const VALID_FOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
+  if (foto && foto.size > 0) {
+    if (foto.size > MAX_FOTO_SIZE) return NextResponse.json({ error: 'Imagen demasiado grande (máx 5MB)' }, { status: 400 })
+    if (!VALID_FOTO_TYPES.includes(foto.type)) return NextResponse.json({ error: 'Formato de imagen no válido' }, { status: 400 })
   }
 
   // Verificar que el cliente pertenece al local del staff

@@ -11,7 +11,7 @@ export async function GET(request) {
     const { data, error } = await supabaseAdmin
       .from('referidores')
       .select('nombre')
-      .ilike('qr_token', token)
+      .eq('qr_token', token)
       .eq('activo', true)
       .single()
 
