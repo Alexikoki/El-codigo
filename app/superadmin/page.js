@@ -21,6 +21,12 @@ export default function SuperadminPage() {
   const [filtroEstado, setFiltroEstado] = useState('')
   const [filtroReferidor, setFiltroReferidor] = useState('')
   const [busqueda, setBusqueda] = useState('')
+  const [clientes, setClientes] = useState([])
+  const [busquedaClientes, setBusquedaClientes] = useState('')
+  const [clientesCargando, setClientesCargando] = useState(false)
+  const [modalEditCliente, setModalEditCliente] = useState(null)
+  const [formCliente, setFormCliente] = useState({})
+  const [confirmBorrar, setConfirmBorrar] = useState(null)
   const [filtroFecha, setFiltroFecha] = useState('mes')
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
@@ -29,6 +35,10 @@ export default function SuperadminPage() {
   const [modalEditar, setModalEditar] = useState(null)
   const [form, setForm] = useState({})
   const router = useRouter()
+
+  useEffect(() => {
+    if (tab === 'clientes' && clientes.length === 0) cargarClientes()
+  }, [tab])
 
   useEffect(() => {
     const rol = localStorage.getItem('rol')
@@ -190,6 +200,50 @@ export default function SuperadminPage() {
     }
   }
 
+  const cargarClientes = async (busqueda = '') => {
+    setClientesCargando(true)
+    try {
+      const params = new URLSearchParams()
+      if (busqueda) params.set('busqueda', busqueda)
+      const res = await fetch(`/api/admin/clientes${params.toString() ? '?' + params.toString() : ''}`, { credentials: 'include' })
+      if (res.ok) { const data = await res.json(); setClientes(data.clientes || []) }
+    } finally {
+      setClientesCargando(false)
+    }
+  }
+
+  const editarCliente = async () => {
+    if (!modalEditCliente) return
+    const body = { id: modalEditCliente.id }
+    if (formCliente.nombre !== undefined) body.nombre = formCliente.nombre
+    if (formCliente.num_personas !== undefined) body.num_personas = parseInt(formCliente.num_personas)
+    const res = await fetch('/api/admin/clientes', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body)
+    })
+    if (res.ok) {
+      toast.success('Cliente actualizado.')
+      setModalEditCliente(null); setFormCliente({})
+      cargarClientes(busquedaClientes)
+    } else { toast.error('Error al actualizar.') }
+  }
+
+  const borrarCliente = async (id) => {
+    const res = await fetch('/api/admin/clientes', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ id })
+    })
+    if (res.ok) {
+      toast.success('Cliente eliminado.')
+      setConfirmBorrar(null)
+      setClientes(clientes.filter(c => c.id !== id))
+    } else { toast.error('Error al eliminar.') }
+  }
+
   const descargarFactura = async (referidorId, nombreReferidor) => {
     toast.loading('Generando PDF...', { id: 'pdf' })
     try {
@@ -234,7 +288,8 @@ export default function SuperadminPage() {
     { id: 'referidores', label: 'Referidores', icon: <Users size={15} /> },
     { id: 'staff', label: 'Staff', icon: <UserCheck size={15} /> },
     { id: 'agencias', label: 'Agencias', icon: <Building2 size={15} /> },
-    { id: 'liquidaciones', label: 'Pagos', icon: <CreditCard size={15} /> }
+    { id: 'liquidaciones', label: 'Pagos', icon: <CreditCard size={15} /> },
+    { id: 'clientes', label: 'Clientes', icon: <Users size={15} /> }
   ]
 
   const inputClass = "w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg px-4 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white"
@@ -277,7 +332,7 @@ export default function SuperadminPage() {
         </div>
 
         {/* Barra de acciones */}
-        {tab !== 'analytics' && tab !== 'liquidaciones' && tab !== 'agencias' && (
+        {tab !== 'analytics' && tab !== 'liquidaciones' && tab !== 'agencias' && tab !== 'clientes' && (
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
             <div className="relative w-full sm:w-56">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={15} />
@@ -288,6 +343,22 @@ export default function SuperadminPage() {
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
             >
               <Plus size={15} /> Nuevo {tab === 'lugares' ? 'Local' : tab === 'referidores' ? 'Referidor' : 'Staff'}
+            </button>
+          </div>
+        )}
+
+        {tab === 'clientes' && (
+          <div className="flex gap-2 mb-5">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={15} />
+              <input type="text" placeholder="Buscar cliente por nombre..." value={busquedaClientes}
+                onChange={e => setBusquedaClientes(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && cargarClientes(busquedaClientes)}
+                className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none transition-colors bg-white placeholder:text-[#9ca3af]" />
+            </div>
+            <button onClick={() => cargarClientes(busquedaClientes)}
+              className="px-4 py-2.5 bg-[#1e3a5f] text-white rounded-lg text-sm font-medium hover:bg-[#15294a] transition-colors">
+              Buscar
             </button>
           </div>
         )}
@@ -676,8 +747,117 @@ export default function SuperadminPage() {
             )
           })()}
 
+          {/* CLIENTES */}
+          {tab === 'clientes' && (
+            <div className="space-y-3">
+              {clientes.length === 0 && !clientesCargando && (
+                <div className="py-14 text-center text-[#9ca3af] border border-dashed border-[#e5e7eb] rounded-xl bg-white text-sm">
+                  {busquedaClientes ? `Sin resultados para "${busquedaClientes}".` : 'Introduce un nombre y pulsa Buscar.'}
+                </div>
+              )}
+              {clientesCargando && <SkeletonPanel />}
+              {!clientesCargando && clientes.map(c => (
+                <div key={c.id} className="glass-panel p-4 flex items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <p className="text-sm font-semibold text-[#111111] truncate">{c.nombre}</p>
+                      <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-medium border flex-shrink-0 ${c.verificado ? 'bg-green-50 text-green-700 border-green-200' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
+                        {c.verificado ? 'Visitó' : 'Pendiente'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#6b7280] truncate">
+                      {c.lugares?.nombre || '—'} · {c.referidores?.nombre || 'Sin referidor'} · {c.num_personas} pers.
+                    </p>
+                    <p className="text-[10px] text-[#9ca3af] mt-0.5">
+                      {new Date(c.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button onClick={() => { setModalEditCliente(c); setFormCliente({ nombre: c.nombre, num_personas: c.num_personas }) }}
+                      className="p-2 rounded-lg border border-[#e5e7eb] hover:bg-[#f3f4f6] text-[#6b7280] hover:text-[#111111] transition-colors">
+                      <Pencil size={13} />
+                    </button>
+                    <button onClick={() => setConfirmBorrar(c)}
+                      className="p-2 rounded-lg border border-red-100 hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors">
+                      <XCircle size={13} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
         </motion.div>
       </main>
+
+      {/* MODAL EDITAR CLIENTE */}
+      <AnimatePresence>
+        {modalEditCliente && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 px-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/30" onClick={() => { setModalEditCliente(null); setFormCliente({}) }} />
+            <motion.div initial={{ scale: 0.97, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.97, opacity: 0 }}
+              className="bg-white border border-[#e5e7eb] rounded-2xl p-6 w-full max-w-sm relative z-10 shadow-lg">
+              <div className="flex justify-between items-center mb-5">
+                <h2 className="text-base font-bold text-[#111111] flex items-center gap-2">
+                  <Pencil size={16} className="text-[#1e3a5f]" /> Editar Cliente
+                </h2>
+                <button onClick={() => { setModalEditCliente(null); setFormCliente({}) }} className="text-[#9ca3af] hover:text-[#374151]"><XCircle size={20} /></button>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-[#6b7280] mb-1 block">Nombre</label>
+                  <input value={formCliente.nombre || ''} onChange={e => setFormCliente({ ...formCliente, nombre: e.target.value })}
+                    className={inputClass} placeholder="Nombre del cliente" />
+                </div>
+                <div>
+                  <label className="text-xs text-[#6b7280] mb-1 block">Personas</label>
+                  <input type="number" min="1" max="50" value={formCliente.num_personas || 1}
+                    onChange={e => setFormCliente({ ...formCliente, num_personas: e.target.value })}
+                    className={inputClass} />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-5">
+                <button onClick={() => { setModalEditCliente(null); setFormCliente({}) }}
+                  className="flex-1 py-2.5 border border-[#e5e7eb] rounded-lg text-sm text-[#6b7280] hover:bg-[#f3f4f6] transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={editarCliente}
+                  className="flex-1 py-2.5 bg-[#1e3a5f] text-white rounded-lg text-sm font-medium hover:bg-[#15294a] transition-colors">
+                  Guardar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL CONFIRMAR BORRADO */}
+      <AnimatePresence>
+        {confirmBorrar && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 px-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/30" onClick={() => setConfirmBorrar(null)} />
+            <motion.div initial={{ scale: 0.97, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.97, opacity: 0 }}
+              className="bg-white border border-[#e5e7eb] rounded-2xl p-6 w-full max-w-sm relative z-10 shadow-lg">
+              <h2 className="text-base font-bold text-[#111111] mb-2">¿Eliminar cliente?</h2>
+              <p className="text-sm text-[#6b7280] mb-5">
+                Se eliminará <strong>{confirmBorrar.nombre}</strong> y todas sus valoraciones. Esta acción no se puede deshacer.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmBorrar(null)}
+                  className="flex-1 py-2.5 border border-[#e5e7eb] rounded-lg text-sm text-[#6b7280] hover:bg-[#f3f4f6] transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={() => borrarCliente(confirmBorrar.id)}
+                  className="flex-1 py-2.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors">
+                  Eliminar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* MODAL CREACIÓN */}
       <AnimatePresence>

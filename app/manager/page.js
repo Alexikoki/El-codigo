@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogOut, BarChart3, TrendingDown, Building2, Receipt, Zap, Users, Download } from 'lucide-react'
+import { LogOut, BarChart3, TrendingDown, Building2, Receipt, Zap, Users, Download, Image, UserCheck, X } from 'lucide-react'
 import { SkeletonPanel } from '../../components/Skeleton'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { createClient } from '@supabase/supabase-js'
@@ -16,6 +16,8 @@ export default function ManagerPage() {
   const [filtroFecha, setFiltroFecha] = useState('todo')
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
+  const [tickets, setTickets] = useState([])
+  const [ticketAmpliado, setTicketAmpliado] = useState(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -82,8 +84,12 @@ export default function ManagerPage() {
       if (d) params.set('desde', d)
       if (h) params.set('hasta', h)
       const url = `/api/analytics/manager${params.toString() ? '?' + params.toString() : ''}`
-      const res = await fetch(url, { credentials: 'include' })
-      if (res.ok) setAnalytics(await res.json())
+      const [resA, resT] = await Promise.all([
+        fetch(url, { credentials: 'include' }),
+        fetch('/api/manager/tickets', { credentials: 'include' })
+      ])
+      if (resA.ok) setAnalytics(await resA.json())
+      if (resT.ok) { const dt = await resT.json(); setTickets(dt.tickets || []) }
     } catch (e) {
       console.error(e)
     } finally {
@@ -288,9 +294,93 @@ export default function ManagerPage() {
               )}
             </div>
 
+            {/* En Local Ahora */}
+            {(() => {
+              const enLocal = (analytics.hoy || []).filter(r => !r.confirmado)
+              if (enLocal.length === 0) return null
+              return (
+                <div className="glass-panel overflow-hidden border-l-4 border-l-amber-400">
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-[#f3f4f6]">
+                    <h3 className="text-sm font-semibold text-[#111111] flex items-center gap-2">
+                      <UserCheck size={15} className="text-amber-500" />
+                      En Local Ahora
+                      <span className="text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                        {enLocal.reduce((s, r) => s + (r.personas || 1), 0)} personas
+                      </span>
+                    </h3>
+                    <span className="flex items-center gap-1.5 text-xs text-amber-600 font-medium">
+                      <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+                      Mesa abierta
+                    </span>
+                  </div>
+                  <div className="divide-y divide-[#f3f4f6]">
+                    {enLocal.map((r, i) => (
+                      <div key={i} className="px-5 py-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-[#111111]">{r.cliente}</p>
+                          <p className="text-xs text-[#9ca3af]">{r.referidor} · {r.personas} {r.personas > 1 ? 'personas' : 'persona'}</p>
+                        </div>
+                        <span className="text-xs text-[#6b7280] font-mono">{r.hora}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Historial de Tickets */}
+            {tickets.length > 0 && (
+              <div className="glass-panel overflow-hidden">
+                <div className="px-5 py-4 border-b border-[#f3f4f6]">
+                  <h3 className="text-sm font-semibold text-[#111111] flex items-center gap-2">
+                    <Image size={15} className="text-[#1e3a5f]" />
+                    Tickets Recientes
+                    <span className="text-xs font-medium bg-[#f0f4f8] text-[#1e3a5f] px-2 py-0.5 rounded-full">{tickets.length}</span>
+                  </h3>
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-4">
+                  {tickets.map((t, i) => (
+                    <button key={i} onClick={() => setTicketAmpliado(t)}
+                      className="relative aspect-square rounded-lg overflow-hidden border border-[#e5e7eb] hover:border-[#1e3a5f] transition-colors group">
+                      <img src={t.ticketUrl} alt="Ticket" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
+                        <p className="text-white text-[9px] truncate font-medium">{t.cliente}</p>
+                        <p className="text-white/70 text-[9px]">{t.gasto?.toFixed(0)}€</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </motion.div>
         )}
       </main>
+
+      {/* Modal ticket ampliado */}
+      <AnimatePresence>
+        {ticketAmpliado && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setTicketAmpliado(null)}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/70" />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="relative z-10 bg-white rounded-2xl overflow-hidden max-w-sm w-full shadow-xl"
+              onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[#f3f4f6]">
+                <div>
+                  <p className="text-sm font-semibold text-[#111111]">{ticketAmpliado.cliente}</p>
+                  <p className="text-xs text-[#9ca3af]">{ticketAmpliado.fecha} · {ticketAmpliado.hora} · {ticketAmpliado.gasto?.toFixed(2)}€</p>
+                </div>
+                <button onClick={() => setTicketAmpliado(null)} className="text-[#9ca3af] hover:text-[#374151] transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+              <img src={ticketAmpliado.ticketUrl} alt="Ticket" className="w-full object-contain max-h-[70vh]" />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -30,7 +30,7 @@ export async function GET(request) {
         hoyInicio.setHours(0, 0, 0, 0)
         const { data: hoyRecords } = await supabaseAdmin
             .from('valoraciones')
-            .select('gasto, comision_lugar, created_at, num_personas, clientes(nombre), referidores(nombre)')
+            .select('gasto, comision_lugar, created_at, confirmado_at, num_personas, clientes(nombre), referidores(nombre)')
             .eq('lugar_id', managerLugarId)
             .gte('created_at', hoyInicio.toISOString())
             .order('created_at', { ascending: false })
@@ -66,7 +66,8 @@ export async function GET(request) {
             personas: r.num_personas || 1,
             gasto: r.gasto,
             comision: r.comision_lugar || r.gasto * 0.20,
-            hora: new Date(r.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+            hora: new Date(r.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+            confirmado: !!r.confirmado_at
         }))
 
         return NextResponse.json({ chartData, stats, hoy })
