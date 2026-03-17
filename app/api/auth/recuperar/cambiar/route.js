@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../../lib/supabase'
 import { verificarToken } from '../../../../../lib/jwt'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 
 export async function POST(request) {
     try {
@@ -43,14 +44,21 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Tipo de usuario inválido.' }, { status: 400 })
         }
 
-        // 2. Hash seguro de la nueva clave
+        // 2. Verificar que el token no ha sido usado ya (one-time use)
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+        const { data: userRow } = await supabaseAdmin.from(tabla).select('reset_token_hash').eq('id', uid).single()
+        if (!userRow || userRow.reset_token_hash !== tokenHash) {
+            return NextResponse.json({ error: 'Enlace ya utilizado o inválido.' }, { status: 400 })
+        }
+
+        // 3. Hash seguro de la nueva clave
         const salt = await bcrypt.genSalt(10)
         const newHashedPass = await bcrypt.hash(nuevaPass, salt)
 
-        // 3. Update contra Supabase bypasseando RLS gracias al service_role de supabaseAdmin
+        // 4. Update contraseña e invalidar el token (reset_token_hash = null)
         const { error: updateError } = await supabaseAdmin
             .from(tabla)
-            .update({ password_hash: newHashedPass })
+            .update({ password_hash: newHashedPass, reset_token_hash: null })
             .eq('id', uid)
 
         if (updateError) {

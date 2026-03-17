@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { generarToken } from '../../../../lib/jwt'
 import { Resend } from 'resend'
+import crypto from 'crypto'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
@@ -31,9 +32,13 @@ export async function POST(request) {
             return NextResponse.json({ ok: true }) // Simula envío correcto visualmente
         }
 
-        // Generamos un token temporal de recuperación (expira rápido)
+        // Generamos un token temporal de recuperación (expira en 1h)
         const resetToken = generarToken({ uid: user.id, tabla, scope: 'reset_password' }, '1h')
         const resetLink = `${APP_URL}/reset-password?token=${resetToken}`
+
+        // Guardamos el hash del token en la DB para invalidarlo tras el primer uso
+        const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex')
+        await supabaseAdmin.from(tabla).update({ reset_token_hash: tokenHash }).eq('id', user.id)
 
         // Enviamos el correo con HTML Premium
         await resend.emails.send({
