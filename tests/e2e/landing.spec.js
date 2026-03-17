@@ -4,7 +4,7 @@ test.describe('Landing page', () => {
   test('carga correctamente y muestra elementos clave', async ({ page }) => {
     await page.goto('/')
     await expect(page).toHaveTitle(/El Código/)
-    await expect(page.getByText('El Código')).toBeVisible()
+    await expect(page.getByRole('banner').getByText('El Código', { exact: true })).toBeVisible()
     await expect(page.getByText('automatizado e inteligente')).toBeVisible()
     await expect(page.getByRole('link', { name: /Empezar ahora/i })).toBeVisible()
   })
@@ -13,7 +13,7 @@ test.describe('Landing page', () => {
     await page.goto('/')
     await page.getByRole('link', { name: 'Aviso Legal' }).click()
     await expect(page).toHaveURL('/aviso-legal')
-    await expect(page.getByText('Aviso Legal')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Aviso Legal', level: 1 })).toBeVisible()
   })
 
   test('link Privacidad funciona', async ({ page }) => {
