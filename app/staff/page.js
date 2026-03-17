@@ -211,14 +211,26 @@ export default function StaffPage() {
                 >
                   <CheckCircle2 size={32} className="text-green-600" />
                 </motion.div>
-                <h2 className="text-xl font-bold text-[#111111] mb-1">{resultado.cliente.nombre}</h2>
-                <div className="inline-flex items-center gap-1.5 bg-[#f0f4f8] px-3 py-1.5 rounded-full text-[#1e3a5f] text-sm font-medium mb-7">
+                <p className="text-xs font-semibold uppercase tracking-wider text-green-600 mb-1">Cliente verificado</p>
+                <h2 className="text-2xl font-bold text-[#111111] mb-2">{resultado.cliente.nombre}</h2>
+                <div className="inline-flex items-center gap-1.5 bg-[#f0f4f8] px-3 py-1.5 rounded-full text-[#1e3a5f] text-sm font-medium mb-6">
                   <Users size={14} /> {resultado.cliente.numPersonas} {resultado.cliente.numPersonas > 1 ? 'personas' : 'persona'}
                 </div>
                 <div className="flex flex-col gap-3">
                   <button
+                    onClick={() => abrirConfirmar({
+                      id: resultado.cliente.id,
+                      nombre: resultado.cliente.nombre,
+                      personas: resultado.cliente.numPersonas,
+                      gastoEstimado: resultado.cliente.gastoEstimado || null
+                    })}
+                    className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3.5 rounded-xl transition-colors"
+                  >
+                    <Receipt size={17} /> Registrar consumo
+                  </button>
+                  <button
                     onClick={() => setResultado(null)}
-                    className="w-full bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3.5 rounded-xl transition-colors"
+                    className="w-full border border-[#e5e7eb] text-[#6b7280] hover:bg-[#f3f4f6] font-medium py-3 rounded-xl transition-colors text-sm"
                   >
                     Escanear otra persona
                   </button>

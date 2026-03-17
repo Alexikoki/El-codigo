@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogOut, BarChart3, TrendingDown, Building2, Receipt, Zap, Users, Download, Image, UserCheck, X } from 'lucide-react'
+import { LogOut, BarChart3, TrendingDown, Building2, Receipt, Zap, Users, Download, Image, UserCheck, X, UserPlus, Shield, ToggleLeft, ToggleRight } from 'lucide-react'
 import { SkeletonPanel } from '../../components/Skeleton'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { createClient } from '@supabase/supabase-js'
@@ -18,6 +18,13 @@ export default function ManagerPage() {
   const [fechaHasta, setFechaHasta] = useState('')
   const [tickets, setTickets] = useState([])
   const [ticketAmpliado, setTicketAmpliado] = useState(null)
+  const [tab, setTab] = useState('dashboard') // 'dashboard' | 'equipo'
+  const [staffList, setStaffList] = useState([])
+  const [cargandoStaff, setCargandoStaff] = useState(false)
+  const [modalNuevoStaff, setModalNuevoStaff] = useState(false)
+  const [formStaff, setFormStaff] = useState({ nombre: '', email: '', password: '' })
+  const [guardandoStaff, setGuardandoStaff] = useState(false)
+  const [errorStaff, setErrorStaff] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -97,6 +104,42 @@ export default function ManagerPage() {
     }
   }
 
+  const cargarStaff = async () => {
+    setCargandoStaff(true)
+    try {
+      const res = await fetch('/api/manager/staff', { credentials: 'include' })
+      if (res.ok) { const d = await res.json(); setStaffList(d.staff || []) }
+    } finally { setCargandoStaff(false) }
+  }
+
+  const crearStaff = async () => {
+    setErrorStaff('')
+    if (!formStaff.nombre || !formStaff.email || !formStaff.password) { setErrorStaff('Rellena todos los campos'); return }
+    if (formStaff.password.length < 6) { setErrorStaff('La contraseña debe tener al menos 6 caracteres'); return }
+    setGuardandoStaff(true)
+    try {
+      const res = await fetch('/api/manager/staff', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formStaff)
+      })
+      const data = await res.json()
+      if (!res.ok) { setErrorStaff(data.error || 'Error al crear'); return }
+      setStaffList(prev => [data.staff, ...prev])
+      setModalNuevoStaff(false)
+      setFormStaff({ nombre: '', email: '', password: '' })
+    } finally { setGuardandoStaff(false) }
+  }
+
+  const toggleStaff = async (id, activo) => {
+    await fetch('/api/manager/staff', {
+      method: 'PATCH', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, activo: !activo })
+    })
+    setStaffList(prev => prev.map(s => s.id === id ? { ...s, activo: !activo } : s))
+  }
+
   const exportarHoy = () => {
     const hoy = analytics.hoy || []
     if (hoy.length === 0) return
@@ -136,8 +179,64 @@ export default function ManagerPage() {
         </button>
       </nav>
 
-      <main className="max-w-3xl mx-auto p-5 mt-6">
-        {cargando ? <SkeletonPanel /> : (
+      {/* Tabs */}
+      <div className="max-w-3xl mx-auto px-5 pt-5">
+        <div className="flex gap-1 bg-[#f3f4f6] rounded-xl p-1">
+          {[['dashboard', <BarChart3 size={14} />, 'Dashboard'], ['equipo', <Shield size={14} />, 'Mi Equipo']].map(([key, icon, label]) => (
+            <button key={key}
+              onClick={() => { setTab(key); if (key === 'equipo' && staffList.length === 0) cargarStaff() }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-white text-[#111111] shadow-sm' : 'text-[#6b7280] hover:text-[#374151]'}`}
+            >{icon}{label}</button>
+          ))}
+        </div>
+      </div>
+
+      <main className="max-w-3xl mx-auto p-5 mt-4">
+        {/* ── TAB EQUIPO ── */}
+        {tab === 'equipo' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-[#111111]">Camareros del local</h2>
+              <button onClick={() => { setModalNuevoStaff(true); setErrorStaff('') }}
+                className="flex items-center gap-1.5 bg-[#1e3a5f] hover:bg-[#15294a] text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors">
+                <UserPlus size={15} /> Nuevo camarero
+              </button>
+            </div>
+
+            {cargandoStaff ? (
+              <div className="py-10 text-center text-sm text-[#9ca3af]">Cargando...</div>
+            ) : staffList.length === 0 ? (
+              <div className="py-12 text-center border border-dashed border-[#e5e7eb] rounded-2xl bg-white">
+                <Shield size={32} className="text-[#d1d5db] mx-auto mb-3" />
+                <p className="text-[#6b7280] text-sm">Aún no hay camareros registrados</p>
+                <p className="text-[#9ca3af] text-xs mt-1">Añade el primer camarero para que pueda escanear QRs</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {staffList.map(s => (
+                  <div key={s.id} className="flex items-center justify-between bg-white border border-[#e5e7eb] rounded-xl px-4 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${s.activo ? 'bg-[#f0f4f8] text-[#1e3a5f]' : 'bg-[#f3f4f6] text-[#9ca3af]'}`}>
+                        {s.nombre.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className={`text-sm font-medium ${s.activo ? 'text-[#111111]' : 'text-[#9ca3af]'}`}>{s.nombre}</p>
+                        <p className="text-xs text-[#9ca3af]">{s.email}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => toggleStaff(s.id, s.activo)}
+                      className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${s.activo ? 'bg-green-50 border-green-200 text-green-700 hover:bg-red-50 hover:border-red-200 hover:text-red-600' : 'bg-[#f3f4f6] border-[#e5e7eb] text-[#9ca3af] hover:bg-green-50 hover:border-green-200 hover:text-green-700'}`}>
+                      {s.activo ? <><ToggleRight size={14} /> Activo</> : <><ToggleLeft size={14} /> Inactivo</>}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {tab === 'dashboard' && cargando && <SkeletonPanel />}
+        {tab === 'dashboard' && !cargando && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -357,6 +456,47 @@ export default function ManagerPage() {
           </motion.div>
         )}
       </main>
+
+      {/* Modal nuevo camarero */}
+      <AnimatePresence>
+        {modalNuevoStaff && (
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40" onClick={() => setModalNuevoStaff(false)} />
+            <motion.div
+              initial={{ y: '100%', opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }} transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl p-6 shadow-xl"
+            >
+              <div className="flex justify-between items-center mb-5">
+                <div>
+                  <h3 className="text-base font-bold text-[#111111]">Nuevo camarero</h3>
+                  <p className="text-sm text-[#6b7280]">Acceso al escáner QR del local</p>
+                </div>
+                <button onClick={() => setModalNuevoStaff(false)} className="text-[#9ca3af] hover:text-[#374151]">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="space-y-3">
+                {[['nombre', 'Nombre completo', 'text'], ['email', 'Email', 'email'], ['password', 'Contraseña (mín. 6 caracteres)', 'password']].map(([key, label, type]) => (
+                  <div key={key}>
+                    <label className="text-xs text-[#6b7280] mb-1 block font-medium">{label}</label>
+                    <input type={type} value={formStaff[key]}
+                      onChange={e => setFormStaff(prev => ({ ...prev, [key]: e.target.value }))}
+                      className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 bg-white"
+                    />
+                  </div>
+                ))}
+                {errorStaff && <p className="text-xs text-red-500">{errorStaff}</p>}
+              </div>
+              <button onClick={crearStaff} disabled={guardandoStaff}
+                className="w-full mt-5 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3.5 rounded-xl transition-colors disabled:opacity-50">
+                {guardandoStaff ? 'Creando...' : 'Crear camarero'}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Modal ticket ampliado */}
       <AnimatePresence>
