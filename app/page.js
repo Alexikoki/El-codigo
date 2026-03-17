@@ -82,7 +82,12 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-[#e5e7eb] bg-white py-7 px-6 text-center text-sm text-[#9ca3af]">
-        <p>© {new Date().getFullYear()} El Código. Todos los derechos reservados.</p>
+        <p className="mb-3">© {new Date().getFullYear()} El Código. Todos los derechos reservados.</p>
+        <div className="flex justify-center gap-5">
+          <Link href="/aviso-legal" className="hover:text-[#111111] transition-colors">Aviso Legal</Link>
+          <Link href="/privacidad" className="hover:text-[#111111] transition-colors">Privacidad</Link>
+          <Link href="/cookies" className="hover:text-[#111111] transition-colors">Cookies</Link>
+        </div>
       </footer>
     </div>
   )
