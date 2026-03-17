@@ -3,9 +3,16 @@ import { supabaseAdmin } from '../../../lib/supabase'
 import { verificarToken, extraerTokenDeCookie } from '../../../lib/jwt'
 
 export async function GET(request) {
+  const payload = verificarToken(extraerTokenDeCookie(request))
+
+  // Superadmin recibe todos los campos; público solo id y nombre para el formulario de registro
+  const campos = payload?.rol === 'superadmin'
+    ? '*'
+    : 'id, nombre, tipo'
+
   const { data: lugares } = await supabaseAdmin
     .from('lugares')
-    .select('*')
+    .select(campos)
     .eq('activo', true)
     .order('nombre')
 
