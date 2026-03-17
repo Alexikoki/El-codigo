@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { verificarToken, extraerTokenDeCookie } from '../../../lib/jwt'
 
-// GET — superadmin: todas | agencia: las de sus promotores | referidor: las suyas
+// GET — superadmin: todas | agencia: las de sus promotores + las propias | referidor: las suyas
 export async function GET(request) {
   const payload = verificarToken(extraerTokenDeCookie(request))
   if (!payload) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -10,26 +10,32 @@ export async function GET(request) {
   if (payload.rol === 'superadmin') {
     const { data, error } = await supabaseAdmin
       .from('liquidaciones')
-      .select('*, referidores(nombre, email)')
+      .select('*, referidores(nombre, email), agencias(nombre)')
       .order('created_at', { ascending: false })
     if (error) throw error
     return NextResponse.json({ liquidaciones: data || [] })
   }
 
   if (payload.rol === 'agencia') {
-    // Obtener IDs de los promotores de esta agencia
     const { data: promotores } = await supabaseAdmin
       .from('referidores')
-      .select('id, nombre')
+      .select('id')
       .eq('agencia_id', payload.agenciaId)
     const ids = (promotores || []).map(p => p.id)
-    if (ids.length === 0) return NextResponse.json({ liquidaciones: [] })
 
-    const { data, error } = await supabaseAdmin
+    // Liquidaciones de sus promotores + las propias de la agencia
+    let query = supabaseAdmin
       .from('liquidaciones')
-      .select('*, referidores(nombre, email)')
-      .in('referidor_id', ids)
+      .select('*, referidores(nombre, email), agencias(nombre)')
       .order('created_at', { ascending: false })
+
+    if (ids.length > 0) {
+      query = query.or(`referidor_id.in.(${ids.join(',')}),agencia_id.eq.${payload.agenciaId}`)
+    } else {
+      query = query.eq('agencia_id', payload.agenciaId)
+    }
+
+    const { data, error } = await query
     if (error) throw error
     return NextResponse.json({ liquidaciones: data || [] })
   }

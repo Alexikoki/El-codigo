@@ -423,7 +423,12 @@ export default function AgenciaPage() {
                         <div className="flex justify-between items-start gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-medium text-[#111111] text-sm">{l.referidores?.nombre}</p>
+                              <p className="font-medium text-[#111111] text-sm">
+                                {l.agencia_id ? '🏢 Mi agencia' : l.referidores?.nombre || '—'}
+                              </p>
+                              {l.origen === 'auto' && (
+                                <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#f0f4f8] text-[#1e3a5f] font-medium border border-[#dce6f0]">Auto</span>
+                              )}
                               <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${
                                 l.estado === 'pagado'
                                   ? 'bg-green-50 text-green-700 border-green-200'
@@ -433,7 +438,11 @@ export default function AgenciaPage() {
                             <p className="text-xs text-[#9ca3af] mt-1">
                               {new Date(l.periodo_desde).toLocaleDateString('es-ES')} — {new Date(l.periodo_hasta).toLocaleDateString('es-ES')}
                             </p>
-                            {l.notas && <p className="text-xs text-[#6b7280] mt-1 italic">{l.notas}</p>}
+                            {l.notas && (
+                              <p className="text-xs text-[#6b7280] mt-1 italic">
+                                {l.notas.replace(/\s*\[id:[^\]]+\]/, '')}
+                              </p>
+                            )}
                           </div>
                           <div className="text-right flex-shrink-0">
                             <p className="text-lg font-bold text-[#111111]">{l.importe.toFixed(2)}€</p>
@@ -583,7 +592,7 @@ export default function AgenciaPage() {
               className="relative w-full max-w-sm bg-white border border-[#e5e7eb] rounded-2xl p-6 shadow-lg">
               <h3 className="text-base font-bold text-[#111111] mb-2">¿Confirmar pago?</h3>
               <p className="text-sm text-[#6b7280] mb-1">
-                Vas a marcar como pagada la liquidación de <span className="font-medium text-[#111111]">{confirmPago.referidores?.nombre}</span>.
+                Vas a marcar como pagada la liquidación de <span className="font-medium text-[#111111]">{confirmPago.agencia_id ? 'mi agencia' : confirmPago.referidores?.nombre}</span>.
               </p>
               <p className="text-2xl font-bold text-[#111111] mb-5">{confirmPago.importe.toFixed(2)}€</p>
               <div className="flex gap-3">

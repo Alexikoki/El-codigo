@@ -562,8 +562,15 @@ export default function SuperadminPage() {
                 {!cargando && filtradas.map(liq => (
                   <div key={liq.id} className="glass-panel p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-semibold text-[#111111]">{liq.referidores?.nombre || '—'}</p>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <p className="text-sm font-semibold text-[#111111]">
+                          {liq.agencias?.nombre
+                            ? `🏢 ${liq.agencias.nombre}`
+                            : liq.referidores?.nombre || '—'}
+                        </p>
+                        {liq.origen === 'auto' && (
+                          <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#f0f4f8] text-[#1e3a5f] font-medium border border-[#dce6f0]">Auto</span>
+                        )}
                         <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-medium border ${
                           liq.estado === 'pagado'
                             ? 'bg-green-50 text-green-700 border-green-200'
@@ -572,12 +579,18 @@ export default function SuperadminPage() {
                           {liq.estado === 'pagado' ? 'Pagado' : 'Pendiente'}
                         </span>
                       </div>
-                      <p className="text-xs text-[#6b7280]">{liq.referidores?.email || ''}</p>
-                      <div className="flex items-center gap-3 mt-2">
+                      <p className="text-xs text-[#6b7280]">
+                        {liq.agencias?.nombre ? 'Agencia' : liq.referidores?.email || ''}
+                      </p>
+                      <div className="flex items-center gap-3 mt-2 flex-wrap">
                         <span className="text-xs text-[#9ca3af] flex items-center gap-1">
                           <Clock size={11} /> {liq.periodo_desde} → {liq.periodo_hasta}
                         </span>
-                        {liq.notas && <span className="text-xs text-[#9ca3af] italic truncate max-w-[200px]">{liq.notas}</span>}
+                        {liq.notas && (
+                          <span className="text-xs text-[#9ca3af] italic truncate max-w-[200px]">
+                            {liq.notas.replace(/\s*\[id:[^\]]+\]/, '')}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-4 sm:flex-col sm:items-end">

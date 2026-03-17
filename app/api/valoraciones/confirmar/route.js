@@ -142,5 +142,59 @@ export async function POST(request) {
     }).eq('id', clienteId)
   }
 
+  // ── Auto-liquidaciones ──────────────────────────────────────────
+  // Obtener nombre del cliente para la nota
+  const { data: clienteInfo } = await supabaseAdmin
+    .from('clientes').select('nombre').eq('id', clienteId).single()
+  const hoy = new Date().toISOString().split('T')[0]
+  const notaBase = `Auto · ${clienteInfo?.nombre || 'Cliente'} · Consumo: ${gastoConfirmado.toFixed(2)}€`
+
+  // Liquidación para el referidor (si tiene comisión > 0)
+  if (cliente.referidor_id && com_rrpp > 0) {
+    // Evitar duplicados: comprobar si ya existe liquidación auto para este cliente hoy
+    const { data: liqExistente } = await supabaseAdmin
+      .from('liquidaciones')
+      .select('id')
+      .eq('referidor_id', cliente.referidor_id)
+      .eq('origen', 'auto')
+      .ilike('notas', `%${clienteId}%`)
+      .single()
+
+    if (!liqExistente) {
+      await supabaseAdmin.from('liquidaciones').insert({
+        referidor_id: cliente.referidor_id,
+        importe: parseFloat(com_rrpp.toFixed(2)),
+        periodo_desde: hoy,
+        periodo_hasta: hoy,
+        estado: 'pendiente',
+        origen: 'auto',
+        notas: `${notaBase} [id:${clienteId}]`
+      })
+    }
+  }
+
+  // Liquidación para la agencia (si tiene comisión > 0)
+  if (referidor?.agencia_id && com_agencia > 0) {
+    const { data: liqAgExistente } = await supabaseAdmin
+      .from('liquidaciones')
+      .select('id')
+      .eq('agencia_id', referidor.agencia_id)
+      .eq('origen', 'auto')
+      .ilike('notas', `%${clienteId}%`)
+      .single()
+
+    if (!liqAgExistente) {
+      await supabaseAdmin.from('liquidaciones').insert({
+        agencia_id: referidor.agencia_id,
+        importe: parseFloat(com_agencia.toFixed(2)),
+        periodo_desde: hoy,
+        periodo_hasta: hoy,
+        estado: 'pendiente',
+        origen: 'auto',
+        notas: `${notaBase} [id:${clienteId}]`
+      })
+    }
+  }
+
   return NextResponse.json({ ok: true, ticket_url })
 }
