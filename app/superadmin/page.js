@@ -471,7 +471,7 @@ export default function SuperadminPage() {
                       <h3 className="text-base font-semibold text-[#111111] mb-0.5">{a.nombre}</h3>
                       <p className="text-sm text-[#6b7280]">{a.email}</p>
                       <p className="text-xs text-[#9ca3af] mt-2">
-                        Alta: {new Date(a.created_at).toLocaleDateString('es-ES')}
+                        Alta: {new Date(a.creado_en).toLocaleDateString('es-ES')}
                       </p>
                     </div>
                     <div className="flex justify-end mt-4 pt-4 border-t border-[#f3f4f6]">

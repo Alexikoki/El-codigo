@@ -12,8 +12,8 @@ export async function GET(request) {
 
   const { data, error } = await supabaseAdmin
     .from('agencias')
-    .select('id, nombre, email, activo, created_at')
-    .order('created_at', { ascending: false })
+    .select('id, nombre, email, activo, creado_en')
+    .order('creado_en', { ascending: false })
 
   if (error) return NextResponse.json({ error: 'Error obteniendo agencias' }, { status: 500 })
   return NextResponse.json({ agencias: data || [] })
@@ -36,7 +36,7 @@ export async function POST(request) {
   const { data, error } = await supabaseAdmin
     .from('agencias')
     .insert({ nombre, email, password_hash, activo: true })
-    .select('id, nombre, email, activo, created_at')
+    .select('id, nombre, email, activo, creado_en')
     .single()
 
   if (error) {
