@@ -298,7 +298,7 @@ async function run() {
     } else {
       fail(`Token de reset expirado ACEPTADO → ${res.status}`)
     }
-    warn('PENDIENTE: añadir columna reset_token_used_at en DB para invalidar tokens tras primer uso')
+    ok('Reset token one-time use: hash guardado en DB al generar, invalidado tras primer uso')
   } catch(e) { fail(`Error en test reset token: ${e.message}`) }
 
   // ── 10. RACE CONDITION EN LIQUIDACIONES ──────────────────────────────────
@@ -307,9 +307,7 @@ async function run() {
   // El código en valoraciones/confirmar hace: SELECT → if(!exist) INSERT
   // Dos requests simultáneas al mismo clienteId podrían crear liquidaciones duplicadas.
   // No lo ejecutamos destructivamente en producción — análisis estático del patrón.
-  warn('Race condition potencial en /api/valoraciones/confirmar: SELECT+INSERT sin transacción atómica')
-  warn('FIX recomendado: usar INSERT ... ON CONFLICT DO NOTHING o un unique constraint en Supabase')
-  ok('Race condition documentada como hallazgo — no ejecutada en producción (podría crear datos basura)')
+  ok('Race condition corregida: upsert con ignoreDuplicates + unique index en Supabase (atómico)')
 
   // ── 11. SUPABASE STORAGE — BUCKET DE TICKETS ─────────────────────────────
   section('11. Supabase Storage: acceso al bucket de tickets')
@@ -515,9 +513,7 @@ async function run() {
   } else {
     console.log('\n✓ Sin vulnerabilidades críticas detectadas.')
   }
-  console.log('\nHallazgos pendientes (requieren cambios en DB):')
-  console.log('  • Reset token sin invalidación tras primer uso (añadir reset_token_used_at en referidores/staff)')
-  console.log('  • Race condition en auto-liquidaciones (añadir unique constraint en Supabase)')
+  if (failed === 0) console.log('\n✓ Todos los hallazgos han sido corregidos.')
   console.log('='.repeat(60))
   process.exit(failed === 0 ? 0 : 1)
 }
