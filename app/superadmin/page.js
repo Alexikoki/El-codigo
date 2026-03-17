@@ -174,7 +174,12 @@ export default function SuperadminPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ id: modalEditar.id, descuento: parseInt(form.descuento || modalEditar.descuento), nombre: form.nombre || modalEditar.nombre })
+      body: JSON.stringify({
+        id: modalEditar.id,
+        nombre: form.nombre || modalEditar.nombre,
+        descuento: parseInt(form.descuento ?? modalEditar.descuento),
+        porcentaje_plataforma: parseFloat(form.porcentaje_plataforma ?? modalEditar.porcentaje_plataforma ?? 20)
+      })
     })
     if (res.ok) {
       toast.success('Local actualizado.')
@@ -455,15 +460,38 @@ export default function SuperadminPage() {
                     </span>
                   </div>
                   <h3 className="text-base font-semibold text-[#111111] mb-0.5">{l.nombre}</h3>
-                  <p className="text-sm text-[#6b7280] mb-2">{l.tipo}</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#1e3a5f] font-bold">{l.descuento}%</span>
-                    <span className="text-xs text-[#9ca3af]">descuento turistas</span>
-                    <button onClick={() => { setModalEditar(l); setForm({ descuento: l.descuento, nombre: l.nombre }) }}
-                      className="ml-auto text-[#9ca3af] hover:text-[#1e3a5f] transition-colors p-1">
-                      <Pencil size={13} />
-                    </button>
+                  <p className="text-sm text-[#6b7280] mb-3">{l.tipo}</p>
+                  <div className="flex gap-2 mb-3">
+                    <span className="text-xs bg-[#f0f4f8] text-[#1e3a5f] px-2 py-1 rounded-md font-medium">
+                      {l.descuento ?? 10}% dto. turistas
+                    </span>
+                    <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-1 rounded-md font-medium">
+                      {l.porcentaje_plataforma ?? 20}% comisión
+                    </span>
                   </div>
+                  {l.managers_locales?.[0] ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-[#e5e7eb] flex items-center justify-center text-xs font-bold text-[#374151]">
+                        {l.managers_locales[0].nombre.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-[#374151]">{l.managers_locales[0].nombre}</p>
+                        <p className="text-[10px] text-[#9ca3af]">{l.managers_locales[0].email}</p>
+                      </div>
+                      <button onClick={() => { setModalEditar(l); setForm({ nombre: l.nombre, descuento: l.descuento, porcentaje_plataforma: l.porcentaje_plataforma ?? 20 }) }}
+                        className="ml-auto text-[#9ca3af] hover:text-[#1e3a5f] transition-colors p-1">
+                        <Pencil size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-red-400">Sin manager asignado</p>
+                      <button onClick={() => { setModalEditar(l); setForm({ nombre: l.nombre, descuento: l.descuento, porcentaje_plataforma: l.porcentaje_plataforma ?? 20 }) }}
+                        className="text-[#9ca3af] hover:text-[#1e3a5f] transition-colors p-1">
+                        <Pencil size={13} />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#f3f4f6]">
                   <p className="text-xs text-[#9ca3af] truncate pr-4">{l.direccion}</p>
@@ -883,16 +911,27 @@ export default function SuperadminPage() {
 
               <div className="space-y-3">
                 {modal === 'lugar' && <>
+                  <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider">Datos del local</p>
                   <input placeholder="Nombre del local" value={form.nombre || ''} onChange={e => setForm({ ...form, nombre: e.target.value })} className={inputClass} />
                   <select value={form.tipo || ''} onChange={e => setForm({ ...form, tipo: e.target.value })} className={`${inputClass} appearance-none`}>
                     <option value="">Tipo de lugar</option>
-                    {['Restaurante', 'Bar', 'Hotel', 'Turismo', 'Experiencia'].map(t => <option key={t} value={t}>{t}</option>)}
+                    {['Restaurante', 'Bar', 'Club', 'Hotel', 'Turismo', 'Experiencia'].map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                   <input placeholder="Dirección física" value={form.direccion || ''} onChange={e => setForm({ ...form, direccion: e.target.value })} className={inputClass} />
-                  <div>
-                    <label className="text-xs text-[#6b7280] mb-1 block">Descuento para turistas (%)</label>
-                    <input type="number" value={form.descuento || 10} onChange={e => setForm({ ...form, descuento: parseInt(e.target.value) })} className={inputClass} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-[#6b7280] mb-1 block">Descuento turistas (%)</label>
+                      <input type="number" min="0" max="100" value={form.descuento ?? 10} onChange={e => setForm({ ...form, descuento: parseInt(e.target.value) })} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-[#6b7280] mb-1 block">Comisión plataforma (%)</label>
+                      <input type="number" min="0" max="100" step="0.5" value={form.porcentaje_plataforma ?? 20} onChange={e => setForm({ ...form, porcentaje_plataforma: parseFloat(e.target.value) })} className={inputClass} />
+                    </div>
                   </div>
+                  <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider pt-1">Acceso Manager</p>
+                  <input placeholder="Nombre del manager" value={form.manager_nombre || ''} onChange={e => setForm({ ...form, manager_nombre: e.target.value })} className={inputClass} />
+                  <input placeholder="Email del manager" type="email" value={form.manager_email || ''} onChange={e => setForm({ ...form, manager_email: e.target.value })} className={inputClass} />
+                  <input placeholder="Contraseña (mín. 6 caracteres)" type="password" value={form.manager_password || ''} onChange={e => setForm({ ...form, manager_password: e.target.value })} className={inputClass} />
                 </>}
 
                 {modal === 'referidor' && <>
@@ -1061,10 +1100,23 @@ export default function SuperadminPage() {
                   <label className="text-xs text-[#6b7280] mb-1 block">Nombre del local</label>
                   <input value={form.nombre || ''} onChange={e => setForm({ ...form, nombre: e.target.value })} className={inputClass} />
                 </div>
-                <div>
-                  <label className="text-xs text-[#6b7280] mb-1 block">Descuento / Comisión (%)</label>
-                  <input type="number" min="1" max="100" value={form.descuento || ''} onChange={e => setForm({ ...form, descuento: parseInt(e.target.value) })} className={inputClass} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-[#6b7280] mb-1 block">Descuento turistas (%)</label>
+                    <input type="number" min="0" max="100" value={form.descuento ?? ''} onChange={e => setForm({ ...form, descuento: parseInt(e.target.value) })} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#6b7280] mb-1 block">Comisión plataforma (%)</label>
+                    <input type="number" min="0" max="100" step="0.5" value={form.porcentaje_plataforma ?? ''} onChange={e => setForm({ ...form, porcentaje_plataforma: parseFloat(e.target.value) })} className={inputClass} />
+                  </div>
                 </div>
+                {modalEditar?.managers_locales?.[0] && (
+                  <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2.5">
+                    <p className="text-xs text-[#6b7280] mb-0.5">Manager actual</p>
+                    <p className="text-sm font-medium text-[#111111]">{modalEditar.managers_locales[0].nombre}</p>
+                    <p className="text-xs text-[#9ca3af]">{modalEditar.managers_locales[0].email}</p>
+                  </div>
+                )}
               </div>
               <div className="flex gap-3 mt-6">
                 <button onClick={() => { setModalEditar(null); setForm({}) }}
