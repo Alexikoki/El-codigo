@@ -53,12 +53,14 @@ export default function ReferidorPage() {
 
   const cargarClientes = async () => {
     try {
-      const [resC, resA] = await Promise.all([
+      const [resC, resA, resL] = await Promise.all([
         fetch('/api/referidor/clientes', { credentials: 'include' }),
-        fetch('/api/analytics/referidor', { credentials: 'include' })
+        fetch('/api/analytics/referidor', { credentials: 'include' }),
+        fetch('/api/liquidaciones', { credentials: 'include' })
       ])
       if (resC.ok) { const data = await resC.json(); setClientes(data.clientes || []) }
       if (resA.ok) { setAnalytics(await resA.json()) }
+      if (resL.ok) { const dataL = await resL.json(); setLiquidaciones(dataL.liquidaciones || []) }
     } catch (e) {
       console.error(e)
     } finally {
@@ -153,7 +155,10 @@ export default function ReferidorPage() {
         >
 
           {/* DASHBOARD */}
-          {tab === 'dashboard' && (
+          {tab === 'dashboard' && (() => {
+            const cobrado = liquidaciones.filter(l => l.estado === 'pagado').reduce((s, l) => s + parseFloat(l.importe), 0)
+            const pendiente = liquidaciones.filter(l => l.estado === 'pendiente').reduce((s, l) => s + parseFloat(l.importe), 0)
+            return (
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="glass-panel p-5 border-l-4 border-l-[#1e3a5f]">
@@ -171,6 +176,21 @@ export default function ReferidorPage() {
                   </div>
                 </div>
               </div>
+
+              {(cobrado > 0 || pendiente > 0) && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="glass-panel p-4 border-t-2 border-t-amber-400">
+                    <p className="text-xs text-[#6b7280] mb-1">Pendiente de cobro</p>
+                    <p className="text-2xl font-bold text-[#111111]">{pendiente.toFixed(2)}€</p>
+                    <p className="text-[10px] text-amber-600 mt-1 font-medium">En proceso</p>
+                  </div>
+                  <div className="glass-panel p-4 border-t-2 border-t-[#4a9070]">
+                    <p className="text-xs text-[#6b7280] mb-1">Ya cobrado</p>
+                    <p className="text-2xl font-bold text-[#111111]">{cobrado.toFixed(2)}€</p>
+                    <p className="text-[10px] text-[#4a9070] mt-1 font-medium">Liquidado</p>
+                  </div>
+                </div>
+              )}
 
               <div className="glass-panel p-5 h-[320px]">
                 <h3 className="text-sm font-semibold text-[#111111] mb-4 flex items-center gap-2">
@@ -195,7 +215,8 @@ export default function ReferidorPage() {
                 </ResponsiveContainer>
               </div>
             </div>
-          )}
+            )
+          })()}
 
           {/* QR */}
           {tab === 'qr' && (
