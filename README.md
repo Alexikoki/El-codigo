@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# El Código — Sistema de Referidos QR
 
-## Getting Started
+Plataforma de gestión de referidos con QR para locales de ocio y turismo. Los referidores (RR.PP.) generan un QR personalizado que los clientes escanean al llegar al local, registrando automáticamente la visita y calculando la comisión.
 
-First, run the development server:
+## Stack
+
+- **Framework**: Next.js 16 (App Router + Turbopack)
+- **Estilos**: Tailwind CSS v4
+- **Base de datos**: Supabase (PostgreSQL + Realtime)
+- **Auth**: JWT en cookies httpOnly
+- **Emails**: Resend
+- **Errores**: Sentry
+- **Anti-bot**: Cloudflare Turnstile
+- **Deploy**: Vercel
+
+## Roles
+
+| Rol | Acceso | Descripción |
+|---|---|---|
+| `superadmin` | `/superadmin` | Gestión total: locales, referidores, staff, agencias, pagos |
+| `referidor` | `/referidor` | Dashboard personal, QR, invitados, liquidaciones |
+| `agencia` | `/agencia` | Gestión de sus propios promotores |
+| `manager` | `/manager` | Dashboard Realtime del local asignado |
+| `staff` | `/staff` | Escáner QR para validar clientes |
+
+## Desarrollo local
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Requiere `.env.local` con:
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+JWT_SECRET=
+SUPERADMIN_PASSWORD=
+RESEND_API_KEY=
+TURNSTILE_SECRET_KEY=
+NEXT_PUBLIC_APP_URL=
+```
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Tests E2E
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npx playwright test
+npx playwright test --ui   # modo visual
+```
 
-## Learn More
+## Tareas y progreso
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Ver [TASKS.md](./TASKS.md)
