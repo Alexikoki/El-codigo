@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogOut, BarChart3, TrendingUp, Briefcase, PlusCircle, Users, Link as LinkIcon, ShieldAlert, Trophy, Clock } from 'lucide-react'
+import { LogOut, BarChart3, TrendingUp, Briefcase, PlusCircle, Users, Link as LinkIcon, ShieldAlert, Trophy, Clock, CreditCard, CheckCircle2, X } from 'lucide-react'
 import { SkeletonPanel } from '../../components/Skeleton'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 
@@ -18,6 +18,12 @@ export default function AgenciaPage() {
   const [nuevoRef, setNuevoRef] = useState({ nombre: '', email: '', password: '', split: 50 })
   const [addCargando, setAddCargando] = useState(false)
   const [addError, setAddError] = useState('')
+
+  const [liquidaciones, setLiquidaciones] = useState([])
+  const [modalLiq, setModalLiq] = useState(false)
+  const [confirmPago, setConfirmPago] = useState(null)
+  const [formLiq, setFormLiq] = useState({ referidor_id: '', importe: '', periodo_desde: '', periodo_hasta: '', notas: '' })
+  const [liqCargando, setLiqCargando] = useState(false)
 
   const router = useRouter()
 
@@ -41,18 +47,54 @@ export default function AgenciaPage() {
 
   const cargarDatosGenerales = async () => {
     try {
-      const [resA, resE, resR] = await Promise.all([
+      const [resA, resE, resR, resL] = await Promise.all([
         fetch('/api/analytics/agencia', { credentials: 'include' }),
         fetch('/api/agencias/promotores', { credentials: 'include' }),
-        fetch('/api/analytics/agencia/promotores', { credentials: 'include' })
+        fetch('/api/analytics/agencia/promotores', { credentials: 'include' }),
+        fetch('/api/liquidaciones', { credentials: 'include' })
       ])
       if (resA.ok) setAnalytics(await resA.json())
       if (resE.ok) { const d = await resE.json(); setEquipo(d.promotores || []) }
       if (resR.ok) { const d = await resR.json(); setRanking(d.promotores || []) }
+      if (resL.ok) { const d = await resL.json(); setLiquidaciones(d.liquidaciones || []) }
     } catch (e) {
       console.error(e)
     } finally {
       setCargando(false)
+    }
+  }
+
+  const crearLiquidacion = async () => {
+    if (!formLiq.referidor_id || !formLiq.importe || !formLiq.periodo_desde || !formLiq.periodo_hasta) return
+    setLiqCargando(true)
+    try {
+      const res = await fetch('/api/liquidaciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ...formLiq, importe: parseFloat(formLiq.importe) })
+      })
+      if (res.ok) {
+        const d = await res.json()
+        setLiquidaciones([d.liquidacion, ...liquidaciones])
+        setModalLiq(false)
+        setFormLiq({ referidor_id: '', importe: '', periodo_desde: '', periodo_hasta: '', notas: '' })
+      }
+    } finally {
+      setLiqCargando(false)
+    }
+  }
+
+  const marcarPagado = async (id) => {
+    const res = await fetch('/api/liquidaciones', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ id, estado: 'pagado' })
+    })
+    if (res.ok) {
+      setLiquidaciones(liquidaciones.map(l => l.id === id ? { ...l, estado: 'pagado', pagado_at: new Date().toISOString() } : l))
+      setConfirmPago(null)
     }
   }
 
@@ -105,7 +147,8 @@ export default function AgenciaPage() {
   const tabs = [
     { id: 'dashboard', label: 'Rendimiento', icon: <BarChart3 size={15} /> },
     { id: 'ranking', label: 'Ranking', icon: <Trophy size={15} /> },
-    { id: 'equipo', label: 'Promotores', icon: <Users size={15} /> }
+    { id: 'equipo', label: 'Promotores', icon: <Users size={15} /> },
+    { id: 'pagos', label: 'Pagos', icon: <CreditCard size={15} /> }
   ]
 
   const inputClass = "w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg px-4 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white"
@@ -336,6 +379,82 @@ export default function AgenciaPage() {
               </div>
             )}
 
+            {/* PAGOS */}
+            {tab === 'pagos' && (
+              <div className="space-y-5">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-base font-semibold text-[#111111]">Historial de Pagos</h2>
+                    <p className="text-sm text-[#6b7280]">Liquidaciones a tus promotores.</p>
+                  </div>
+                  <button onClick={() => setModalLiq(true)}
+                    className="flex items-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    <PlusCircle size={15} /> <span className="hidden sm:inline">Nueva Liquidación</span>
+                  </button>
+                </div>
+
+                {/* Métricas resumen */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="glass-panel p-4">
+                    <p className="text-xs text-[#6b7280] mb-1">Pendiente de pago</p>
+                    <p className="text-2xl font-bold text-amber-600">
+                      {liquidaciones.filter(l => l.estado === 'pendiente').reduce((s, l) => s + l.importe, 0).toFixed(2)}€
+                    </p>
+                    <p className="text-xs text-[#9ca3af] mt-1">{liquidaciones.filter(l => l.estado === 'pendiente').length} liquidaciones</p>
+                  </div>
+                  <div className="glass-panel p-4">
+                    <p className="text-xs text-[#6b7280] mb-1">Total pagado</p>
+                    <p className="text-2xl font-bold text-[#4a9070]">
+                      {liquidaciones.filter(l => l.estado === 'pagado').reduce((s, l) => s + l.importe, 0).toFixed(2)}€
+                    </p>
+                    <p className="text-xs text-[#9ca3af] mt-1">{liquidaciones.filter(l => l.estado === 'pagado').length} liquidaciones</p>
+                  </div>
+                </div>
+
+                {/* Lista */}
+                {liquidaciones.length === 0 ? (
+                  <div className="text-center py-12 text-[#9ca3af] border border-dashed border-[#e5e7eb] rounded-xl bg-white text-sm">
+                    Aún no hay liquidaciones registradas.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {liquidaciones.map(l => (
+                      <div key={l.id} className="glass-panel p-4">
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-medium text-[#111111] text-sm">{l.referidores?.nombre}</p>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${
+                                l.estado === 'pagado'
+                                  ? 'bg-green-50 text-green-700 border-green-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                              }`}>{l.estado === 'pagado' ? 'Pagado' : 'Pendiente'}</span>
+                            </div>
+                            <p className="text-xs text-[#9ca3af] mt-1">
+                              {new Date(l.periodo_desde).toLocaleDateString('es-ES')} — {new Date(l.periodo_hasta).toLocaleDateString('es-ES')}
+                            </p>
+                            {l.notas && <p className="text-xs text-[#6b7280] mt-1 italic">{l.notas}</p>}
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-lg font-bold text-[#111111]">{l.importe.toFixed(2)}€</p>
+                            {l.estado === 'pendiente' && (
+                              <button onClick={() => setConfirmPago(l)}
+                                className="mt-1 text-xs text-[#4a9070] hover:underline flex items-center gap-1">
+                                <CheckCircle2 size={11} /> Marcar pagado
+                              </button>
+                            )}
+                            {l.estado === 'pagado' && l.pagado_at && (
+                              <p className="text-[10px] text-[#9ca3af] mt-1">{new Date(l.pagado_at).toLocaleDateString('es-ES')}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
           </motion.div>
         )}
       </main>
@@ -371,7 +490,7 @@ export default function AgenciaPage() {
                     <span>División de comisión</span>
                     <span className="font-semibold text-[#4a9070]">{nuevoRef.split}% Promotor / {100 - nuevoRef.split}% Agencia</span>
                   </label>
-                  <input type="range" min="10" max="90" step="5" value={nuevoRef.split}
+                  <input type="range" min="1" max="99" step="1" value={nuevoRef.split}
                     onChange={e => setNuevoRef({ ...nuevoRef, split: e.target.value })}
                     className="w-full accent-[#1e3a5f]" />
                   <p className="text-[10px] text-[#9ca3af] mt-1">% de comisiones que ingresará este promotor. La agencia se queda el resto.</p>
@@ -390,6 +509,93 @@ export default function AgenciaPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL NUEVA LIQUIDACIÓN */}
+      <AnimatePresence>
+        {modalLiq && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/30" onClick={() => setModalLiq(false)} />
+            <motion.div initial={{ scale: 0.97, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.97, opacity: 0 }}
+              className="relative w-full max-w-md bg-white border border-[#e5e7eb] rounded-2xl p-6 shadow-lg">
+              <div className="flex justify-between items-center mb-5">
+                <h3 className="text-lg font-bold text-[#111111]">Nueva Liquidación</h3>
+                <button onClick={() => setModalLiq(false)} className="text-[#9ca3af] hover:text-[#374151]"><X size={18} /></button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-[#6b7280] mb-1 block">Promotor</label>
+                  <select value={formLiq.referidor_id} onChange={e => setFormLiq({ ...formLiq, referidor_id: e.target.value })}
+                    className={inputClass + ' appearance-none'}>
+                    <option value="">Seleccionar promotor...</option>
+                    {equipo.filter(r => r.activo).map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-[#6b7280] mb-1 block">Importe (€)</label>
+                  <input type="number" step="0.01" min="0" placeholder="0.00" value={formLiq.importe}
+                    onChange={e => setFormLiq({ ...formLiq, importe: e.target.value })} className={inputClass} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-[#6b7280] mb-1 block">Desde</label>
+                    <input type="date" value={formLiq.periodo_desde}
+                      onChange={e => setFormLiq({ ...formLiq, periodo_desde: e.target.value })} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#6b7280] mb-1 block">Hasta</label>
+                    <input type="date" value={formLiq.periodo_hasta}
+                      onChange={e => setFormLiq({ ...formLiq, periodo_hasta: e.target.value })} className={inputClass} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-[#6b7280] mb-1 block">Notas (opcional)</label>
+                  <input placeholder="Periodo mensual, bonificación..." value={formLiq.notas}
+                    onChange={e => setFormLiq({ ...formLiq, notas: e.target.value })} className={inputClass} />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setModalLiq(false)}
+                  className="flex-1 border border-[#e5e7eb] text-[#6b7280] py-2.5 rounded-lg text-sm font-medium hover:bg-[#f3f4f6] transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={crearLiquidacion} disabled={liqCargando}
+                  className="flex-1 bg-[#1e3a5f] hover:bg-[#15294a] text-white py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+                  {liqCargando ? 'Guardando...' : 'Crear Liquidación'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL CONFIRMAR PAGO */}
+      <AnimatePresence>
+        {confirmPago && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/30" onClick={() => setConfirmPago(null)} />
+            <motion.div initial={{ scale: 0.97, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.97, opacity: 0 }}
+              className="relative w-full max-w-sm bg-white border border-[#e5e7eb] rounded-2xl p-6 shadow-lg">
+              <h3 className="text-base font-bold text-[#111111] mb-2">¿Confirmar pago?</h3>
+              <p className="text-sm text-[#6b7280] mb-1">
+                Vas a marcar como pagada la liquidación de <span className="font-medium text-[#111111]">{confirmPago.referidores?.nombre}</span>.
+              </p>
+              <p className="text-2xl font-bold text-[#111111] mb-5">{confirmPago.importe.toFixed(2)}€</p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmPago(null)}
+                  className="flex-1 border border-[#e5e7eb] text-[#6b7280] py-2.5 rounded-lg text-sm font-medium hover:bg-[#f3f4f6] transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={() => marcarPagado(confirmPago.id)}
+                  className="flex-1 bg-[#4a9070] hover:bg-[#3d7a5e] text-white py-2.5 rounded-lg text-sm font-medium transition-colors">
+                  Confirmar pago
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
