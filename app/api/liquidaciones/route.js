@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { verificarToken, extraerTokenDeCookie } from '../../../lib/jwt'
+import { enviarEmailLiquidacionCreada, enviarEmailLiquidacionPagada } from '../../../lib/email'
 
 // GET — superadmin: todas | agencia: las de sus promotores + las propias | referidor: las suyas
 export async function GET(request) {
@@ -82,10 +83,20 @@ export async function POST(request) {
   const { data, error } = await supabaseAdmin
     .from('liquidaciones')
     .insert({ referidor_id, importe, periodo_desde, periodo_hasta, notas: notas || null, estado: 'pendiente' })
-    .select('*, referidores(nombre, email)')
+    .select('*, referidores(nombre, email), agencias(nombre, email)')
     .single()
 
   if (error) return NextResponse.json({ error: 'Error creando liquidación' }, { status: 500 })
+
+  // Email al destinatario (referidor o agencia)
+  try {
+    if (data.referidores?.email && data.referidores?.nombre) {
+      await enviarEmailLiquidacionCreada({ nombre: data.referidores.nombre, email: data.referidores.email, ...data })
+    } else if (data.agencias?.email && data.agencias?.nombre) {
+      await enviarEmailLiquidacionCreada({ nombre: data.agencias.nombre, email: data.agencias.email, ...data })
+    }
+  } catch (e) { console.error('Email liquidación creada:', e) }
+
   return NextResponse.json({ liquidacion: data }, { status: 201 })
 }
 
@@ -118,5 +129,21 @@ export async function PATCH(request) {
 
   const { error } = await supabaseAdmin.from('liquidaciones').update(update).eq('id', id)
   if (error) return NextResponse.json({ error: 'Error actualizando' }, { status: 500 })
+
+  // Email al pagar
+  if (estado === 'pagado') {
+    try {
+      const { data: liq } = await supabaseAdmin
+        .from('liquidaciones')
+        .select('importe, periodo_desde, periodo_hasta, referidores(nombre, email), agencias(nombre, email)')
+        .eq('id', id).single()
+      if (liq?.referidores?.email) {
+        await enviarEmailLiquidacionPagada({ nombre: liq.referidores.nombre, email: liq.referidores.email, ...liq })
+      } else if (liq?.agencias?.email) {
+        await enviarEmailLiquidacionPagada({ nombre: liq.agencias.nombre, email: liq.agencias.email, ...liq })
+      }
+    } catch (e) { console.error('Email liquidación pagada:', e) }
+  }
+
   return NextResponse.json({ ok: true })
 }
