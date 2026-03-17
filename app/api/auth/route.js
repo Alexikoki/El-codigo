@@ -75,7 +75,10 @@ export async function POST(request) {
 
     // Verificación Cloudflare Turnstile
     let isHuman = false
-    if (process.env.NODE_ENV === 'development' && cfToken.startsWith('1x0000000000000000000000000000000AA')) {
+    const testKey = request.headers.get('x-test-key')
+    if (process.env.TEST_API_KEY && testKey === process.env.TEST_API_KEY) {
+      isHuman = true // Bypass para tests E2E con clave de entorno
+    } else if (process.env.NODE_ENV === 'development' && cfToken.startsWith('1x0000000000000000000000000000000AA')) {
       isHuman = true // Bypass solo para test local en desarrollo
     } else {
       const cfFormData = new FormData()
