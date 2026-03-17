@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogOut, MapPin, Users, UserCheck, Plus, Shield, Search, CheckCircle2, XCircle, BarChart3, TrendingUp, HandCoins, FileText, Pencil, Download, CreditCard, Clock } from 'lucide-react'
+import { LogOut, MapPin, Users, UserCheck, Plus, Shield, Search, CheckCircle2, XCircle, BarChart3, TrendingUp, HandCoins, FileText, Pencil, Download, CreditCard, Clock, Building2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { SkeletonPanel } from '../../components/Skeleton'
@@ -13,6 +13,7 @@ export default function SuperadminPage() {
   const [referidores, setReferidores] = useState([])
   const [staff, setStaff] = useState([])
   const [analytics, setAnalytics] = useState({ chartData: [], stats: { operaciones: 0, volumenEuros: 0, comisionGenerada: 0 } })
+  const [agencias, setAgencias] = useState([])
   const [liquidaciones, setLiquidaciones] = useState([])
   const [modalLiq, setModalLiq] = useState(false)
   const [formLiq, setFormLiq] = useState({ referidor_id: '', importe: '', periodo_desde: '', periodo_hasta: '', notas: '' })
@@ -43,19 +44,21 @@ export default function SuperadminPage() {
 
   const cargarDatos = async () => {
     setCargando(true)
-    const [resL, resR, resS, resA, resLiq] = await Promise.all([
+    const [resL, resR, resS, resA, resLiq, resAg] = await Promise.all([
       fetch('/api/lugares', { credentials: 'include' }),
       fetch('/api/referidores', { credentials: 'include' }),
       fetch('/api/staff', { credentials: 'include' }),
       fetch('/api/analytics/superadmin', { credentials: 'include' }),
-      fetch('/api/liquidaciones', { credentials: 'include' })
+      fetch('/api/liquidaciones', { credentials: 'include' }),
+      fetch('/api/agencias', { credentials: 'include' })
     ])
-    const [dataL, dataR, dataS, dataA, dataLiq] = await Promise.all([resL.json(), resR.json(), resS.json(), resA.json(), resLiq.json()])
+    const [dataL, dataR, dataS, dataA, dataLiq, dataAg] = await Promise.all([resL.json(), resR.json(), resS.json(), resA.json(), resLiq.json(), resAg.json()])
     setLugares(dataL.lugares || [])
     setReferidores(dataR.referidores || [])
     setStaff(dataS.staff || [])
     if (resA.ok) setAnalytics(dataA)
     setLiquidaciones(dataLiq.liquidaciones || [])
+    setAgencias(dataAg.agencias || [])
     setCargando(false)
   }
 
@@ -95,8 +98,21 @@ export default function SuperadminPage() {
     }
   }
 
+  const toggleActivoAgencia = async (id, activo) => {
+    const res = await fetch('/api/agencias', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ id, activo: !activo })
+    })
+    if (res.ok) {
+      setAgencias(agencias.map(a => a.id === id ? { ...a, activo: !activo } : a))
+      toast.success(activo ? 'Agencia suspendida.' : 'Agencia reactivada.')
+    }
+  }
+
   const handleSubmit = async () => {
-    const url = modal === 'lugar' ? '/api/lugares' : modal === 'referidor' ? '/api/referidores' : '/api/staff'
+    const url = modal === 'lugar' ? '/api/lugares' : modal === 'referidor' ? '/api/referidores' : modal === 'agencia' ? '/api/agencias' : '/api/staff'
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -104,7 +120,8 @@ export default function SuperadminPage() {
       body: JSON.stringify(form)
     })
     if (res.ok) {
-      toast.success(`${modal === 'lugar' ? 'Local' : modal} creado correctamente.`)
+      const label = modal === 'lugar' ? 'Local' : modal === 'referidor' ? 'Referidor' : modal === 'agencia' ? 'Agencia' : 'Staff'
+      toast.success(`${label} creado correctamente.`)
       setModal(null); setForm({}); cargarDatos()
     } else {
       const data = await res.json()
@@ -187,6 +204,7 @@ export default function SuperadminPage() {
     { id: 'lugares', label: 'Locales', icon: <MapPin size={15} /> },
     { id: 'referidores', label: 'Referidores', icon: <Users size={15} /> },
     { id: 'staff', label: 'Staff', icon: <UserCheck size={15} /> },
+    { id: 'agencias', label: 'Agencias', icon: <Building2 size={15} /> },
     { id: 'liquidaciones', label: 'Pagos', icon: <CreditCard size={15} /> }
   ]
 
@@ -230,7 +248,7 @@ export default function SuperadminPage() {
         </div>
 
         {/* Barra de acciones */}
-        {tab !== 'analytics' && tab !== 'liquidaciones' && (
+        {tab !== 'analytics' && tab !== 'liquidaciones' && tab !== 'agencias' && (
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
             <div className="relative w-full sm:w-56">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={15} />
@@ -367,6 +385,9 @@ export default function SuperadminPage() {
               </div>
             ))}
 
+            {/* AGENCIAS — tiene su propia sección, no usa el grid */}
+            {tab === 'agencias' && null}
+
             {/* STAFF */}
             {tab === 'staff' && staff.filter(s => !busqueda || s.nombre?.toLowerCase().includes(busqueda.toLowerCase()) || s.email?.toLowerCase().includes(busqueda.toLowerCase())).map(s => (
               <div key={s.id} className="glass-panel p-5 flex flex-col justify-between">
@@ -398,6 +419,7 @@ export default function SuperadminPage() {
                 (tab === 'lugares' && lFiltered.length === 0) ||
                 (tab === 'referidores' && rFiltered.length === 0) ||
                 (tab === 'staff' && sFiltered.length === 0)
+              if (tab === 'agencias') return null
               if (!isEmpty) return null
               const sinDatos =
                 (tab === 'lugares' && lugares.length === 0) ||
@@ -410,6 +432,59 @@ export default function SuperadminPage() {
               )
             })()}
           </div>
+
+          {/* AGENCIAS */}
+          {tab === 'agencias' && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-sm font-semibold text-[#111111]">Agencias</h2>
+                <button
+                  onClick={() => { setModal('agencia'); setForm({}) }}
+                  className="flex items-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <Plus size={15} /> Nueva Agencia
+                </button>
+              </div>
+
+              {cargando && <SkeletonPanel />}
+
+              {!cargando && agencias.length === 0 && (
+                <div className="py-14 text-center text-[#9ca3af] border border-dashed border-[#e5e7eb] rounded-xl bg-white text-sm">
+                  No hay agencias registradas todavía.
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {!cargando && agencias.map(a => (
+                  <div key={a.id} className="glass-panel p-5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="p-2 bg-[#f0f4f8] rounded-lg">
+                          <Building2 size={16} className="text-[#1e3a5f]" />
+                        </div>
+                        <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-full font-medium border ${
+                          a.activo ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-red-50 text-red-500 border-red-200'
+                        }`}>
+                          {a.activo ? 'Activa' : 'Suspendida'}
+                        </span>
+                      </div>
+                      <h3 className="text-base font-semibold text-[#111111] mb-0.5">{a.nombre}</h3>
+                      <p className="text-sm text-[#6b7280]">{a.email}</p>
+                      <p className="text-xs text-[#9ca3af] mt-2">
+                        Alta: {new Date(a.created_at).toLocaleDateString('es-ES')}
+                      </p>
+                    </div>
+                    <div className="flex justify-end mt-4 pt-4 border-t border-[#f3f4f6]">
+                      <button onClick={() => toggleActivoAgencia(a.id, a.activo)}
+                        className="text-xs text-[#6b7280] hover:text-[#111111] transition-colors">
+                        {a.activo ? 'Suspender' : 'Reactivar'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* LIQUIDACIONES */}
           {tab === 'liquidaciones' && (() => {
@@ -545,7 +620,7 @@ export default function SuperadminPage() {
               <div className="flex justify-between items-center mb-5">
                 <h2 className="text-lg font-bold text-[#111111] flex items-center gap-2">
                   <Plus size={18} className="text-[#1e3a5f]" />
-                  Nuevo {modal === 'lugar' ? 'Local' : modal === 'referidor' ? 'Referidor' : 'Staff'}
+                  Nuevo {modal === 'lugar' ? 'Local' : modal === 'referidor' ? 'Referidor' : modal === 'agencia' ? 'Agencia' : 'Staff'}
                 </h2>
                 <button onClick={() => { setModal(null); setForm({}) }} className="text-[#9ca3af] hover:text-[#374151] transition-colors">
                   <XCircle size={22} />
@@ -580,6 +655,12 @@ export default function SuperadminPage() {
                     <option value="">Asignar al Local...</option>
                     {lugares.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
                   </select>
+                </>}
+
+                {modal === 'agencia' && <>
+                  <input placeholder="Nombre de la agencia" value={form.nombre || ''} onChange={e => setForm({ ...form, nombre: e.target.value })} className={inputClass} />
+                  <input type="text" placeholder="Email de acceso" value={form.email || ''} onChange={e => setForm({ ...form, email: e.target.value })} className={inputClass} />
+                  <input type="password" placeholder="Contraseña" value={form.password || ''} onChange={e => setForm({ ...form, password: e.target.value })} className={inputClass} />
                 </>}
               </div>
 
