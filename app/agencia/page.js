@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LogOut, BarChart3, TrendingUp, Briefcase, PlusCircle, Users, Link as LinkIcon, ShieldAlert, Trophy, Clock } from 'lucide-react'
+import { SkeletonPanel } from '../../components/Skeleton'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 
 export default function AgenciaPage() {
@@ -147,11 +148,7 @@ export default function AgenciaPage() {
           ))}
         </div>
 
-        {cargando ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-7 h-7 border-2 border-[#e5e7eb] border-t-[#1e3a5f] rounded-full animate-spin" />
-          </div>
-        ) : (
+        {cargando ? <SkeletonPanel /> : (
           <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
 
             {/* DASHBOARD */}

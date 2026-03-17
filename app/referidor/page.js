@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { LogOut, Copy, Users, Calendar, CheckCircle2, Clock, QrCode, BarChart3, TrendingUp, Receipt, Euro, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LogOut, Copy, Users, Calendar, CheckCircle2, Clock, QrCode, BarChart3, TrendingUp, Receipt, Euro, ChevronLeft, ChevronRight, CreditCard } from 'lucide-react'
+import { SkeletonPanel } from '../../components/Skeleton'
 import QRCode from 'qrcode'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -19,6 +20,7 @@ export default function ReferidorPage() {
   const [historialPagina, setHistorialPagina] = useState(1)
   const [historialTotalPag, setHistorialTotalPag] = useState(1)
   const [historialCargando, setHistorialCargando] = useState(false)
+  const [liquidaciones, setLiquidaciones] = useState([])
   const router = useRouter()
 
   const iniciarSesion = (referidorObj) => {
@@ -67,13 +69,20 @@ export default function ReferidorPage() {
   const cargarHistorial = async (pagina = 1) => {
     setHistorialCargando(true)
     try {
-      const res = await fetch(`/api/referidor/historial?pagina=${pagina}`, { credentials: 'include' })
-      if (res.ok) {
-        const data = await res.json()
+      const [resH, resL] = await Promise.all([
+        fetch(`/api/referidor/historial?pagina=${pagina}`, { credentials: 'include' }),
+        fetch('/api/liquidaciones', { credentials: 'include' })
+      ])
+      if (resH.ok) {
+        const data = await resH.json()
         setHistorial(data.historial || [])
         setHistorialTotalPag(data.totalPaginas || 1)
         setHistorialPagina(data.paginaActual || 1)
         setHistorialStats({ totalConversiones: data.totalConversiones, totalGasto: data.totalGasto, totalComision: data.totalComision })
+      }
+      if (resL.ok) {
+        const dataL = await resL.json()
+        setLiquidaciones(dataL.liquidaciones || [])
       }
     } catch (e) {
       console.error(e)
@@ -133,6 +142,8 @@ export default function ReferidorPage() {
             </button>
           ))}
         </div>
+
+        {cargando && tab === 'dashboard' && <SkeletonPanel />}
 
         <motion.div
           key={tab}
@@ -229,22 +240,36 @@ export default function ReferidorPage() {
               ) : (
                 <div className="space-y-2">
                   {clientes.map((c) => (
-                    <div key={c.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border border-[#e5e7eb] rounded-xl hover:bg-[#f9fafb] transition-colors">
-                      <div className="mb-2 sm:mb-0">
-                        <p className="font-medium text-[#111111] text-sm">{c.nombre}</p>
-                        <p className="text-xs text-[#6b7280] mt-0.5">
-                          <span className="text-[#1e3a5f]">{c.lugares?.nombre}</span> · {c.num_personas} {c.num_personas > 1 ? 'personas' : 'persona'}
-                        </p>
-                        <p className="text-xs text-[#9ca3af] mt-0.5">
-                          {new Date(c.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </p>
+                    <div key={c.id} className="p-4 border border-[#e5e7eb] rounded-xl hover:bg-[#f9fafb] transition-colors">
+                      <div className="flex justify-between items-start gap-3">
+                        <div>
+                          <p className="font-medium text-[#111111] text-sm">{c.nombre}</p>
+                          <p className="text-xs text-[#6b7280] mt-0.5">
+                            <span className="text-[#1e3a5f]">{c.lugares?.nombre}</span> · {c.num_personas} {c.num_personas > 1 ? 'personas' : 'persona'}
+                          </p>
+                          <p className="text-xs text-[#9ca3af] mt-0.5">
+                            {new Date(c.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1.5 flex-shrink-0 ${
+                          c.verificado ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-orange-50 text-orange-600 border border-orange-200'
+                        }`}>
+                          {c.verificado ? <CheckCircle2 size={11} /> : <Clock size={11} />}
+                          {c.verificado ? 'Visitó' : 'Pendiente'}
+                        </span>
                       </div>
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1.5 ${
-                        c.verificado ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-orange-50 text-orange-600 border border-orange-200'
-                      }`}>
-                        {c.verificado ? <CheckCircle2 size={11} /> : <Clock size={11} />}
-                        {c.verificado ? 'Visitó' : 'Pendiente'}
-                      </span>
+                      {c.gasto !== null && (
+                        <div className="flex gap-4 mt-3 pt-3 border-t border-[#f3f4f6]">
+                          <div>
+                            <p className="text-[10px] text-[#9ca3af]">Gasto registrado</p>
+                            <p className="text-sm font-bold text-[#111111]">{c.gasto.toFixed(2)}€</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-[#9ca3af]">Tu comisión</p>
+                            <p className="text-sm font-bold text-[#4a9070]">+{c.comision?.toFixed(2) || '0.00'}€</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -252,7 +277,7 @@ export default function ReferidorPage() {
             </div>
           )}
 
-          {/* HISTORIAL */}
+          {/* HISTORIAL / PAGOS */}
           {tab === 'historial' && (
             <div className="space-y-5">
               <div className="grid grid-cols-3 gap-3">
@@ -321,6 +346,45 @@ export default function ReferidorPage() {
                       </div>
                     )}
                   </>
+                )}
+              </div>
+
+              {/* LIQUIDACIONES OFICIALES */}
+              <div>
+                <h3 className="text-sm font-semibold text-[#111111] mb-3 flex items-center gap-2">
+                  <CreditCard size={14} className="text-[#1e3a5f]" /> Liquidaciones Oficiales
+                </h3>
+                {liquidaciones.length === 0 ? (
+                  <div className="glass-panel py-8 text-center text-[#9ca3af] text-sm">
+                    <CreditCard size={28} className="mx-auto mb-2 opacity-30" />
+                    No hay liquidaciones pendientes
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {liquidaciones.map(liq => (
+                      <div key={liq.id} className="glass-panel p-4 flex items-center justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-sm font-semibold text-[#111111]">{liq.periodo_desde} — {liq.periodo_hasta}</p>
+                            <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-medium border ${
+                              liq.estado === 'pagado'
+                                ? 'bg-green-50 text-green-700 border-green-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                              {liq.estado === 'pagado' ? 'Pagado' : 'Pendiente'}
+                            </span>
+                          </div>
+                          {liq.notas && <p className="text-xs text-[#9ca3af] italic">{liq.notas}</p>}
+                          {liq.pagado_at && (
+                            <p className="text-xs text-[#9ca3af]">
+                              Abonado el {new Date(liq.pagado_at).toLocaleDateString('es-ES')}
+                            </p>
+                          )}
+                        </div>
+                        <p className="text-xl font-bold text-[#111111] whitespace-nowrap">{parseFloat(liq.importe).toFixed(2)}€</p>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

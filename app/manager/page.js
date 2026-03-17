@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LogOut, BarChart3, TrendingDown, Building2, Receipt, Zap } from 'lucide-react'
+import { SkeletonPanel } from '../../components/Skeleton'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { createClient } from '@supabase/supabase-js'
 
@@ -99,11 +100,7 @@ export default function ManagerPage() {
       </nav>
 
       <main className="max-w-3xl mx-auto p-5 mt-6">
-        {cargando ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-7 h-7 border-2 border-[#e5e7eb] border-t-[#1e3a5f] rounded-full animate-spin" />
-          </div>
-        ) : (
+        {cargando ? <SkeletonPanel /> : (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

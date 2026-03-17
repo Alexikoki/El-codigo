@@ -2,9 +2,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogOut, MapPin, Users, UserCheck, Plus, Shield, Search, CheckCircle2, XCircle, BarChart3, TrendingUp, HandCoins, FileText, Pencil, Download } from 'lucide-react'
+import { LogOut, MapPin, Users, UserCheck, Plus, Shield, Search, CheckCircle2, XCircle, BarChart3, TrendingUp, HandCoins, FileText, Pencil, Download, CreditCard, Clock } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { SkeletonPanel } from '../../components/Skeleton'
 
 export default function SuperadminPage() {
   const [tab, setTab] = useState('lugares')
@@ -12,6 +13,9 @@ export default function SuperadminPage() {
   const [referidores, setReferidores] = useState([])
   const [staff, setStaff] = useState([])
   const [analytics, setAnalytics] = useState({ chartData: [], stats: { operaciones: 0, volumenEuros: 0, comisionGenerada: 0 } })
+  const [liquidaciones, setLiquidaciones] = useState([])
+  const [modalLiq, setModalLiq] = useState(false)
+  const [formLiq, setFormLiq] = useState({ referidor_id: '', importe: '', periodo_desde: '', periodo_hasta: '', notas: '' })
   const [cargando, setCargando] = useState(true)
   const [modal, setModal] = useState(null)
   const [modalEditar, setModalEditar] = useState(null)
@@ -35,18 +39,55 @@ export default function SuperadminPage() {
 
   const cargarDatos = async () => {
     setCargando(true)
-    const [resL, resR, resS, resA] = await Promise.all([
+    const [resL, resR, resS, resA, resLiq] = await Promise.all([
       fetch('/api/lugares', { credentials: 'include' }),
       fetch('/api/referidores', { credentials: 'include' }),
       fetch('/api/staff', { credentials: 'include' }),
-      fetch('/api/analytics/superadmin', { credentials: 'include' })
+      fetch('/api/analytics/superadmin', { credentials: 'include' }),
+      fetch('/api/liquidaciones', { credentials: 'include' })
     ])
-    const [dataL, dataR, dataS, dataA] = await Promise.all([resL.json(), resR.json(), resS.json(), resA.json()])
+    const [dataL, dataR, dataS, dataA, dataLiq] = await Promise.all([resL.json(), resR.json(), resS.json(), resA.json(), resLiq.json()])
     setLugares(dataL.lugares || [])
     setReferidores(dataR.referidores || [])
     setStaff(dataS.staff || [])
     if (resA.ok) setAnalytics(dataA)
+    setLiquidaciones(dataLiq.liquidaciones || [])
     setCargando(false)
+  }
+
+  const crearLiquidacion = async () => {
+    if (!formLiq.referidor_id || !formLiq.importe || !formLiq.periodo_desde || !formLiq.periodo_hasta) {
+      toast.error('Rellena todos los campos obligatorios.')
+      return
+    }
+    const res = await fetch('/api/liquidaciones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ ...formLiq, importe: parseFloat(formLiq.importe) })
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setLiquidaciones([data.liquidacion, ...liquidaciones])
+      setModalLiq(false)
+      setFormLiq({ referidor_id: '', importe: '', periodo_desde: '', periodo_hasta: '', notas: '' })
+      toast.success('Liquidación creada.')
+    } else {
+      toast.error('Error al crear liquidación.')
+    }
+  }
+
+  const marcarPagado = async (id) => {
+    const res = await fetch('/api/liquidaciones', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ id, estado: 'pagado' })
+    })
+    if (res.ok) {
+      setLiquidaciones(liquidaciones.map(l => l.id === id ? { ...l, estado: 'pagado', pagado_at: new Date().toISOString() } : l))
+      toast.success('Marcada como pagada.')
+    }
   }
 
   const handleSubmit = async () => {
@@ -140,7 +181,8 @@ export default function SuperadminPage() {
     { id: 'analytics', label: 'Métricas', icon: <BarChart3 size={15} /> },
     { id: 'lugares', label: 'Locales', icon: <MapPin size={15} /> },
     { id: 'referidores', label: 'Referidores', icon: <Users size={15} /> },
-    { id: 'staff', label: 'Staff', icon: <UserCheck size={15} /> }
+    { id: 'staff', label: 'Staff', icon: <UserCheck size={15} /> },
+    { id: 'liquidaciones', label: 'Pagos', icon: <CreditCard size={15} /> }
   ]
 
   const inputClass = "w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg px-4 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white"
@@ -183,7 +225,7 @@ export default function SuperadminPage() {
         </div>
 
         {/* Barra de acciones */}
-        {tab !== 'analytics' && (
+        {tab !== 'analytics' && tab !== 'liquidaciones' && (
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
             <div className="relative w-full sm:w-56">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={15} />
@@ -353,6 +395,69 @@ export default function SuperadminPage() {
             )}
           </div>
 
+          {/* LIQUIDACIONES */}
+          {tab === 'liquidaciones' && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-sm font-semibold text-[#111111]">Historial de Liquidaciones</h2>
+                <button
+                  onClick={() => setModalLiq(true)}
+                  className="flex items-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <Plus size={15} /> Nueva Liquidación
+                </button>
+              </div>
+
+              {cargando && <SkeletonPanel />}
+
+              {!cargando && liquidaciones.length === 0 && (
+                <div className="py-14 text-center text-[#9ca3af] border border-dashed border-[#e5e7eb] rounded-xl bg-white text-sm">
+                  No hay liquidaciones todavía.
+                </div>
+              )}
+
+              {!cargando && liquidaciones.map(liq => (
+                <div key={liq.id} className="glass-panel p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm font-semibold text-[#111111]">{liq.referidores?.nombre || '—'}</p>
+                      <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-medium border ${
+                        liq.estado === 'pagado'
+                          ? 'bg-green-50 text-green-700 border-green-200'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}>
+                        {liq.estado === 'pagado' ? 'Pagado' : 'Pendiente'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#6b7280]">{liq.referidores?.email || ''}</p>
+                    <div className="flex items-center gap-3 mt-2">
+                      <span className="text-xs text-[#9ca3af] flex items-center gap-1">
+                        <Clock size={11} /> {liq.periodo_desde} → {liq.periodo_hasta}
+                      </span>
+                      {liq.notas && <span className="text-xs text-[#9ca3af] italic truncate max-w-[200px]">{liq.notas}</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 sm:flex-col sm:items-end">
+                    <p className="text-xl font-bold text-[#111111]">{parseFloat(liq.importe).toFixed(2)}€</p>
+                    {liq.estado === 'pendiente' && (
+                      <button
+                        onClick={() => marcarPagado(liq.id)}
+                        className="text-xs flex items-center gap-1.5 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg transition-colors font-medium"
+                      >
+                        <CheckCircle2 size={12} /> Marcar pagado
+                      </button>
+                    )}
+                    {liq.estado === 'pagado' && liq.pagado_at && (
+                      <p className="text-[10px] text-[#9ca3af]">
+                        Pagado el {new Date(liq.pagado_at).toLocaleDateString('es-ES')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
         </motion.div>
       </main>
 
@@ -417,6 +522,68 @@ export default function SuperadminPage() {
                 <button onClick={handleSubmit}
                   className="flex-1 bg-[#1e3a5f] hover:bg-[#15294a] text-white py-2.5 rounded-lg text-sm font-medium transition-colors">
                   Guardar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL NUEVA LIQUIDACIÓN */}
+      <AnimatePresence>
+        {modalLiq && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 px-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/30"
+              onClick={() => setModalLiq(false)}
+            />
+            <motion.div
+              initial={{ scale: 0.97, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.97, opacity: 0 }}
+              className="bg-white border border-[#e5e7eb] rounded-2xl p-6 w-full max-w-md relative z-10 shadow-lg"
+            >
+              <div className="flex justify-between items-center mb-5">
+                <h2 className="text-lg font-bold text-[#111111] flex items-center gap-2">
+                  <CreditCard size={18} className="text-[#1e3a5f]" /> Nueva Liquidación
+                </h2>
+                <button onClick={() => setModalLiq(false)} className="text-[#9ca3af] hover:text-[#374151] transition-colors">
+                  <XCircle size={22} />
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-[#6b7280] mb-1 block">Referidor *</label>
+                  <select value={formLiq.referidor_id} onChange={e => setFormLiq({ ...formLiq, referidor_id: e.target.value })} className={`${inputClass} appearance-none`}>
+                    <option value="">Seleccionar referidor...</option>
+                    {referidores.map(r => <option key={r.id} value={r.id}>{r.nombre} — {r.email}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-[#6b7280] mb-1 block">Importe (€) *</label>
+                  <input type="number" step="0.01" min="0" placeholder="0.00" value={formLiq.importe} onChange={e => setFormLiq({ ...formLiq, importe: e.target.value })} className={inputClass} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-[#6b7280] mb-1 block">Período desde *</label>
+                    <input type="date" value={formLiq.periodo_desde} onChange={e => setFormLiq({ ...formLiq, periodo_desde: e.target.value })} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#6b7280] mb-1 block">Período hasta *</label>
+                    <input type="date" value={formLiq.periodo_hasta} onChange={e => setFormLiq({ ...formLiq, periodo_hasta: e.target.value })} className={inputClass} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-[#6b7280] mb-1 block">Notas (opcional)</label>
+                  <textarea rows={2} placeholder="Comentarios..." value={formLiq.notas} onChange={e => setFormLiq({ ...formLiq, notas: e.target.value })} className={`${inputClass} resize-none`} />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setModalLiq(false)}
+                  className="flex-1 border border-[#e5e7eb] text-[#6b7280] py-2.5 rounded-lg text-sm font-medium hover:bg-[#f3f4f6] transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={crearLiquidacion}
+                  className="flex-1 bg-[#1e3a5f] hover:bg-[#15294a] text-white py-2.5 rounded-lg text-sm font-medium transition-colors">
+                  Crear Liquidación
                 </button>
               </div>
             </motion.div>
