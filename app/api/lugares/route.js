@@ -68,7 +68,7 @@ export async function POST(request) {
   const password_hash = await bcrypt.hash(manager_password, 12)
   const { error: errorManager } = await supabaseAdmin
     .from('managers_locales')
-    .insert({ nombre: manager_nombre, email: manager_email, password_hash, lugar_id: lugar.id })
+    .insert({ nombre: manager_nombre, email: manager_email, password_hash, lugar_id: lugar.id, activo: true })
 
   if (errorManager) {
     // Rollback: borrar el lugar recién creado
