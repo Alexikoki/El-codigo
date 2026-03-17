@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, Mail, ShieldAlert, ArrowRight, UserCheck, Shield, Briefcase, Building2 } from 'lucide-react'
@@ -10,6 +10,9 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
   const [cfToken, setCfToken] = useState('')
+
+  const [failedAttempts, setFailedAttempts] = useState(0)
+  const turnstileRef = useRef(null)
 
   const [showRecuperar, setShowRecuperar] = useState(false)
   const [emailRecuperar, setEmailRecuperar] = useState('')
@@ -37,7 +40,14 @@ export default function LoginPage() {
       const data = await res.json()
 
       if (!res.ok) {
+        const newFailed = failedAttempts + 1
+        setFailedAttempts(newFailed)
         setError(data.error || 'Error al iniciar sesión')
+        // Reset Turnstile after cada intento fallido para que no haya que recargar
+        if (newFailed % 3 === 0) {
+          turnstileRef.current?.reset()
+          setCfToken('')
+        }
         setCargando(false)
         return
       }
@@ -190,8 +200,10 @@ export default function LoginPage() {
 
             <div className="flex justify-center py-2">
               <Turnstile
+                ref={turnstileRef}
                 siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
                 onSuccess={(token) => setCfToken(token)}
+                onExpire={() => setCfToken('')}
                 options={{ theme: 'light' }}
               />
             </div>
