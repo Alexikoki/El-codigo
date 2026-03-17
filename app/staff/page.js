@@ -218,19 +218,8 @@ export default function StaffPage() {
                 </div>
                 <div className="flex flex-col gap-3">
                   <button
-                    onClick={() => abrirConfirmar({
-                      id: resultado.cliente.id,
-                      nombre: resultado.cliente.nombre,
-                      personas: resultado.cliente.numPersonas,
-                      gastoEstimado: resultado.cliente.gastoEstimado || null
-                    })}
-                    className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3.5 rounded-xl transition-colors"
-                  >
-                    <Receipt size={17} /> Registrar consumo
-                  </button>
-                  <button
                     onClick={() => setResultado(null)}
-                    className="w-full border border-[#e5e7eb] text-[#6b7280] hover:bg-[#f3f4f6] font-medium py-3 rounded-xl transition-colors text-sm"
+                    className="w-full bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3.5 rounded-xl transition-colors"
                   >
                     Escanear otra persona
                   </button>
