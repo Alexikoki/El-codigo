@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, Mail, ShieldAlert, ArrowRight, UserCheck, Shield, Briefcase } from 'lucide-react'
+import { Lock, Mail, ShieldAlert, ArrowRight, UserCheck, Shield, Briefcase, Building2 } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
 
 export default function LoginPage() {
@@ -95,10 +95,11 @@ export default function LoginPage() {
   }
 
   const tabs = [
-    { id: 'staff', label: 'Staff', icon: <UserCheck size={15} /> },
-    { id: 'referidor', label: 'Referidor', icon: <Lock size={15} /> },
-    { id: 'agencia', label: 'Agencia', icon: <Briefcase size={15} /> },
-    { id: 'superadmin', label: 'Admin', icon: <Shield size={15} /> }
+    { id: 'staff',      label: 'Staff',     icon: <UserCheck size={15} /> },
+    { id: 'manager',    label: 'Manager',   icon: <Building2 size={15} /> },
+    { id: 'referidor',  label: 'Referidor', icon: <Lock size={15} /> },
+    { id: 'agencia',    label: 'Agencia',   icon: <Briefcase size={15} /> },
+    { id: 'superadmin', label: 'Admin',     icon: <Shield size={15} /> },
   ]
 
   return (
