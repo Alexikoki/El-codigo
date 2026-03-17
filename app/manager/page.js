@@ -2,14 +2,14 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogOut, BarChart3, TrendingDown, Building2, Receipt, Zap } from 'lucide-react'
+import { LogOut, BarChart3, TrendingDown, Building2, Receipt, Zap, Users, Download } from 'lucide-react'
 import { SkeletonPanel } from '../../components/Skeleton'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { createClient } from '@supabase/supabase-js'
 
 export default function ManagerPage() {
   const [manager, setManager] = useState(null)
-  const [analytics, setAnalytics] = useState({ chartData: [], stats: { operaciones: 0, volumenEuros: 0, deudaAcumulada: 0 } })
+  const [analytics, setAnalytics] = useState({ chartData: [], stats: { operaciones: 0, volumenEuros: 0, deudaAcumulada: 0 }, hoy: [] })
   const [cargando, setCargando] = useState(true)
   const [ultimaValidacion, setUltimaValidacion] = useState(null)
   const [segsDesde, setSegsDesde] = useState(null)
@@ -74,6 +74,22 @@ export default function ManagerPage() {
     } finally {
       setCargando(false)
     }
+  }
+
+  const exportarHoy = () => {
+    const hoy = analytics.hoy || []
+    if (hoy.length === 0) return
+    const fecha = new Date().toLocaleDateString('es-ES')
+    const cabecera = 'Hora,Cliente,Referidor,Personas,Gasto (€),Comisión (€)'
+    const filas = hoy.map(r => `${r.hora},${r.cliente},${r.referidor},${r.personas},${r.gasto.toFixed(2)},${r.comision.toFixed(2)}`)
+    const csv = [cabecera, ...filas].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `Clientes_${fecha.replace(/\//g, '-')}.csv`
+    document.body.appendChild(a); a.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -168,6 +184,70 @@ export default function ManagerPage() {
                   <Area type="monotone" dataKey="deudaTotal" name="Comisión al Código" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorDeuda)" />
                 </AreaChart>
               </ResponsiveContainer>
+            </div>
+
+            {/* Clientes de Hoy */}
+            <div className="glass-panel overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#f3f4f6]">
+                <h3 className="text-sm font-semibold text-[#111111] flex items-center gap-2">
+                  <Users size={15} className="text-[#1e3a5f]" />
+                  Clientes de Hoy
+                  {analytics.hoy?.length > 0 && (
+                    <span className="text-xs font-medium bg-[#f0f4f8] text-[#1e3a5f] px-2 py-0.5 rounded-full">
+                      {analytics.hoy.length}
+                    </span>
+                  )}
+                </h3>
+                {analytics.hoy?.length > 0 && (
+                  <button onClick={exportarHoy}
+                    className="flex items-center gap-1.5 text-xs text-[#6b7280] hover:text-[#111111] border border-[#e5e7eb] px-3 py-1.5 rounded-lg bg-white hover:bg-[#f3f4f6] transition-colors">
+                    <Download size={12} /> Exportar CSV
+                  </button>
+                )}
+              </div>
+
+              {!analytics.hoy?.length ? (
+                <div className="py-10 text-center text-[#9ca3af] text-sm">
+                  Aún no hay clientes validados hoy
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-[#9ca3af] text-xs border-b border-[#f3f4f6]">
+                      <th className="text-left px-5 py-3 font-medium">Hora</th>
+                      <th className="text-left px-5 py-3 font-medium hidden sm:table-cell">Cliente</th>
+                      <th className="text-left px-5 py-3 font-medium hidden md:table-cell">Referidor</th>
+                      <th className="text-right px-5 py-3 font-medium">Pers.</th>
+                      <th className="text-right px-5 py-3 font-medium">Gasto</th>
+                      <th className="text-right px-5 py-3 font-medium">Comisión</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analytics.hoy.map((r, i) => (
+                      <tr key={i} className={`border-b border-[#f3f4f6] last:border-0 hover:bg-[#f9fafb] transition-colors ${i % 2 !== 0 ? 'bg-[#fafaf8]' : ''}`}>
+                        <td className="px-5 py-3 text-[#6b7280] font-mono text-xs">{r.hora}</td>
+                        <td className="px-5 py-3 font-medium text-[#111111] hidden sm:table-cell">{r.cliente}</td>
+                        <td className="px-5 py-3 text-[#6b7280] hidden md:table-cell">{r.referidor}</td>
+                        <td className="px-5 py-3 text-right text-[#6b7280]">{r.personas}</td>
+                        <td className="px-5 py-3 text-right font-mono text-[#111111]">{r.gasto.toFixed(2)}€</td>
+                        <td className="px-5 py-3 text-right font-mono text-red-500">{r.comision.toFixed(2)}€</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-[#f3f4f6] text-xs font-semibold text-[#374151]">
+                      <td colSpan={4} className="px-5 py-3 hidden md:table-cell">Total del día</td>
+                      <td colSpan={2} className="px-5 py-3 md:hidden">Total</td>
+                      <td className="px-5 py-3 text-right font-mono">
+                        {analytics.hoy.reduce((s, r) => s + r.gasto, 0).toFixed(2)}€
+                      </td>
+                      <td className="px-5 py-3 text-right font-mono text-red-500">
+                        {analytics.hoy.reduce((s, r) => s + r.comision, 0).toFixed(2)}€
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
             </div>
 
           </motion.div>

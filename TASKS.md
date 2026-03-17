@@ -78,6 +78,25 @@
 
 ---
 
+## Fase 9: Seguridad Avanzada
+
+- [x] Script de seguridad automatizado (46 comprobaciones): `node tests/security_check.js`
+- [x] RLS Supabase: tabla `referidores` cerrada con anon key (política pública eliminada)
+- [x] Headers HTTP de seguridad: X-Content-Type-Options, X-Frame-Options, Content-Security-Policy, Referrer-Policy, Permissions-Policy
+- [x] `/api/lugares` sin sesión limitado a id/nombre/tipo (sin datos internos)
+- [x] Verificación: archivos sensibles (.env, .git) no accesibles por HTTP
+- [x] Verificación: payloads gigantes no tumban el servidor
+- [x] Verificación: todas las tablas Supabase protegidas por RLS
+
+## Fase 10: Mejoras de Panel
+
+- [x] Panel Manager: tabla de clientes validados hoy con hora, referidor y gasto
+- [x] Panel Manager: fila de totales del día (gasto + comisión acumulada)
+- [x] Panel Manager: exportar resumen del día en CSV
+- [x] TASKS.md y README.md reescritos con historial real del proyecto
+
+---
+
 ## Pendiente
 
 - [ ] Rellenar datos reales en páginas legales (NIF, dirección, dominio)

@@ -18,6 +18,16 @@ export async function GET(request) {
             .eq('lugar_id', managerLugarId)
             .order('created_at', { ascending: true })
 
+        // Clientes de hoy
+        const hoyInicio = new Date()
+        hoyInicio.setHours(0, 0, 0, 0)
+        const { data: hoyRecords } = await supabaseAdmin
+            .from('valoraciones')
+            .select('gasto, comision_lugar, created_at, num_personas, clientes(nombre), referidores(nombre)')
+            .eq('lugar_id', managerLugarId)
+            .gte('created_at', hoyInicio.toISOString())
+            .order('created_at', { ascending: false })
+
         if (error) throw error
 
         // Agrupamos la afluencia y el gasto/comisión por día.
@@ -43,7 +53,16 @@ export async function GET(request) {
             deudaAcumulada: chartData.reduce((acc, curr) => acc + curr.deudaTotal, 0)
         }
 
-        return NextResponse.json({ chartData, stats })
+        const hoy = (hoyRecords || []).map(r => ({
+            cliente: r.clientes?.nombre || 'Anónimo',
+            referidor: r.referidores?.nombre || '—',
+            personas: r.num_personas || 1,
+            gasto: r.gasto,
+            comision: r.comision_lugar || r.gasto * 0.20,
+            hora: new Date(r.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        }))
+
+        return NextResponse.json({ chartData, stats, hoy })
 
     } catch (globalError) {
         console.error('Crash API /analytics/manager:', globalError)
