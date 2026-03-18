@@ -3,6 +3,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, Mail, ShieldAlert, ArrowRight, UserCheck, Shield, Briefcase, Building2 } from 'lucide-react'
+import Link from 'next/link'
 import { Turnstile } from '@marsidev/react-turnstile'
 
 export default function LoginPage() {
@@ -219,6 +220,12 @@ export default function LoginPage() {
           </form>
         </div>
       </motion.div>
+
+      {/* Footer legal */}
+      <div className="text-center mt-6 flex justify-center gap-4 text-xs text-[#9ca3af]">
+        <Link href="/privacidad" className="hover:text-[#374151] transition-colors">Privacidad</Link>
+        <Link href="/terminos" className="hover:text-[#374151] transition-colors">Términos de uso</Link>
+      </div>
 
       {/* Modal Recuperación */}
       <AnimatePresence>

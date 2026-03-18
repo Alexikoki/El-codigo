@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import CookieBanner from "../components/CookieBanner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -58,6 +59,7 @@ export default function RootLayout({ children }) {
             success: { iconTheme: { primary: '#1e3a5f', secondary: '#fff' } }
           }}
         />
+        <CookieBanner />
         {/* Registrador del Service Worker PWA */}
         <script dangerouslySetInnerHTML={{
           __html: `
