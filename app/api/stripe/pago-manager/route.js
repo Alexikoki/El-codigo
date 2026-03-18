@@ -29,13 +29,13 @@ export async function POST(request) {
   // Calcular volumen de ventas del período (suma de tickets del local)
   const { data: valoraciones } = await supabaseAdmin
     .from('valoraciones')
-    .select('importe_consumo')
+    .select('gasto')
     .eq('lugar_id', payload.lugarId)
     .gte('created_at', periodo_desde)
     .lte('created_at', periodo_hasta + 'T23:59:59')
-    .not('importe_consumo', 'is', null)
+    .not('gasto', 'is', null)
 
-  const volumenTotal = (valoraciones || []).reduce((sum, v) => sum + (v.importe_consumo || 0), 0)
+  const volumenTotal = (valoraciones || []).reduce((sum, v) => sum + (v.gasto || 0), 0)
 
   if (volumenTotal === 0) {
     return NextResponse.json({ error: 'No hay consumo registrado en este período' }, { status: 400 })
@@ -55,7 +55,7 @@ export async function POST(request) {
   const { data: valoracionesConReferidor } = await supabaseAdmin
     .from('valoraciones')
     .select(`
-      importe_consumo,
+      gasto,
       clientes(
         referidor_id,
         agencia_id,
@@ -66,7 +66,7 @@ export async function POST(request) {
     .eq('lugar_id', payload.lugarId)
     .gte('created_at', periodo_desde)
     .lte('created_at', periodo_hasta + 'T23:59:59')
-    .not('importe_consumo', 'is', null)
+    .not('gasto', 'is', null)
 
   // Agrupar por referidor/agencia y calcular su parte
   const cuentasMap = {}
@@ -76,7 +76,7 @@ export async function POST(request) {
 
     const ref = cliente.referidores
     const agencia = cliente.agencias
-    const importe = v.importe_consumo || 0
+    const importe = v.gasto || 0
 
     if (ref?.stripe_account_id && ref?.stripe_onboarded) {
       const key = `ref_${ref.id}`
@@ -156,13 +156,13 @@ export async function GET(request) {
 
   const { data: valoraciones } = await supabaseAdmin
     .from('valoraciones')
-    .select('importe_consumo')
+    .select('gasto')
     .eq('lugar_id', payload.lugarId)
     .gte('created_at', desde)
     .lte('created_at', hasta + 'T23:59:59')
-    .not('importe_consumo', 'is', null)
+    .not('gasto', 'is', null)
 
-  const volumenTotal = (valoraciones || []).reduce((sum, v) => sum + (v.importe_consumo || 0), 0)
+  const volumenTotal = (valoraciones || []).reduce((sum, v) => sum + (v.gasto || 0), 0)
   const pctLocal = (lugar?.porcentaje_plataforma || 20) / 100
   const comisionTotal = parseFloat((volumenTotal * pctLocal).toFixed(2))
   const comisionPlataforma = parseFloat((comisionTotal * PLATAFORMA_PCT).toFixed(2))
