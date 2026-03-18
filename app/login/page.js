@@ -40,14 +40,11 @@ export default function LoginPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        const newFailed = failedAttempts + 1
-        setFailedAttempts(newFailed)
+        setFailedAttempts(f => f + 1)
         setError(data.error || 'Error al iniciar sesión')
-        // Reset Turnstile after cada intento fallido para que no haya que recargar
-        if (newFailed % 3 === 0) {
-          turnstileRef.current?.reset()
-          setCfToken('')
-        }
+        // El token Turnstile es de un solo uso: resetear siempre para regenerar uno nuevo
+        turnstileRef.current?.reset()
+        setCfToken('')
         setCargando(false)
         return
       }

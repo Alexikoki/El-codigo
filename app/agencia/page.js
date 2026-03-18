@@ -24,6 +24,8 @@ export default function AgenciaPage() {
   const [confirmPago, setConfirmPago] = useState(null)
   const [formLiq, setFormLiq] = useState({ referidor_id: '', importe: '', periodo_desde: '', periodo_hasta: '', notas: '' })
   const [liqCargando, setLiqCargando] = useState(false)
+  const [stripeOnboarded, setStripeOnboarded] = useState(false)
+  const [stripeConectando, setStripeConectando] = useState(false)
 
   const router = useRouter()
 
@@ -141,6 +143,20 @@ export default function AgenciaPage() {
     } catch (e) { console.error(e) }
   }
 
+  const comprobarStripe = async () => {
+    const res = await fetch('/api/stripe/connect', { credentials: 'include' })
+    if (res.ok) { const d = await res.json(); setStripeOnboarded(d.onboarded) }
+  }
+
+  const conectarStripe = async () => {
+    setStripeConectando(true)
+    try {
+      const res = await fetch('/api/stripe/connect', { method: 'POST', credentials: 'include' })
+      const data = await res.json()
+      if (res.ok && data.url) window.location.href = data.url
+    } finally { setStripeConectando(false) }
+  }
+
   const medalColor = (i) => i === 0 ? 'text-yellow-500' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-amber-600' : 'text-[#9ca3af]'
   const medalBg = (i) => i === 0 ? 'bg-yellow-50 border-yellow-200' : i === 1 ? 'bg-gray-50 border-gray-200' : i === 2 ? 'bg-amber-50 border-amber-200' : 'bg-[#f3f4f6] border-[#e5e7eb]'
 
@@ -181,7 +197,7 @@ export default function AgenciaPage() {
         {/* Tabs */}
         <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-6 gap-1">
           {tabs.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
+            <button key={t.id} onClick={() => { setTab(t.id); if (t.id === 'pagos') comprobarStripe() }}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all ${
                 tab === t.id ? 'bg-white text-[#111111] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'
               }`}
@@ -382,6 +398,25 @@ export default function AgenciaPage() {
             {/* PAGOS */}
             {tab === 'pagos' && (
               <div className="space-y-5">
+
+                {/* Banner Stripe Connect */}
+                {!stripeOnboarded ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-amber-800">Conecta tu cuenta bancaria</p>
+                      <p className="text-xs text-amber-700 mt-1">Para recibir pagos automáticos de la plataforma necesitas verificar tu identidad y añadir tu IBAN a través de Stripe.</p>
+                    </div>
+                    <button onClick={conectarStripe} disabled={stripeConectando}
+                      className="flex items-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors whitespace-nowrap disabled:opacity-50">
+                      <CreditCard size={15} /> {stripeConectando ? 'Redirigiendo...' : 'Conectar cuenta'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3 text-sm text-green-700">
+                    <CheckCircle2 size={16} /> Cuenta bancaria conectada — recibirás pagos automáticamente.
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-base font-semibold text-[#111111]">Historial de Pagos</h2>

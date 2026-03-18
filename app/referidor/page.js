@@ -21,6 +21,8 @@ export default function ReferidorPage() {
   const [historialTotalPag, setHistorialTotalPag] = useState(1)
   const [historialCargando, setHistorialCargando] = useState(false)
   const [liquidaciones, setLiquidaciones] = useState([])
+  const [stripeOnboarded, setStripeOnboarded] = useState(false)
+  const [stripeConectando, setStripeConectando] = useState(false)
   const router = useRouter()
 
   const iniciarSesion = (referidorObj) => {
@@ -93,6 +95,20 @@ export default function ReferidorPage() {
     }
   }
 
+  const comprobarStripe = async () => {
+    const res = await fetch('/api/stripe/connect', { credentials: 'include' })
+    if (res.ok) { const d = await res.json(); setStripeOnboarded(d.onboarded) }
+  }
+
+  const conectarStripe = async () => {
+    setStripeConectando(true)
+    try {
+      const res = await fetch('/api/stripe/connect', { method: 'POST', credentials: 'include' })
+      const data = await res.json()
+      if (res.ok && data.url) window.location.href = data.url
+    } finally { setStripeConectando(false) }
+  }
+
   const handleCopiarUrl = () => {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     navigator.clipboard.writeText(`${appUrl}/r/${referidor?.qr_token}`)
@@ -104,7 +120,7 @@ export default function ReferidorPage() {
     { id: 'dashboard', label: 'Rendimiento', icon: <BarChart3 size={15} /> },
     { id: 'qr', label: 'Mi QR', icon: <QrCode size={15} /> },
     { id: 'clientes', label: 'Invitados', icon: <Users size={15} /> },
-    { id: 'historial', label: 'Pagos', icon: <Receipt size={15} />, onSelect: () => cargarHistorial(1) }
+    { id: 'historial', label: 'Pagos', icon: <Receipt size={15} />, onSelect: () => { cargarHistorial(1); comprobarStripe() } }
   ]
 
   const appUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_APP_URL || window.location.origin) : ''
@@ -301,6 +317,25 @@ export default function ReferidorPage() {
           {/* HISTORIAL / PAGOS */}
           {tab === 'historial' && (
             <div className="space-y-5">
+
+              {/* Banner Stripe Connect */}
+              {!stripeOnboarded ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-amber-800">Conecta tu cuenta bancaria</p>
+                    <p className="text-xs text-amber-700 mt-1">Para recibir tus comisiones automáticamente necesitas verificar tu identidad y añadir tu IBAN a través de Stripe.</p>
+                  </div>
+                  <button onClick={conectarStripe} disabled={stripeConectando}
+                    className="flex items-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors whitespace-nowrap disabled:opacity-50">
+                    <CreditCard size={15} /> {stripeConectando ? 'Redirigiendo...' : 'Conectar cuenta'}
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3 text-sm text-green-700">
+                  <CheckCircle2 size={16} /> Cuenta bancaria conectada — recibirás pagos automáticamente.
+                </div>
+              )}
+
               <div className="grid grid-cols-3 gap-3">
                 <div className="glass-panel p-4 text-center border-t-2 border-t-[#1e3a5f]">
                   <p className="text-xs text-[#6b7280] mb-1">Conversiones</p>

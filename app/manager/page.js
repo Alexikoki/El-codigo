@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogOut, BarChart3, TrendingDown, Building2, Receipt, Zap, Users, Download, Image, UserCheck, X, UserPlus, Shield, ToggleLeft, ToggleRight } from 'lucide-react'
+import { LogOut, BarChart3, TrendingDown, Building2, Receipt, Zap, Users, Download, Image, UserCheck, X, UserPlus, Shield, ToggleLeft, ToggleRight, CreditCard, Euro, CheckCircle2, Clock } from 'lucide-react'
 import { SkeletonPanel } from '../../components/Skeleton'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { createClient } from '@supabase/supabase-js'
@@ -18,7 +18,12 @@ export default function ManagerPage() {
   const [fechaHasta, setFechaHasta] = useState('')
   const [tickets, setTickets] = useState([])
   const [ticketAmpliado, setTicketAmpliado] = useState(null)
-  const [tab, setTab] = useState('dashboard') // 'dashboard' | 'equipo'
+  const [tab, setTab] = useState('dashboard') // 'dashboard' | 'equipo' | 'pagos'
+  const [resumenPago, setResumenPago] = useState(null)
+  const [cargandoPago, setCargandoPago] = useState(false)
+  const [pagando, setPagando] = useState(false)
+  const [periodoDesde, setPeriodoDesde] = useState('')
+  const [periodoHasta, setPeriodoHasta] = useState('')
   const [staffList, setStaffList] = useState([])
   const [cargandoStaff, setCargandoStaff] = useState(false)
   const [modalNuevoStaff, setModalNuevoStaff] = useState(false)
@@ -140,6 +145,42 @@ export default function ManagerPage() {
     setStaffList(prev => prev.map(s => s.id === id ? { ...s, activo: !activo } : s))
   }
 
+  const cargarResumenPago = async () => {
+    if (!periodoDesde || !periodoHasta) return
+    setCargandoPago(true)
+    setResumenPago(null)
+    try {
+      const res = await fetch(`/api/stripe/pago-manager?desde=${periodoDesde}&hasta=${periodoHasta}`, { credentials: 'include' })
+      if (res.ok) setResumenPago(await res.json())
+    } finally { setCargandoPago(false) }
+  }
+
+  const iniciarPago = async () => {
+    if (!periodoDesde || !periodoHasta) return
+    setPagando(true)
+    try {
+      const res = await fetch('/api/stripe/pago-manager', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ periodo_desde: periodoDesde, periodo_hasta: periodoHasta })
+      })
+      const data = await res.json()
+      if (res.ok && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl
+      }
+    } finally { setPagando(false) }
+  }
+
+  // Inicializar período al mes actual
+  const inicializarPeriodo = () => {
+    const hoy = new Date()
+    const desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0]
+    const hasta = hoy.toISOString().split('T')[0]
+    setPeriodoDesde(desde)
+    setPeriodoHasta(hasta)
+  }
+
   const exportarHoy = () => {
     const hoy = analytics.hoy || []
     if (hoy.length === 0) return
@@ -182,9 +223,9 @@ export default function ManagerPage() {
       {/* Tabs */}
       <div className="max-w-3xl mx-auto px-5 pt-5">
         <div className="flex gap-1 bg-[#f3f4f6] rounded-xl p-1">
-          {[['dashboard', <BarChart3 size={14} />, 'Dashboard'], ['equipo', <Shield size={14} />, 'Mi Equipo']].map(([key, icon, label]) => (
+          {[['dashboard', <BarChart3 size={14} />, 'Dashboard'], ['equipo', <Shield size={14} />, 'Mi Equipo'], ['pagos', <CreditCard size={14} />, 'Pagos']].map(([key, icon, label]) => (
             <button key={key}
-              onClick={() => { setTab(key); if (key === 'equipo' && staffList.length === 0) cargarStaff() }}
+              onClick={() => { setTab(key); if (key === 'equipo' && staffList.length === 0) cargarStaff(); if (key === 'pagos') inicializarPeriodo() }}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-white text-[#111111] shadow-sm' : 'text-[#6b7280] hover:text-[#374151]'}`}
             >{icon}{label}</button>
           ))}
@@ -192,6 +233,95 @@ export default function ManagerPage() {
       </div>
 
       <main className="max-w-3xl mx-auto p-5 mt-4">
+
+        {/* ── TAB PAGOS ── */}
+        {tab === 'pagos' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+            <div>
+              <h2 className="text-sm font-semibold text-[#111111]">Liquidación mensual</h2>
+              <p className="text-xs text-[#6b7280] mt-0.5">Selecciona el período y consulta cuánto debes pagar a la plataforma.</p>
+            </div>
+
+            {/* Selector de período */}
+            <div className="bg-white border border-[#e5e7eb] rounded-2xl p-5 space-y-4">
+              <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider">Período a liquidar</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-[#6b7280] mb-1 block">Desde</label>
+                  <input type="date" value={periodoDesde} onChange={e => setPeriodoDesde(e.target.value)}
+                    className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 bg-white" />
+                </div>
+                <div>
+                  <label className="text-xs text-[#6b7280] mb-1 block">Hasta</label>
+                  <input type="date" value={periodoHasta} onChange={e => setPeriodoHasta(e.target.value)}
+                    className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 bg-white" />
+                </div>
+              </div>
+              <button onClick={cargarResumenPago} disabled={cargandoPago || !periodoDesde || !periodoHasta}
+                className="w-full bg-[#f3f4f6] hover:bg-[#e5e7eb] text-[#374151] font-medium py-2.5 rounded-xl text-sm transition-colors disabled:opacity-50">
+                {cargandoPago ? 'Calculando...' : 'Calcular comisión'}
+              </button>
+            </div>
+
+            {/* Resumen */}
+            {resumenPago && (
+              <div className="bg-white border border-[#e5e7eb] rounded-2xl p-5 space-y-4">
+                <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider">Resumen del período</p>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
+                    <span className="text-sm text-[#6b7280]">Volumen total de consumo</span>
+                    <span className="text-sm font-semibold text-[#111111]">€{resumenPago.volumenTotal?.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
+                    <span className="text-sm text-[#6b7280]">Comisión acordada</span>
+                    <span className="text-sm font-semibold text-[#111111]">€{resumenPago.comisionTotal?.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
+                    <span className="text-sm text-[#6b7280] flex items-center gap-1"><Euro size={12} /> Parte plataforma (5%)</span>
+                    <span className="text-sm font-medium text-[#1e3a5f]">€{resumenPago.comisionPlataforma?.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
+                    <span className="text-sm text-[#6b7280]">Para referidores / agencias</span>
+                    <span className="text-sm font-medium text-[#374151]">€{resumenPago.comisionRepartir?.toFixed(2)}</span>
+                  </div>
+                  {resumenPago.totalYaPagado > 0 && (
+                    <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
+                      <span className="text-sm text-green-600 flex items-center gap-1"><CheckCircle2 size={12} /> Ya pagado</span>
+                      <span className="text-sm font-medium text-green-600">-€{resumenPago.totalYaPagado?.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-base font-bold text-[#111111]">Total a pagar</span>
+                    <span className="text-xl font-bold text-[#1e3a5f]">€{resumenPago.pendiente?.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {resumenPago.pendiente > 0 ? (
+                  <button onClick={iniciarPago} disabled={pagando}
+                    className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3.5 rounded-xl transition-colors disabled:opacity-50 mt-2">
+                    <CreditCard size={16} />
+                    {pagando ? 'Redirigiendo...' : `Pagar €${resumenPago.pendiente?.toFixed(2)} con tarjeta`}
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl p-3 text-green-700 text-sm">
+                    <CheckCircle2 size={16} /> Este período ya está liquidado.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Info */}
+            <div className="bg-[#f0f4f8] rounded-xl p-4 text-xs text-[#6b7280] space-y-1">
+              <p className="font-medium text-[#374151]">¿Cómo funciona?</p>
+              <p>1. La plataforma calcula la comisión según el % acordado con tu local.</p>
+              <p>2. Un 5% de esa comisión va a la plataforma directamente.</p>
+              <p>3. El resto se reparte automáticamente entre los referidores y agencias que trajeron clientes.</p>
+              <p>4. El pago se procesa de forma segura con Stripe.</p>
+            </div>
+          </motion.div>
+        )}
+
         {/* ── TAB EQUIPO ── */}
         {tab === 'equipo' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
