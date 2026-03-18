@@ -3,7 +3,7 @@ const BASE_URL = 'https://el-codigo-lemon.vercel.app'
 const TEST_API_KEY = process.env.TEST_API_KEY || ''
 const CREDS = {
   superadmin: { tipo: 'superadmin', email: 'superadmin', pass: 'Golfo' },
-  manager:    { tipo: 'manager',    email: 'test_manager@elcodigo.test',   pass: 'Test1234!' },
+  manager:    { tipo: 'manager',    email: 'pepi2@gmail.com',              pass: 'pepi123' },
   staff:      { tipo: 'staff',      email: 'test_staff@elcodigo.test',     pass: 'Test1234!' },
   referidor:  { tipo: 'referidor',  email: 'test_referidor@elcodigo.test', pass: 'Test1234!' },
   agencia:    { tipo: 'agencia',    email: 'test_agencia@elcodigo.test',   pass: 'Test1234!' },
@@ -174,6 +174,32 @@ async function loginViaApi(browser, rol) {
       const vis = await page.locator('text=Clientes de Hoy').first().isVisible({ timeout:5000 }).catch(function(){return false})
       log("Manager: 'Clientes de Hoy' visible", vis ? 'PASS' : 'FAIL')
     } catch(e2) { log("Manager: 'Clientes de Hoy' visible", 'FAIL', e2.message) }
+    // Tab Mi Equipo
+    try {
+      const equipoBtn = page.locator('button:has-text("Mi Equipo")').first()
+      if (await equipoBtn.isVisible({ timeout:3000 }).catch(function(){return false})) {
+        await equipoBtn.click(); await page.waitForTimeout(1000)
+        const nuevoCamarero = await page.locator('button:has-text("Nuevo camarero")').first().isVisible({ timeout:3000 }).catch(function(){return false})
+        log('Manager: tab Mi Equipo con botón crear camarero', nuevoCamarero ? 'PASS' : 'FAIL')
+      } else log('Manager: tab Mi Equipo con botón crear camarero', 'FAIL', 'tab no visible')
+    } catch(e2) { log('Manager: tab Mi Equipo con botón crear camarero', 'FAIL', e2.message) }
+    // Tab Pagos
+    try {
+      const pagosBtn = page.locator('button:has-text("Pagos")').first()
+      if (await pagosBtn.isVisible({ timeout:3000 }).catch(function(){return false})) {
+        await pagosBtn.click(); await page.waitForTimeout(1000)
+        const calcBtn = await page.locator('button:has-text("Calcular comisión")').first().isVisible({ timeout:3000 }).catch(function(){return false})
+        log('Manager: tab Pagos con botón calcular comisión', calcBtn ? 'PASS' : 'FAIL')
+        // Comprobar que el período se inicializa automáticamente
+        const dateInput = await page.locator('input[type="date"]').first().isVisible({ timeout:2000 }).catch(function(){return false})
+        log('Manager: tab Pagos con selector de fechas', dateInput ? 'PASS' : 'FAIL')
+      } else log('Manager: tab Pagos', 'FAIL', 'tab no visible')
+    } catch(e2) { log('Manager: tab Pagos', 'FAIL', e2.message) }
+    // API Stripe pago-manager protegida
+    try {
+      const res = await page.request.get(BASE_URL + '/api/stripe/pago-manager?desde=2026-03-01&hasta=2026-03-18')
+      log('Manager: API /stripe/pago-manager accesible', res.status() === 200 ? 'PASS' : 'FAIL', 'status=' + res.status())
+    } catch(e2) { log('Manager: API /stripe/pago-manager accesible', 'FAIL', e2.message) }
   } catch(e) { log('Manager: login correcto', 'FAIL', e.message) }
   await page.context().close()
 
@@ -208,6 +234,16 @@ async function loginViaApi(browser, rol) {
         log('Referidor: QR personal generado', img ? 'PASS' : 'FAIL')
       } else log('Referidor: QR personal generado', 'FAIL', 'tab no visible')
     } catch(e2) { log('Referidor: QR personal generado', 'FAIL', e2.message) }
+    // Tab Pagos con banner Stripe
+    try {
+      const pagosTab = page.locator('button:has-text("Pagos")').first()
+      if (await pagosTab.isVisible({ timeout:3000 }).catch(function(){return false})) {
+        await pagosTab.click(); await page.waitForTimeout(1000)
+        const stripeBtn = await page.locator('button:has-text("Conectar cuenta")').first().isVisible({ timeout:3000 }).catch(function(){return false})
+        const stripeOk = await page.locator('text=Cuenta bancaria conectada').first().isVisible({ timeout:1000 }).catch(function(){return false})
+        log('Referidor: banner Stripe Connect en tab Pagos', (stripeBtn || stripeOk) ? 'PASS' : 'FAIL')
+      } else log('Referidor: banner Stripe Connect en tab Pagos', 'FAIL', 'tab Pagos no visible')
+    } catch(e2) { log('Referidor: banner Stripe Connect en tab Pagos', 'FAIL', e2.message) }
   } catch(e) { log('Referidor: login correcto', 'FAIL', e.message) }
   await page.context().close()
 
@@ -224,10 +260,21 @@ async function loginViaApi(browser, rol) {
       try {
         const abtn = page.locator('button:has-text("' + atabs[at] + '")').first()
         const avis = await abtn.isVisible({ timeout:3000 }).catch(function(){return false})
-        if (avis) { await abtn.click(); await page.waitForTimeout(500); log('Agencia: tab ' + atabs[at], 'PASS') }
+        if (avis) { await abtn.click(); await page.waitForTimeout(800); log('Agencia: tab ' + atabs[at], 'PASS') }
         else log('Agencia: tab ' + atabs[at], 'FAIL', 'no visible')
       } catch(e2) { log('Agencia: tab ' + atabs[at], 'FAIL', e2.message) }
     }
+    // Stripe Connect banner
+    try {
+      const stripeBtn = await page.locator('button:has-text("Conectar cuenta")').first().isVisible({ timeout:3000 }).catch(function(){return false})
+      const stripeOk = await page.locator('text=Cuenta bancaria conectada').first().isVisible({ timeout:1000 }).catch(function(){return false})
+      log('Agencia: banner Stripe Connect visible', (stripeBtn || stripeOk) ? 'PASS' : 'FAIL')
+    } catch(e2) { log('Agencia: banner Stripe Connect visible', 'FAIL', e2.message) }
+    // API Stripe connect protegida
+    try {
+      const res = await page.request.get(BASE_URL + '/api/stripe/connect')
+      log('Agencia: API /stripe/connect accesible', res.status() === 200 ? 'PASS' : 'FAIL', 'status=' + res.status())
+    } catch(e2) { log('Agencia: API /stripe/connect accesible', 'FAIL', e2.message) }
   } catch(e) { log('Agencia: login correcto', 'FAIL', e.message) }
   await page.context().close()
 
