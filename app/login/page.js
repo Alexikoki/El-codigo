@@ -111,7 +111,7 @@ export default function LoginPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#fafaf8] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#fafaf8] flex flex-col items-center justify-center p-4">
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -219,13 +219,13 @@ export default function LoginPage() {
             </button>
           </form>
         </div>
-      </motion.div>
 
-      {/* Footer legal */}
-      <div className="text-center mt-6 flex justify-center gap-4 text-xs text-[#9ca3af]">
-        <Link href="/privacidad" className="hover:text-[#374151] transition-colors">Privacidad</Link>
-        <Link href="/terminos" className="hover:text-[#374151] transition-colors">Términos de uso</Link>
-      </div>
+        {/* Footer legal */}
+        <div className="text-center mt-5 flex justify-center gap-4 text-xs text-[#9ca3af]">
+          <Link href="/privacidad" className="hover:text-[#374151] transition-colors">Privacidad</Link>
+          <Link href="/terminos" className="hover:text-[#374151] transition-colors">Términos de uso</Link>
+        </div>
+      </motion.div>
 
       {/* Modal Recuperación */}
       <AnimatePresence>
