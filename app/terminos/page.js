@@ -49,7 +49,7 @@ export default function TerminosPage() {
             <h2 className={s}>3. Registro y acceso</h2>
             <ul className="list-disc pl-5 space-y-2">
               <li className={li}>El acceso a la Plataforma está restringido a usuarios registrados con credenciales válidas.</li>
-              <li className={li}>Eres responsable de mantener la confidencialidad de tu contraseña. Notifica cualquier acceso no autorizado a <strong>privacidad@elcodigo.app</strong>.</li>
+              <li className={li}>Eres responsable de mantener la confidencialidad de tu contraseña. Notifica cualquier acceso no autorizado a <strong>privacidad@itrustb2b.com</strong>.</li>
               <li className={li}>Está prohibido compartir credenciales de acceso entre distintos usuarios.</li>
               <li className={li}>La Plataforma se reserva el derecho de suspender cuentas que incumplan estos términos.</li>
             </ul>
@@ -110,7 +110,7 @@ export default function TerminosPage() {
 
           <section>
             <h2 className={s}>12. Contacto</h2>
-            <p className={p}>Para cualquier duda o consulta sobre estos Términos de Uso contacta en <strong>hola@elcodigo.app</strong>.</p>
+            <p className={p}>Para cualquier duda o consulta sobre estos Términos de Uso contacta en <strong>hola@itrustb2b.com</strong>.</p>
           </section>
 
         </div>

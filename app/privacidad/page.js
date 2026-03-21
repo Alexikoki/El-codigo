@@ -31,7 +31,7 @@ export default function PrivacidadPage() {
 
           <section>
             <h2 className={s}>1. Responsable del tratamiento</h2>
-            <p className={p}>El Código es una plataforma de gestión de referidos y comisiones para el sector hostelero, operada en el ámbito de la Unión Europea. Para cualquier consulta sobre privacidad contacta en <strong>privacidad@elcodigo.app</strong>.</p>
+            <p className={p}>El Código es una plataforma de gestión de referidos y comisiones para el sector hostelero, operada en el ámbito de la Unión Europea. Para cualquier consulta sobre privacidad contacta en <strong>privacidad@itrustb2b.com</strong>.</p>
           </section>
 
           <section>
@@ -86,7 +86,7 @@ export default function PrivacidadPage() {
 
           <section>
             <h2 className={s}>7. Tus derechos (RGPD)</h2>
-            <p className={`${p} mb-3`}>Tienes derecho a acceso, rectificación, supresión, portabilidad, oposición y limitación del tratamiento. Escríbenos a <strong>privacidad@elcodigo.app</strong> — respondemos en máximo 30 días. También puedes reclamar ante la autoridad de protección de datos de tu país.</p>
+            <p className={`${p} mb-3`}>Tienes derecho a acceso, rectificación, supresión, portabilidad, oposición y limitación del tratamiento. Escríbenos a <strong>privacidad@itrustb2b.com</strong> — respondemos en máximo 30 días. También puedes reclamar ante la autoridad de protección de datos de tu país.</p>
           </section>
 
           <section>
