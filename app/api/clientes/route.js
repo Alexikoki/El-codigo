@@ -33,7 +33,7 @@ export async function POST(request) {
     const { data: referidor, error: refError } = await supabaseAdmin
       .from('referidores')
       .select('id')
-      .ilike('qr_token', qrToken)
+      .eq('qr_token', qrToken)
       .eq('activo', true)
       .single()
 

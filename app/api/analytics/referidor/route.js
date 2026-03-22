@@ -13,7 +13,7 @@ export async function GET(request) {
         const { data: records, error } = await supabaseAdmin
             .from('valoraciones')
             .select('gasto, created_at')
-            .eq('referidor_id', payload.uid)
+            .eq('referidor_id', payload.referidorId)
             .order('created_at', { ascending: true })
 
         if (error) throw error
