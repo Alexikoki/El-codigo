@@ -28,7 +28,7 @@ export default function AvisoLegalPage() {
               <li><strong>Razón social:</strong> El Código S.L.</li>
               <li><strong>NIF/CIF:</strong> [COMPLETAR]</li>
               <li><strong>Domicilio social:</strong> [COMPLETAR DIRECCIÓN COMPLETA]</li>
-              <li><strong>Correo electrónico:</strong> contacto@[COMPLETAR DOMINIO]</li>
+              <li><strong>Correo electrónico:</strong> hola@itrustb2b.com</li>
               <li><strong>Inscripción en el Registro Mercantil:</strong> [COMPLETAR]</li>
             </ul>
           </section>
