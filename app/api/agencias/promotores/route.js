@@ -53,7 +53,7 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Error interno al dar de alta al promotor' }, { status: 500 })
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://el-codigo.com'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://itrustb2b.com'
     return NextResponse.json({
         promotor: data,
         qrUrl: `${appUrl}/r/${qr_token}`

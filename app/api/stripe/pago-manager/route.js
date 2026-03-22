@@ -3,7 +3,7 @@ import { stripe, PLATAFORMA_PCT } from '../../../../lib/stripe'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://el-codigo-lemon.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://itrustb2b.com'
 
 // POST — manager inicia el pago de sus comisiones del mes
 export async function POST(request) {

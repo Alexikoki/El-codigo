@@ -5,7 +5,7 @@ import { Resend } from 'resend'
 import crypto from 'crypto'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://itrustb2b.com'
 
 export async function POST(request) {
     try {
@@ -42,7 +42,7 @@ export async function POST(request) {
 
         // Enviamos el correo con HTML Premium
         await resend.emails.send({
-            from: 'El Código <onboarding@resend.dev>',
+            from: 'El Código <hola@itrustb2b.com>',
             to: email, // Usando email del argumento. Hasta poner dominio de pago esto va a tu spam de Resend o mail verificado
             subject: 'Recuperar acceso a El Código',
             html: `
