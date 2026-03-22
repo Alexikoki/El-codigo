@@ -6,6 +6,7 @@ import { LogOut, MapPin, Users, UserCheck, Plus, Shield, Search, CheckCircle2, X
 import { toast } from 'react-hot-toast'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { SkeletonPanel } from '../../components/Skeleton'
+import LangSelector from '../../components/LangSelector'
 
 export default function SuperadminPage() {
   const [tab, setTab] = useState('lugares')
@@ -269,6 +270,24 @@ export default function SuperadminPage() {
 
   const appUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_APP_URL || window.location.origin) : ''
 
+  const exportarLiquidacionesPDF = async () => {
+    toast.loading('Generando PDF...', { id: 'pdf-liq' })
+    try {
+      const res = await fetch('/api/export/pdf-liquidaciones', { credentials: 'include' })
+      if (!res.ok) throw new Error('Fallo al generar el PDF')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `liquidaciones_${new Date().toISOString().split('T')[0]}.pdf`
+      document.body.appendChild(a); a.click()
+      window.URL.revokeObjectURL(url)
+      toast.success('PDF descargado', { id: 'pdf-liq' })
+    } catch (e) {
+      toast.error(e.message, { id: 'pdf-liq' })
+    }
+  }
+
   const exportarExcel = async () => {
     toast.loading('Generando Excel...', { id: 'xlsx' })
     try {
@@ -313,12 +332,15 @@ export default function SuperadminPage() {
             <p className="text-xs text-[#1e3a5f] font-medium">Acceso Root</p>
           </div>
         </div>
-        <button
-          onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).finally(() => { localStorage.clear(); router.push('/login') }) }}
-          className="flex items-center gap-2 text-sm text-[#6b7280] hover:text-red-500 transition-colors"
-        >
-          <LogOut size={15} /> <span className="hidden sm:inline">Desconectar</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <LangSelector />
+          <button
+            onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).finally(() => { localStorage.clear(); router.push('/login') }) }}
+            className="flex items-center gap-2 text-sm text-[#6b7280] hover:text-red-500 transition-colors"
+          >
+            <LogOut size={15} /> <span className="hidden sm:inline">Desconectar</span>
+          </button>
+        </div>
       </nav>
 
       <main className="max-w-5xl mx-auto p-5 mt-6">
@@ -651,10 +673,16 @@ export default function SuperadminPage() {
                 {/* Cabecera */}
                 <div className="flex justify-between items-center">
                   <h2 className="text-sm font-semibold text-[#111111]">Historial de Liquidaciones</h2>
-                  <button onClick={() => setModalLiq(true)}
-                    className="flex items-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-                    <Plus size={15} /> Nueva Liquidación
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={exportarLiquidacionesPDF}
+                      className="flex items-center gap-2 border border-[#e5e7eb] hover:border-[#d1d5db] bg-white text-[#374151] px-3 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                      <Download size={14} /> PDF
+                    </button>
+                    <button onClick={() => setModalLiq(true)}
+                      className="flex items-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                      <Plus size={15} /> Nueva Liquidación
+                    </button>
+                  </div>
                 </div>
 
                 {/* Métricas resumen */}

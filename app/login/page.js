@@ -5,8 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, Mail, ShieldAlert, ArrowRight, UserCheck, Shield, Briefcase, Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { Turnstile } from '@marsidev/react-turnstile'
+import { useLanguage } from '../../lib/i18n/LanguageContext'
+import LangSelector from '../../components/LangSelector'
 
 export default function LoginPage() {
+  const { t } = useLanguage()
   const [form, setForm] = useState({ email: '', password: '', tipo: 'staff' })
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
@@ -125,7 +128,7 @@ export default function LoginPage() {
             <Lock className="text-white" size={22} />
           </div>
           <h1 className="text-2xl font-bold text-[#111111]">itrustb2b</h1>
-          <p className="text-[#6b7280] text-sm mt-1">Acceso seguro al sistema</p>
+          <p className="text-[#6b7280] text-sm mt-1">{t('login', 'title')}</p>
         </div>
 
         {/* Card */}
@@ -154,7 +157,7 @@ export default function LoginPage() {
               <input
                 type="text"
                 name="email"
-                placeholder="Usuario o correo electrónico"
+                placeholder={t('login', 'userOrEmail')}
                 value={form.email}
                 onChange={handleChange}
                 className="w-full border border-[#e5e7eb] hover:border-[#d1d5db] focus:border-[#1e3a5f] rounded-lg pl-10 pr-4 py-3 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white"
@@ -166,7 +169,7 @@ export default function LoginPage() {
               <input
                 type="password"
                 name="password"
-                placeholder="Contraseña"
+                placeholder={t('login', 'password')}
                 value={form.password}
                 onChange={handleChange}
                 className="w-full border border-[#e5e7eb] hover:border-[#d1d5db] focus:border-[#1e3a5f] rounded-lg pl-10 pr-4 py-3 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white"
@@ -192,7 +195,7 @@ export default function LoginPage() {
                 onClick={() => setShowRecuperar(true)}
                 className="text-xs text-[#1e3a5f] hover:text-[#15294a] font-medium transition-colors"
               >
-                ¿Olvidaste tu contraseña?
+                {t('login', 'forgot')}
               </button>
             </div>
 
@@ -216,16 +219,17 @@ export default function LoginPage() {
               {cargando ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <>Acceder al panel <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" /></>
+                <>{t('login', 'access')} <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" /></>
               )}
             </button>
           </form>
         </div>
 
         {/* Footer legal */}
-        <div className="text-center mt-5 flex justify-center gap-4 text-xs text-[#9ca3af]">
-          <Link href="/privacidad" className="hover:text-[#374151] transition-colors">Privacidad</Link>
-          <Link href="/terminos" className="hover:text-[#374151] transition-colors">Términos de uso</Link>
+        <div className="text-center mt-5 flex justify-center items-center gap-4 text-xs text-[#9ca3af]">
+          <LangSelector />
+          <Link href="/privacidad" className="hover:text-[#374151] transition-colors">{t('landing', 'privacy')}</Link>
+          <Link href="/terminos" className="hover:text-[#374151] transition-colors">{t('legal', 'termsTitle')}</Link>
         </div>
       </motion.div>
 

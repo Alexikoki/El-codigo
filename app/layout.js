@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import CookieBanner from "../components/CookieBanner";
+import { LanguageProvider } from "../lib/i18n/LanguageContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -44,6 +45,7 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-title" content="itrustb2b" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <LanguageProvider>
         {children}
         <Toaster
           position="bottom-center"
@@ -60,6 +62,7 @@ export default function RootLayout({ children }) {
           }}
         />
         <CookieBanner />
+        </LanguageProvider>
         {/* Registrador del Service Worker PWA */}
         <script dangerouslySetInnerHTML={{
           __html: `

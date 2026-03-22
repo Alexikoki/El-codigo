@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LogOut, BarChart3, TrendingDown, Building2, Receipt, Zap, Users, Download, Image, UserCheck, X, UserPlus, Shield, ToggleLeft, ToggleRight, CreditCard, Euro, CheckCircle2, Clock } from 'lucide-react'
 import { SkeletonPanel } from '../../components/Skeleton'
+import LangSelector from '../../components/LangSelector'
 import { toast } from 'react-hot-toast'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { createClient } from '@supabase/supabase-js'
@@ -233,13 +234,16 @@ export default function ManagerPage() {
             <p className="text-xs text-[#6b7280]">{manager?.lugarNombre} · {manager?.nombre}</p>
           </div>
         </div>
-        <button
-          onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).finally(() => { localStorage.clear(); router.push('/login') }) }}
-          className="flex items-center gap-2 text-sm text-[#6b7280] hover:text-red-500 transition-colors"
-        >
-          <LogOut size={15} />
-          <span className="hidden sm:inline">Cerrar Sesión</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <LangSelector />
+          <button
+            onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).finally(() => { localStorage.clear(); router.push('/login') }) }}
+            className="flex items-center gap-2 text-sm text-[#6b7280] hover:text-red-500 transition-colors"
+          >
+            <LogOut size={15} />
+            <span className="hidden sm:inline">Cerrar Sesión</span>
+          </button>
+        </div>
       </nav>
 
       {/* Tabs */}

@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import LangSelector from '../../components/LangSelector'
 import { Camera, LogOut, CheckCircle2, AlertCircle, History, Maximize, Users, Receipt, Upload, X, Euro } from 'lucide-react'
 
 export default function StaffPage() {
@@ -143,13 +144,16 @@ export default function StaffPage() {
           <p className="text-base font-semibold text-[#111111]">Escanear Código QR</p>
           <p className="text-xs text-[#6b7280]">{staff?.nombre} · {staff?.lugarNombre}</p>
         </div>
-        <button
-          onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).finally(() => { localStorage.clear(); router.push('/login') }) }}
-          className="flex items-center gap-2 text-sm text-[#6b7280] hover:text-red-500 transition-colors"
-        >
-          <LogOut size={15} />
-          <span>Salir</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <LangSelector />
+          <button
+            onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).finally(() => { localStorage.clear(); router.push('/login') }) }}
+            className="flex items-center gap-2 text-sm text-[#6b7280] hover:text-red-500 transition-colors"
+          >
+            <LogOut size={15} />
+            <span>Salir</span>
+          </button>
+        </div>
       </nav>
 
       <main className="max-w-md mx-auto p-5 mt-6 flex flex-col items-center">

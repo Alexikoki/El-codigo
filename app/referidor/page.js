@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { LogOut, Copy, Users, Calendar, CheckCircle2, Clock, QrCode, BarChart3, TrendingUp, Receipt, Euro, ChevronLeft, ChevronRight, CreditCard } from 'lucide-react'
 import { SkeletonPanel } from '../../components/Skeleton'
+import LangSelector from '../../components/LangSelector'
 import QRCode from 'qrcode'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -134,13 +135,16 @@ export default function ReferidorPage() {
           <h1 className="text-lg font-semibold text-[#111111]">Hub de Referidor</h1>
           <p className="text-sm text-[#6b7280]">{referidor?.nombre}</p>
         </div>
-        <button
-          onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).finally(() => { localStorage.clear(); router.push('/login') }) }}
-          className="flex items-center gap-2 text-sm text-[#6b7280] hover:text-red-500 transition-colors"
-        >
-          <LogOut size={15} />
-          <span>Salir</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <LangSelector />
+          <button
+            onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).finally(() => { localStorage.clear(); router.push('/login') }) }}
+            className="flex items-center gap-2 text-sm text-[#6b7280] hover:text-red-500 transition-colors"
+          >
+            <LogOut size={15} />
+            <span>Salir</span>
+          </button>
+        </div>
       </nav>
 
       <main className="max-w-3xl mx-auto p-5 mt-6">
