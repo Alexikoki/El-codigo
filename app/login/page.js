@@ -111,7 +111,7 @@ export default function LoginPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#fafaf8] flex flex-col items-center justify-center p-4 overflow-x-hidden w-full">
+    <div className="min-h-screen bg-[#fafaf8] flex flex-col items-center justify-center p-4 overflow-x-hidden w-full max-w-full">
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -196,14 +196,16 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <div className="flex justify-center py-2">
-              <Turnstile
-                ref={turnstileRef}
-                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                onSuccess={(token) => setCfToken(token)}
-                onExpire={() => setCfToken('')}
-                options={{ theme: 'light' }}
-              />
+            <div className="flex justify-center py-2 overflow-hidden w-full">
+              <div className="scale-[0.85] sm:scale-100 origin-center">
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                  onSuccess={(token) => setCfToken(token)}
+                  onExpire={() => setCfToken('')}
+                  options={{ theme: 'light' }}
+                />
+              </div>
             </div>
 
             <button
