@@ -6,8 +6,8 @@ import bcrypt from 'bcryptjs'
 // === RATE LIMITER (en memoria, por IP) ===
 // Protege contra ataques de fuerza bruta al login.
 const loginAttempts = new Map() // Map<ip, { count, firstAttempt }>
-const RATE_LIMIT_MAX = 10       // max intentos
-const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000 // en 5 minutos
+const RATE_LIMIT_MAX = 5        // max intentos
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000 // bloqueo 15 minutos
 
 function checkRateLimit(ip) {
   const now = Date.now()
@@ -51,7 +51,7 @@ export async function POST(request) {
 
     if (!checkRateLimit(ip)) {
       return NextResponse.json(
-        { error: 'Demasiados intentos fallidos. Espera 5 minutos.' },
+        { error: 'Demasiados intentos fallidos. Espera 15 minutos.' },
         { status: 429 }
       )
     }

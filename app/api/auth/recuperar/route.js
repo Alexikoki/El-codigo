@@ -27,9 +27,10 @@ export async function POST(request) {
         if (referidor) { user = referidor; tabla = 'referidores' }
         else if (staff) { user = staff; tabla = 'staff' }
 
-        // Por seguridad, si no existe no damos pistas exactas para evitar email scraping
+        // Por seguridad, si no existe simulamos el tiempo de envío para evitar timing attacks
         if (!user) {
-            return NextResponse.json({ ok: true }) // Simula envío correcto visualmente
+            await new Promise(r => setTimeout(r, 300 + Math.random() * 200))
+            return NextResponse.json({ ok: true })
         }
 
         // Generamos un token temporal de recuperación (expira en 1h)
