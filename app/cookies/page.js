@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { QrCode } from 'lucide-react'
 
 export const metadata = {
-  title: 'Política de Cookies — El Código',
+  title: 'Política de Cookies — itrustb2b',
 }
 
 export default function CookiesPage() {
@@ -11,7 +11,7 @@ export default function CookiesPage() {
       <header className="flex items-center justify-between px-6 py-4 md:px-12 border-b border-[#e5e7eb] bg-white">
         <Link href="/" className="flex items-center gap-2">
           <QrCode className="w-5 h-5 text-[#1e3a5f]" />
-          <span className="text-base font-semibold text-[#111111]">El Código</span>
+          <span className="text-base font-semibold text-[#111111]">itrustb2b</span>
         </Link>
         <Link href="/" className="text-sm text-[#6b7280] hover:text-[#111111] transition-colors">← Volver</Link>
       </header>

@@ -10,7 +10,7 @@ export default function LandingPage() {
       <header className="flex items-center justify-between px-6 py-4 md:px-12 border-b border-[#e5e7eb] bg-white">
         <div className="flex items-center gap-2">
           <QrCode className="w-6 h-6 text-[#1e3a5f]" />
-          <span className="text-lg font-semibold tracking-tight text-[#111111]">El Código</span>
+          <span className="text-lg font-semibold tracking-tight text-[#111111]">itrustb2b</span>
         </div>
         <nav className="flex items-center gap-4">
           <Link href="/login" className="text-sm font-medium text-[#6b7280] hover:text-[#111111] transition-colors">
@@ -82,7 +82,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-[#e5e7eb] bg-white py-7 px-6 text-center text-sm text-[#9ca3af]">
-        <p className="mb-3">© {new Date().getFullYear()} El Código. Todos los derechos reservados.</p>
+        <p className="mb-3">© {new Date().getFullYear()} itrustb2b. Todos los derechos reservados.</p>
         <div className="flex justify-center gap-5">
           <Link href="/aviso-legal" className="hover:text-[#111111] transition-colors">Aviso Legal</Link>
           <Link href="/privacidad" className="hover:text-[#111111] transition-colors">Privacidad</Link>

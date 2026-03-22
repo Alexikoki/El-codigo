@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { Shield } from 'lucide-react'
 
 export const metadata = {
-  title: 'Términos de Uso — El Código',
-  description: 'Términos y condiciones de uso de la plataforma El Código.',
+  title: 'Términos de Uso — itrustb2b',
+  description: 'Términos y condiciones de uso de la plataforma itrustb2b.',
 }
 
 const s = 'text-base font-semibold text-[#111111] mb-3'
@@ -18,7 +18,7 @@ export default function TerminosPage() {
           <div className="w-7 h-7 bg-[#1e3a5f] rounded-lg flex items-center justify-center">
             <Shield size={14} className="text-white" />
           </div>
-          <span className="text-sm font-semibold text-[#111111]">El Código</span>
+          <span className="text-sm font-semibold text-[#111111]">itrustb2b</span>
         </Link>
         <Link href="/login" className="text-xs text-[#6b7280] hover:text-[#374151] transition-colors">← Volver</Link>
       </nav>
@@ -31,12 +31,12 @@ export default function TerminosPage() {
 
           <section>
             <h2 className={s}>1. Objeto y aceptación</h2>
-            <p className={p}>Los presentes Términos de Uso regulan el acceso y la utilización de la plataforma El Código ("la Plataforma"), un servicio de gestión de referidos, comisiones y validación de clientes para el sector hostelero. El uso de la Plataforma implica la aceptación plena de estos términos. Si no estás de acuerdo, no debes usar el servicio.</p>
+            <p className={p}>Los presentes Términos de Uso regulan el acceso y la utilización de la plataforma itrustb2b ("la Plataforma"), un servicio de gestión de referidos, comisiones y validación de clientes para el sector hostelero. El uso de la Plataforma implica la aceptación plena de estos términos. Si no estás de acuerdo, no debes usar el servicio.</p>
           </section>
 
           <section>
             <h2 className={s}>2. Descripción del servicio</h2>
-            <p className={`${p} mb-3`}>El Código es una plataforma B2B2C que conecta:</p>
+            <p className={`${p} mb-3`}>itrustb2b es una plataforma B2B2C que conecta:</p>
             <ul className="list-disc pl-5 space-y-2">
               <li className={li}><strong>Locales hosteleros (Managers):</strong> restaurantes, bares, clubs, hoteles y experiencias que ofrecen descuentos a turistas referidos.</li>
               <li className={li}><strong>Referidores y Agencias:</strong> personas o empresas que refieren clientes a los locales y reciben una comisión por ello.</li>
@@ -61,7 +61,7 @@ export default function TerminosPage() {
               <li className={li}>El porcentaje de comisión aplicable a cada local se acuerda individualmente en el contrato de alta.</li>
               <li className={li}>La Plataforma retiene un <strong>5% sobre el total de comisión generada</strong> como tarifa de servicio.</li>
               <li className={li}>El resto de la comisión se distribuye entre los referidores y agencias implicados según los porcentajes acordados.</li>
-              <li className={li}>Los pagos se procesan a través de <strong>Stripe</strong>. El Código no almacena datos de tarjeta.</li>
+              <li className={li}>Los pagos se procesan a través de <strong>Stripe</strong>. itrustb2b no almacena datos de tarjeta.</li>
               <li className={li}>Los managers deben liquidar las comisiones dentro del período acordado. El impago puede resultar en la suspensión del servicio.</li>
             </ul>
           </section>
@@ -80,17 +80,17 @@ export default function TerminosPage() {
 
           <section>
             <h2 className={s}>6. Propiedad intelectual</h2>
-            <p className={p}>Todo el contenido de la Plataforma (código, diseño, marca, textos) es propiedad exclusiva de El Código y está protegido por la legislación de propiedad intelectual aplicable. Queda prohibida su reproducción, distribución o modificación sin autorización expresa.</p>
+            <p className={p}>Todo el contenido de la Plataforma (código, diseño, marca, textos) es propiedad exclusiva de itrustb2b y está protegido por la legislación de propiedad intelectual aplicable. Queda prohibida su reproducción, distribución o modificación sin autorización expresa.</p>
           </section>
 
           <section>
             <h2 className={s}>7. Disponibilidad del servicio</h2>
-            <p className={p}>El Código se esfuerza por mantener la Plataforma disponible de forma continua, pero no garantiza una disponibilidad del 100%. Podemos realizar mantenimientos programados notificándolo con antelación razonable. No somos responsables de interrupciones causadas por terceros (Supabase, Vercel, Stripe, Cloudflare).</p>
+            <p className={p}>itrustb2b se esfuerza por mantener la Plataforma disponible de forma continua, pero no garantiza una disponibilidad del 100%. Podemos realizar mantenimientos programados notificándolo con antelación razonable. No somos responsables de interrupciones causadas por terceros (Supabase, Vercel, Stripe, Cloudflare).</p>
           </section>
 
           <section>
             <h2 className={s}>8. Limitación de responsabilidad</h2>
-            <p className={p}>El Código no será responsable de pérdidas indirectas, lucro cesante o daños derivados del uso o la imposibilidad de uso de la Plataforma, incluyendo pérdidas de datos o ingresos. La responsabilidad máxima frente a cualquier usuario se limita a los importes abonados en los 3 meses anteriores al incidente.</p>
+            <p className={p}>itrustb2b no será responsable de pérdidas indirectas, lucro cesante o daños derivados del uso o la imposibilidad de uso de la Plataforma, incluyendo pérdidas de datos o ingresos. La responsabilidad máxima frente a cualquier usuario se limita a los importes abonados en los 3 meses anteriores al incidente.</p>
           </section>
 
           <section>
@@ -116,7 +116,7 @@ export default function TerminosPage() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-[#e5e7eb] flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
-          <p className="text-xs text-[#9ca3af]">© {new Date().getFullYear()} El Código. Todos los derechos reservados.</p>
+          <p className="text-xs text-[#9ca3af]">© {new Date().getFullYear()} itrustb2b. Todos los derechos reservados.</p>
           <div className="flex gap-4 text-xs">
             <Link href="/privacidad" className="text-[#1e3a5f] hover:underline">Política de Privacidad</Link>
             <Link href="/login" className="text-[#6b7280] hover:text-[#374151]">Volver al login</Link>

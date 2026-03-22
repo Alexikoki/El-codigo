@@ -124,7 +124,7 @@ export default function LoginPage() {
           <div className="w-12 h-12 bg-[#1e3a5f] rounded-xl flex items-center justify-center mx-auto mb-4">
             <Lock className="text-white" size={22} />
           </div>
-          <h1 className="text-2xl font-bold text-[#111111]">El Código</h1>
+          <h1 className="text-2xl font-bold text-[#111111]">itrustb2b</h1>
           <p className="text-[#6b7280] text-sm mt-1">Acceso seguro al sistema</p>
         </div>
 

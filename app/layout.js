@@ -14,14 +14,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "El Código — Sistema de Referidos QR",
+  title: "itrustb2b — Sistema de Referidos QR",
   description: "Plataforma de referidos QR para hostelería y turismo. Traquea comisiones, valida clientes y gestiona tu equipo.",
   manifest: "/manifest.json",
   themeColor: "#fafaf8",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "El Código",
+    title: "itrustb2b",
   },
 };
 
@@ -41,7 +41,7 @@ export default function RootLayout({ children }) {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="El Código" />
+        <meta name="apple-mobile-web-app-title" content="itrustb2b" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}

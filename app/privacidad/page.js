@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { Shield } from 'lucide-react'
 
 export const metadata = {
-  title: 'Política de Privacidad — El Código',
-  description: 'Política de privacidad y protección de datos de El Código conforme al RGPD.',
+  title: 'Política de Privacidad — itrustb2b',
+  description: 'Política de privacidad y protección de datos de itrustb2b conforme al RGPD.',
 }
 
 const s = 'text-base font-semibold text-[#111111] mb-3'
@@ -18,7 +18,7 @@ export default function PrivacidadPage() {
           <div className="w-7 h-7 bg-[#1e3a5f] rounded-lg flex items-center justify-center">
             <Shield size={14} className="text-white" />
           </div>
-          <span className="text-sm font-semibold text-[#111111]">El Código</span>
+          <span className="text-sm font-semibold text-[#111111]">itrustb2b</span>
         </Link>
         <Link href="/login" className="text-xs text-[#6b7280] hover:text-[#374151] transition-colors">← Volver</Link>
       </nav>
@@ -31,7 +31,7 @@ export default function PrivacidadPage() {
 
           <section>
             <h2 className={s}>1. Responsable del tratamiento</h2>
-            <p className={p}>El Código es una plataforma de gestión de referidos y comisiones para el sector hostelero, operada en el ámbito de la Unión Europea. Para cualquier consulta sobre privacidad contacta en <strong>privacidad@itrustb2b.com</strong>.</p>
+            <p className={p}>itrustb2b es una plataforma de gestión de referidos y comisiones para el sector hostelero, operada en el ámbito de la Unión Europea. Para cualquier consulta sobre privacidad contacta en <strong>privacidad@itrustb2b.com</strong>.</p>
           </section>
 
           <section>
@@ -122,7 +122,7 @@ export default function PrivacidadPage() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-[#e5e7eb] flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
-          <p className="text-xs text-[#9ca3af]">© {new Date().getFullYear()} El Código. Todos los derechos reservados.</p>
+          <p className="text-xs text-[#9ca3af]">© {new Date().getFullYear()} itrustb2b. Todos los derechos reservados.</p>
           <div className="flex gap-4 text-xs">
             <Link href="/terminos" className="text-[#1e3a5f] hover:underline">Términos de Uso</Link>
             <Link href="/login" className="text-[#6b7280] hover:text-[#374151]">Volver al login</Link>

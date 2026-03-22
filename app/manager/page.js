@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LogOut, BarChart3, TrendingDown, Building2, Receipt, Zap, Users, Download, Image, UserCheck, X, UserPlus, Shield, ToggleLeft, ToggleRight, CreditCard, Euro, CheckCircle2, Clock } from 'lucide-react'
 import { SkeletonPanel } from '../../components/Skeleton'
+import { toast } from 'react-hot-toast'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { createClient } from '@supabase/supabase-js'
 
@@ -181,6 +182,27 @@ export default function ManagerPage() {
     setPeriodoHasta(hasta)
   }
 
+  const exportarLiquidacionesPDF = async () => {
+    toast.loading('Generando PDF...', { id: 'pdf-liq' })
+    try {
+      const params = new URLSearchParams()
+      if (periodoDesde) params.set('desde', periodoDesde)
+      if (periodoHasta) params.set('hasta', periodoHasta)
+      const res = await fetch(`/api/export/pdf-liquidaciones?${params}`, { credentials: 'include' })
+      if (!res.ok) throw new Error('Fallo al generar el PDF')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `liquidaciones_${periodoDesde || 'todo'}_${periodoHasta || 'todo'}.pdf`
+      document.body.appendChild(a); a.click()
+      window.URL.revokeObjectURL(url)
+      toast.success('PDF descargado', { id: 'pdf-liq' })
+    } catch (e) {
+      toast.error(e.message, { id: 'pdf-liq' })
+    }
+  }
+
   const exportarHoy = () => {
     const hoy = analytics.hoy || []
     if (hoy.length === 0) return
@@ -308,6 +330,10 @@ export default function ManagerPage() {
                     <CheckCircle2 size={16} /> Este período ya está liquidado.
                   </div>
                 )}
+                <button onClick={exportarLiquidacionesPDF}
+                  className="w-full flex items-center justify-center gap-2 border border-[#e5e7eb] hover:border-[#d1d5db] bg-white text-[#374151] font-medium py-2.5 rounded-xl text-sm transition-colors mt-1">
+                  <Download size={15} /> Exportar PDF del período
+                </button>
               </div>
             )}
 
@@ -396,7 +422,7 @@ export default function ManagerPage() {
             {/* Tarjetas */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="glass-panel p-5 border-l-4 border-l-[#1e3a5f]">
-                <p className="text-xs text-[#6b7280] mb-1">Volumen Traído por El Código</p>
+                <p className="text-xs text-[#6b7280] mb-1">Volumen Traído por itrustb2b</p>
                 <p className="text-3xl font-bold text-[#111111]">{analytics.stats.volumenEuros.toFixed(2)}€</p>
                 <p className="text-xs text-[#6b7280] mt-2">{analytics.stats.operaciones} clientes validados</p>
                 <div className="mt-3 p-2 bg-[#f0f4f8] rounded-lg w-fit">

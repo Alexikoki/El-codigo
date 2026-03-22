@@ -1,6 +1,6 @@
 {
-  "name": "El Código — Sistema de Referidos",
-  "short_name": "El Código",
+  "name": "itrustb2b — Sistema de Referidos",
+  "short_name": "itrustb2b",
   "description": "Plataforma de referidos QR para hostelería y turismo",
   "start_url": "/login",
   "display": "standalone",
