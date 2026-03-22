@@ -4,7 +4,7 @@
  * Con rate limit: TEST_API_KEY=xxx node tests/security_check_prod.js --ratelimit
  */
 
-const BASE = 'https://el-codigo-lemon.vercel.app'
+const BASE = 'https://itrustb2b.com'
 const TEST_API_KEY = process.env.TEST_API_KEY || ''
 const SUPABASE_URL = 'https://salzeeksfjunlkhmrgoa.supabase.co'
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhbHplZWtzZmp1bmxraG1yZ29hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3NTE0NTksImV4cCI6MjA4ODMyNzQ1OX0.zXu_amNUuSJyBdRyCfio_6O2wzf1teCt6ZhjaOGgeqs'

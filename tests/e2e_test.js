@@ -1,5 +1,5 @@
 const { chromium } = require('playwright')
-const BASE_URL = 'https://el-codigo-lemon.vercel.app'
+const BASE_URL = 'https://itrustb2b.com'
 const TEST_API_KEY = process.env.TEST_API_KEY || ''
 const CREDS = {
   superadmin: { tipo: 'superadmin', email: 'superadmin', pass: 'Golfo' },
@@ -93,6 +93,10 @@ async function loginViaApi(browser, rol) {
   page = await browser.newPage()
   try {
     await goto(page, BASE_URL + '/login')
+    // Cerrar banner de cookies si está presente
+    const cookieBtn = page.locator('button:has-text("Solo esenciales"), button:has-text("Aceptar")').first()
+    if (await cookieBtn.isVisible({ timeout: 3000 }).catch(() => false)) await cookieBtn.click()
+    await page.waitForTimeout(500)
     const em = page.locator("input[type='email']").first()
     const pw = page.locator("input[type='password']").first()
     if (await em.isVisible({ timeout:3000 }).catch(function(){return false})) await em.fill('fake@fake.com')
