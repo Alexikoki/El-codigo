@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogOut, MapPin, Users, UserCheck, Plus, Shield, Search, CheckCircle2, XCircle, BarChart3, TrendingUp, HandCoins, FileText, Pencil, Download, CreditCard, Clock, Building2 } from 'lucide-react'
+import { LogOut, MapPin, Users, UserCheck, Plus, Shield, Search, CheckCircle2, XCircle, BarChart3, TrendingUp, HandCoins, FileText, Pencil, Download, CreditCard, Clock, Building2, Trash2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { SkeletonPanel } from '../../components/Skeleton'
@@ -37,10 +37,13 @@ export default function SuperadminPage() {
   const [modal, setModal] = useState(null)
   const [modalEditar, setModalEditar] = useState(null)
   const [form, setForm] = useState({})
+  const [lugarFiltroClientes, setLugarFiltroClientes] = useState('')
+  const [filtroLugarPagos, setFiltroLugarPagos] = useState('')
+  const [confirmEliminarLugar, setConfirmEliminarLugar] = useState(null)
   const router = useRouter()
 
   useEffect(() => {
-    if (tab === 'clientes' && clientes.length === 0) cargarClientes()
+    if (tab === 'clientes' && lugarFiltroClientes) cargarClientes('', lugarFiltroClientes)
   }, [tab])
 
   useEffect(() => {
@@ -208,15 +211,32 @@ export default function SuperadminPage() {
     }
   }
 
-  const cargarClientes = async (busqueda = '') => {
+  const cargarClientes = async (busqueda = '', lugarId = '') => {
     setClientesCargando(true)
     try {
       const params = new URLSearchParams()
       if (busqueda) params.set('busqueda', busqueda)
+      if (lugarId) params.set('lugarId', lugarId)
       const res = await fetch(`/api/admin/clientes${params.toString() ? '?' + params.toString() : ''}`, { credentials: 'include' })
       if (res.ok) { const data = await res.json(); setClientes(data.clientes || []) }
     } finally {
       setClientesCargando(false)
+    }
+  }
+
+  const eliminarLugar = async (id) => {
+    const res = await fetch('/api/lugares', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ id })
+    })
+    if (res.ok) {
+      toast.success('Local eliminado.')
+      setConfirmEliminarLugar(null)
+      setLugares(lugares.filter(l => l.id !== id))
+    } else {
+      toast.error('Error al eliminar el local.')
     }
   }
 
@@ -377,18 +397,29 @@ export default function SuperadminPage() {
         )}
 
         {tab === 'clientes' && (
-          <div className="flex gap-2 mb-5">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={15} />
-              <input type="text" placeholder="Buscar cliente por nombre..." value={busquedaClientes}
-                onChange={e => setBusquedaClientes(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && cargarClientes(busquedaClientes)}
-                className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none transition-colors bg-white placeholder:text-[#9ca3af]" />
+          <div className="mb-5 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {lugares.map(l => (
+                <button key={l.id}
+                  onClick={() => { setLugarFiltroClientes(l.id); setClientes([]); cargarClientes('', l.id) }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    lugarFiltroClientes === l.id
+                      ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]'
+                      : 'bg-white text-[#6b7280] border-[#e5e7eb] hover:bg-[#f3f4f6]'
+                  }`}
+                >
+                  <MapPin size={10} className="inline mr-1" />{l.nombre}
+                </button>
+              ))}
             </div>
-            <button onClick={() => cargarClientes(busquedaClientes)}
-              className="px-4 py-2.5 bg-[#1e3a5f] text-white rounded-lg text-sm font-medium hover:bg-[#15294a] transition-colors">
-              Buscar
-            </button>
+            {lugarFiltroClientes && (
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={14} />
+                <input type="text" placeholder="Buscar por nombre..." value={busquedaClientes}
+                  onChange={e => { setBusquedaClientes(e.target.value); cargarClientes(e.target.value, lugarFiltroClientes) }}
+                  className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none transition-colors bg-white placeholder:text-[#9ca3af]" />
+              </div>
+            )}
           </div>
         )}
 
@@ -519,9 +550,14 @@ export default function SuperadminPage() {
                 </div>
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#f3f4f6]">
                   <p className="text-xs text-[#9ca3af] truncate pr-4">{l.direccion}</p>
-                  <button onClick={() => toggleActivo('lugar', l.id, l.activo)} className="text-xs text-[#6b7280] hover:text-[#111111] transition-colors whitespace-nowrap">
-                    {l.activo ? 'Desactivar' : 'Activar'}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => toggleActivo('lugar', l.id, l.activo)} className="text-xs text-[#6b7280] hover:text-[#111111] transition-colors whitespace-nowrap">
+                      {l.activo ? 'Desactivar' : 'Activar'}
+                    </button>
+                    <button onClick={() => setConfirmEliminarLugar(l)} className="text-red-400 hover:text-red-600 transition-colors" title="Eliminar local">
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -668,6 +704,7 @@ export default function SuperadminPage() {
             const filtradas = liquidaciones.filter(l => {
               if (filtroEstado && l.estado !== filtroEstado) return false
               if (filtroReferidor && l.referidor_id !== filtroReferidor) return false
+              if (filtroLugarPagos && l.referidores?.lugar_id !== filtroLugarPagos) return false
               return true
             })
             return (
@@ -710,7 +747,7 @@ export default function SuperadminPage() {
 
                 {/* Filtros */}
                 {!cargando && liquidaciones.length > 0 && (
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
                     <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}
                       className="border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] bg-white focus:outline-none focus:border-[#1e3a5f] transition-colors appearance-none">
                       <option value="">Todos los estados</option>
@@ -722,8 +759,13 @@ export default function SuperadminPage() {
                       <option value="">Todos los referidores</option>
                       {referidores.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
                     </select>
-                    {(filtroEstado || filtroReferidor) && (
-                      <button onClick={() => { setFiltroEstado(''); setFiltroReferidor('') }}
+                    <select value={filtroLugarPagos} onChange={e => setFiltroLugarPagos(e.target.value)}
+                      className="border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] bg-white focus:outline-none focus:border-[#1e3a5f] transition-colors appearance-none flex-1">
+                      <option value="">Todos los locales</option>
+                      {lugares.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+                    </select>
+                    {(filtroEstado || filtroReferidor || filtroLugarPagos) && (
+                      <button onClick={() => { setFiltroEstado(''); setFiltroReferidor(''); setFiltroLugarPagos('') }}
                         className="text-xs text-[#6b7280] hover:text-[#111111] px-3 py-2 border border-[#e5e7eb] rounded-lg bg-white transition-colors whitespace-nowrap">
                         Limpiar filtros
                       </button>
@@ -806,44 +848,68 @@ export default function SuperadminPage() {
           })()}
 
           {/* CLIENTES */}
-          {tab === 'clientes' && (
-            <div className="space-y-3">
-              {clientes.length === 0 && !clientesCargando && (
-                <div className="py-14 text-center text-[#9ca3af] border border-dashed border-[#e5e7eb] rounded-xl bg-white text-sm">
-                  {busquedaClientes ? `Sin resultados para "${busquedaClientes}".` : 'Introduce un nombre y pulsa Buscar.'}
+          {tab === 'clientes' && (() => {
+            if (!lugarFiltroClientes) return (
+              <div className="py-14 text-center text-[#9ca3af] border border-dashed border-[#e5e7eb] rounded-xl bg-white text-sm">
+                Selecciona un local para ver sus clientes.
+              </div>
+            )
+            if (clientesCargando) return <SkeletonPanel />
+            const visitaron = clientes.filter(c => c.verificado)
+            const pendientes = clientes.filter(c => !c.verificado)
+            const ClienteRow = ({ c }) => (
+              <div key={c.id} className="flex items-center justify-between gap-4 py-3 border-b border-[#f3f4f6] last:border-0">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-[#111111] truncate">{c.nombre}</p>
+                    <span className="text-[10px] text-[#9ca3af]">{c.num_personas} pers. · {c.referidores?.nombre || '—'}</span>
+                  </div>
+                  <p className="text-[10px] text-[#9ca3af] mt-0.5">
+                    {new Date(c.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </p>
                 </div>
-              )}
-              {clientesCargando && <SkeletonPanel />}
-              {!clientesCargando && clientes.map(c => (
-                <div key={c.id} className="glass-panel p-4 flex items-center justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <p className="text-sm font-semibold text-[#111111] truncate">{c.nombre}</p>
-                      <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-medium border flex-shrink-0 ${c.verificado ? 'bg-green-50 text-green-700 border-green-200' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
-                        {c.verificado ? 'Visitó' : 'Pendiente'}
-                      </span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button onClick={() => { setModalEditCliente(c); setFormCliente({ nombre: c.nombre, num_personas: c.num_personas }) }}
+                    className="p-1.5 rounded-lg border border-[#e5e7eb] hover:bg-[#f3f4f6] text-[#6b7280] hover:text-[#111111] transition-colors">
+                    <Pencil size={12} />
+                  </button>
+                  <button onClick={() => setConfirmBorrar(c)}
+                    className="p-1.5 rounded-lg border border-red-100 hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors">
+                    <XCircle size={12} />
+                  </button>
+                </div>
+              </div>
+            )
+            if (clientes.length === 0) return (
+              <div className="py-14 text-center text-[#9ca3af] border border-dashed border-[#e5e7eb] rounded-xl bg-white text-sm">
+                Sin clientes en este local.
+              </div>
+            )
+            return (
+              <div className="space-y-4">
+                {visitaron.length > 0 && (
+                  <div className="glass-panel overflow-hidden">
+                    <div className="px-5 py-3 border-b border-[#f3f4f6] flex items-center gap-2">
+                      <CheckCircle2 size={14} className="text-green-600" />
+                      <span className="text-xs font-semibold text-[#111111]">Visitaron</span>
+                      <span className="text-xs bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full font-medium">{visitaron.length}</span>
                     </div>
-                    <p className="text-xs text-[#6b7280] truncate">
-                      {c.lugares?.nombre || '—'} · {c.referidores?.nombre || 'Sin referidor'} · {c.num_personas} pers.
-                    </p>
-                    <p className="text-[10px] text-[#9ca3af] mt-0.5">
-                      {new Date(c.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </p>
+                    <div className="px-5">{visitaron.map(c => <ClienteRow key={c.id} c={c} />)}</div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={() => { setModalEditCliente(c); setFormCliente({ nombre: c.nombre, num_personas: c.num_personas }) }}
-                      className="p-2 rounded-lg border border-[#e5e7eb] hover:bg-[#f3f4f6] text-[#6b7280] hover:text-[#111111] transition-colors">
-                      <Pencil size={13} />
-                    </button>
-                    <button onClick={() => setConfirmBorrar(c)}
-                      className="p-2 rounded-lg border border-red-100 hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors">
-                      <XCircle size={13} />
-                    </button>
+                )}
+                {pendientes.length > 0 && (
+                  <div className="glass-panel overflow-hidden">
+                    <div className="px-5 py-3 border-b border-[#f3f4f6] flex items-center gap-2">
+                      <Clock size={14} className="text-amber-500" />
+                      <span className="text-xs font-semibold text-[#111111]">Pendientes</span>
+                      <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full font-medium">{pendientes.length}</span>
+                    </div>
+                    <div className="px-5">{pendientes.map(c => <ClienteRow key={c.id} c={c} />)}</div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                )}
+              </div>
+            )
+          })()}
 
         </motion.div>
       </main>
@@ -883,6 +949,42 @@ export default function SuperadminPage() {
                 <button onClick={editarCliente}
                   className="flex-1 py-2.5 bg-[#1e3a5f] text-white rounded-lg text-sm font-medium hover:bg-[#15294a] transition-colors">
                   Guardar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL CONFIRMAR ELIMINAR LOCAL */}
+      <AnimatePresence>
+        {confirmEliminarLugar && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 px-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/30" onClick={() => setConfirmEliminarLugar(null)} />
+            <motion.div initial={{ scale: 0.97, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.97, opacity: 0 }}
+              className="bg-white border border-[#e5e7eb] rounded-2xl p-6 w-full max-w-sm relative z-10 shadow-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                  <Trash2 size={18} className="text-red-500" />
+                </div>
+                <h2 className="text-base font-bold text-[#111111]">Eliminar «{confirmEliminarLugar.nombre}»</h2>
+              </div>
+              <p className="text-sm text-[#6b7280] mb-2">Esta acción eliminará permanentemente:</p>
+              <ul className="text-sm text-[#6b7280] mb-5 space-y-1 pl-4 list-disc">
+                <li>El local y su manager</li>
+                <li>Todo el staff asignado</li>
+                <li>Todos los clientes y sus valoraciones</li>
+              </ul>
+              <p className="text-xs text-red-500 font-medium mb-5">Esta acción no se puede deshacer.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmEliminarLugar(null)}
+                  className="flex-1 py-2.5 border border-[#e5e7eb] rounded-lg text-sm text-[#6b7280] hover:bg-[#f3f4f6] transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={() => eliminarLugar(confirmEliminarLugar.id)}
+                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors">
+                  Eliminar todo
                 </button>
               </div>
             </motion.div>

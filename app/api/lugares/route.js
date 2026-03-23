@@ -79,6 +79,26 @@ export async function POST(request) {
   return NextResponse.json({ lugar }, { status: 201 })
 }
 
+export async function DELETE(request) {
+  const payload = verificarToken(extraerTokenDeCookie(request))
+  if (!payload || payload.rol !== 'superadmin') {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
+
+  const { id } = await request.json()
+  if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
+
+  // Borrar en cascada: valoraciones → clientes → staff → manager → lugar
+  await supabaseAdmin.from('valoraciones').delete().eq('lugar_id', id)
+  await supabaseAdmin.from('clientes').delete().eq('lugar_id', id)
+  await supabaseAdmin.from('staff').delete().eq('lugar_id', id)
+  await supabaseAdmin.from('managers_locales').delete().eq('lugar_id', id)
+  const { error } = await supabaseAdmin.from('lugares').delete().eq('id', id)
+  if (error) return NextResponse.json({ error: 'Error al eliminar' }, { status: 500 })
+
+  return NextResponse.json({ ok: true })
+}
+
 export async function PATCH(request) {
   const payload = verificarToken(extraerTokenDeCookie(request))
   if (!payload || payload.rol !== 'superadmin') {
