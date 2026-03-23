@@ -149,12 +149,11 @@ export default function ManagerPage() {
     setStaffList(prev => prev.map(s => s.id === id ? { ...s, activo: !activo } : s))
   }
 
-  const cargarResumenPago = async () => {
-    if (!periodoDesde || !periodoHasta) return
+  const cargarResumenPago = async (desde, hasta) => {
     setCargandoPago(true)
     setResumenPago(null)
     try {
-      const res = await fetch(`/api/stripe/pago-manager?desde=${periodoDesde}&hasta=${periodoHasta}`, { credentials: 'include' })
+      const res = await fetch(`/api/stripe/pago-manager?desde=${desde}&hasta=${hasta}`, { credentials: 'include' })
       if (res.ok) setResumenPago(await res.json())
     } finally { setCargandoPago(false) }
   }
@@ -176,13 +175,14 @@ export default function ManagerPage() {
     } finally { setPagando(false) }
   }
 
-  // Inicializar período al mes actual
-  const inicializarPeriodo = () => {
+  // Cargar pagos del mes actual automáticamente
+  const inicializarPagos = () => {
     const hoy = new Date()
     const desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0]
     const hasta = hoy.toISOString().split('T')[0]
     setPeriodoDesde(desde)
     setPeriodoHasta(hasta)
+    cargarResumenPago(desde, hasta)
   }
 
   const exportarLiquidacionesPDF = async () => {
@@ -253,7 +253,7 @@ export default function ManagerPage() {
         <div className="flex gap-1 bg-[#f3f4f6] rounded-xl p-1">
           {[['dashboard', <BarChart3 size={14} />, t('manager','dashboard')], ['equipo', <Shield size={14} />, t('manager','team')], ['pagos', <CreditCard size={14} />, t('manager','payments')]].map(([key, icon, label]) => (
             <button key={key}
-              onClick={() => { setTab(key); if (key === 'equipo' && staffList.length === 0) cargarStaff(); if (key === 'pagos') inicializarPeriodo() }}
+              onClick={() => { setTab(key); if (key === 'equipo' && staffList.length === 0) cargarStaff(); if (key === 'pagos') inicializarPagos() }}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-white text-[#111111] shadow-sm' : 'text-[#6b7280] hover:text-[#374151]'}`}
             >{icon}{label}</button>
           ))}
@@ -265,91 +265,86 @@ export default function ManagerPage() {
         {/* ── TAB PAGOS ── */}
         {tab === 'pagos' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+
+            {/* Cabecera con período */}
             <div>
-              <h2 className="text-sm font-semibold text-[#111111]">Liquidación mensual</h2>
-              <p className="text-xs text-[#6b7280] mt-0.5">Selecciona el período y consulta cuánto debes pagar a la plataforma.</p>
+              <h2 className="text-sm font-semibold text-[#111111]">Liquidación del mes</h2>
+              {periodoDesde && periodoHasta && (
+                <p className="text-xs text-[#9ca3af] mt-0.5">
+                  {new Date(periodoDesde).toLocaleDateString('es-ES', { day: '2-digit', month: 'long' })} — {new Date(periodoHasta).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+                </p>
+              )}
             </div>
 
-            {/* Selector de período */}
-            <div className="bg-white border border-[#e5e7eb] rounded-2xl p-5 space-y-4">
-              <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider">{t('manager','paymentPeriod')}</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-[#6b7280] mb-1 block">{t('common','from')}</label>
-                  <input type="date" value={periodoDesde} onChange={e => setPeriodoDesde(e.target.value)}
-                    className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 bg-white" />
-                </div>
-                <div>
-                  <label className="text-xs text-[#6b7280] mb-1 block">{t('common','to')}</label>
-                  <input type="date" value={periodoHasta} onChange={e => setPeriodoHasta(e.target.value)}
-                    className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 bg-white" />
-                </div>
+            {/* Skeleton / Resumen */}
+            {cargandoPago ? (
+              <div className="bg-white border border-[#e5e7eb] rounded-2xl p-5 space-y-3 animate-pulse">
+                {[1,2,3,4].map(i => (
+                  <div key={i} className="flex justify-between py-2 border-b border-[#f3f4f6]">
+                    <div className="h-4 w-32 bg-[#f3f4f6] rounded" />
+                    <div className="h-4 w-16 bg-[#f3f4f6] rounded" />
+                  </div>
+                ))}
               </div>
-              <button onClick={cargarResumenPago} disabled={cargandoPago || !periodoDesde || !periodoHasta}
-                className="w-full bg-[#f3f4f6] hover:bg-[#e5e7eb] text-[#374151] font-medium py-2.5 rounded-xl text-sm transition-colors disabled:opacity-50">
-                {cargandoPago ? 'Calculando...' : t('manager','calcCommission')}
-              </button>
-            </div>
-
-            {/* Resumen */}
-            {resumenPago && (
+            ) : resumenPago ? (
               <div className="bg-white border border-[#e5e7eb] rounded-2xl p-5 space-y-4">
-                <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider">Resumen del período</p>
 
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
-                    <span className="text-sm text-[#6b7280]">{t('manager','totalVolume')}</span>
+                <div className="space-y-0">
+                  <div className="flex justify-between items-center py-3 border-b border-[#f3f4f6]">
+                    <span className="text-sm text-[#6b7280]">Volumen generado</span>
                     <span className="text-sm font-semibold text-[#111111]">€{resumenPago.volumenTotal?.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
-                    <span className="text-sm text-[#6b7280]">Comisión acordada</span>
-                    <span className="text-sm font-semibold text-[#111111]">€{resumenPago.comisionTotal?.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
-                    <span className="text-sm text-[#6b7280] flex items-center gap-1"><Euro size={12} /> Parte plataforma (5%)</span>
+                  <div className="flex justify-between items-center py-3 border-b border-[#f3f4f6]">
+                    <div>
+                      <span className="text-sm text-[#6b7280]">Comisión plataforma</span>
+                      <p className="text-[11px] text-[#9ca3af]">Según el % acordado con itrustb2b</p>
+                    </div>
                     <span className="text-sm font-medium text-[#1e3a5f]">€{resumenPago.comisionPlataforma?.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
-                    <span className="text-sm text-[#6b7280]">{t('manager','toDistribute')}</span>
+                  <div className="flex justify-between items-center py-3 border-b border-[#f3f4f6]">
+                    <div>
+                      <span className="text-sm text-[#6b7280]">Comisiones a referidores</span>
+                      <p className="text-[11px] text-[#9ca3af]">Se reparte entre los referidores y agencias</p>
+                    </div>
                     <span className="text-sm font-medium text-[#374151]">€{resumenPago.comisionRepartir?.toFixed(2)}</span>
                   </div>
                   {resumenPago.totalYaPagado > 0 && (
-                    <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
-                      <span className="text-sm text-green-600 flex items-center gap-1"><CheckCircle2 size={12} /> Ya pagado</span>
-                      <span className="text-sm font-medium text-green-600">-€{resumenPago.totalYaPagado?.toFixed(2)}</span>
+                    <div className="flex justify-between items-center py-3 border-b border-[#f3f4f6]">
+                      <span className="text-sm text-green-600 flex items-center gap-1.5"><CheckCircle2 size={13} /> Ya liquidado</span>
+                      <span className="text-sm font-medium text-green-600">−€{resumenPago.totalYaPagado?.toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between items-center pt-1">
-                    <span className="text-base font-bold text-[#111111]">{t('common','total')}</span>
-                    <span className="text-xl font-bold text-[#1e3a5f]">€{resumenPago.pendiente?.toFixed(2)}</span>
+                  <div className="flex justify-between items-center pt-3">
+                    <span className="text-base font-bold text-[#111111]">Total pendiente</span>
+                    <span className="text-2xl font-bold text-[#1e3a5f]">€{resumenPago.pendiente?.toFixed(2)}</span>
                   </div>
                 </div>
 
                 {resumenPago.pendiente > 0 ? (
                   <button onClick={iniciarPago} disabled={pagando}
-                    className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3.5 rounded-xl transition-colors disabled:opacity-50 mt-2">
+                    className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3.5 rounded-xl transition-colors disabled:opacity-50">
                     <CreditCard size={16} />
-                    {pagando ? 'Redirigiendo...' : `${t('manager','payWithCard')}  €${resumenPago.pendiente?.toFixed(2)} con tarjeta`}
+                    {pagando ? 'Redirigiendo...' : `Pagar €${resumenPago.pendiente?.toFixed(2)} con tarjeta`}
                   </button>
                 ) : (
                   <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl p-3 text-green-700 text-sm">
-                    <CheckCircle2 size={16} /> Este período ya está liquidado.
+                    <CheckCircle2 size={16} /> Este mes ya está liquidado.
                   </div>
                 )}
+
                 <button onClick={exportarLiquidacionesPDF}
-                  className="w-full flex items-center justify-center gap-2 border border-[#e5e7eb] hover:border-[#d1d5db] bg-white text-[#374151] font-medium py-2.5 rounded-xl text-sm transition-colors mt-1">
-                  <Download size={15} /> {t('common','download')} PDF
+                  className="w-full flex items-center justify-center gap-2 border border-[#e5e7eb] hover:border-[#d1d5db] bg-white text-[#374151] font-medium py-2.5 rounded-xl text-sm transition-colors">
+                  <Download size={15} /> Descargar PDF
                 </button>
               </div>
-            )}
+            ) : null}
 
             {/* Info */}
-            <div className="bg-[#f0f4f8] rounded-xl p-4 text-xs text-[#6b7280] space-y-1">
-              <p className="font-medium text-[#374151]">¿Cómo funciona?</p>
-              <p>1. La plataforma calcula la comisión según el % acordado con tu local.</p>
-              <p>2. Un 5% de esa comisión va a la plataforma directamente.</p>
-              <p>3. El resto se reparte automáticamente entre los referidores y agencias que trajeron clientes.</p>
-              <p>4. El pago se procesa de forma segura con Stripe.</p>
+            <div className="bg-[#f0f4f8] rounded-xl p-4 text-xs text-[#6b7280] space-y-1.5">
+              <p className="font-medium text-[#374151]">¿Cómo se calcula?</p>
+              <p>· La comisión se aplica sobre el gasto total de los clientes referidos este mes.</p>
+              <p>· Una parte va a itrustb2b y el resto se reparte entre referidores y agencias.</p>
+              <p>· El pago se procesa de forma segura con Stripe.</p>
             </div>
           </motion.div>
         )}
