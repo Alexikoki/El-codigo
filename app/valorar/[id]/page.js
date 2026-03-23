@@ -1,7 +1,8 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Star, CheckCircle2, HeartHandshake, Clock, Upload, X, MapPin } from 'lucide-react'
+import QRCode from 'qrcode'
 
 export default function ValorarPage({ params }) {
   const [info, setInfo] = useState(null)
@@ -10,21 +11,46 @@ export default function ValorarPage({ params }) {
   const [foto, setFoto] = useState(null)
   const [preview, setPreview] = useState(null)
   const [error, setError] = useState('')
+  const [qrDataUrl, setQrDataUrl] = useState('')
+  const [clienteId, setClienteId] = useState('')
+  const pollingRef = useRef(null)
+
+  async function consultarEstado(id) {
+    const res = await fetch(`/api/valorar/${id}`)
+    const data = await res.json()
+    if (data.yaValorado) { setEstado('yaValorado'); return true }
+    if (!data.pendiente) { setInfo({ ...data, id }); setEstado('formulario'); return true }
+    return false
+  }
 
   async function cargarInfo() {
     if (typeof window === 'undefined') return
     const id = window.location.pathname.split('/').pop()
+    setClienteId(id)
     try {
-      const res = await fetch(`/api/valorar/${id}`)
-      const data = await res.json()
-      if (data.pendiente) { setEstado('pendiente'); return }
-      if (data.yaValorado) { setEstado('yaValorado'); return }
-      setInfo({ ...data, id })
-      setEstado('formulario')
+      const done = await consultarEstado(id)
+      if (!done) {
+        setEstado('pendiente')
+        // Generar QR de esta misma URL para mostrar al staff
+        QRCode.toDataURL(window.location.href, {
+          width: 260, margin: 2,
+          color: { dark: '#1e3a5f', light: '#ffffff' }
+        }).then(setQrDataUrl)
+      }
     } catch (e) {
       setEstado('error')
     }
   }
+
+  // Polling: mientras pendiente, comprobar cada 4s si el staff ya confirmó
+  useEffect(() => {
+    if (estado !== 'pendiente' || !clienteId) return
+    pollingRef.current = setInterval(async () => {
+      const done = await consultarEstado(clienteId)
+      if (done) clearInterval(pollingRef.current)
+    }, 4000)
+    return () => clearInterval(pollingRef.current)
+  }, [estado, clienteId])
 
   useEffect(() => { cargarInfo() }, [])
 
@@ -77,15 +103,25 @@ export default function ValorarPage({ params }) {
 
         {estado === 'pendiente' && (
           <motion.div key="pendiente" variants={cardVars} initial="hidden" animate="visible" exit="exit"
-            className="bg-white border border-[#e5e7eb] rounded-2xl p-8 w-full max-w-sm text-center shadow-sm"
+            className="bg-white border border-[#e5e7eb] rounded-2xl p-6 w-full max-w-sm text-center shadow-sm"
           >
-            <div className="w-14 h-14 bg-amber-50 border border-amber-200 rounded-full flex items-center justify-center mx-auto mb-5">
-              <Clock size={28} className="text-amber-500" />
+            <div className="mb-5 pb-5 border-b border-[#f3f4f6]">
+              <h2 className="text-base font-bold text-[#111111] mb-1">Tu código de visita</h2>
+              <p className="text-xs text-[#6b7280]">Muestra este QR al camarero al finalizar tu visita</p>
             </div>
-            <h2 className="text-lg font-bold text-[#111111] mb-2">Visita pendiente</h2>
-            <p className="text-[#6b7280] text-sm leading-relaxed">
-              Tu visita está pendiente de ser confirmada por el local. Vuelve a escanear al finalizar tu visita.
-            </p>
+
+            {qrDataUrl ? (
+              <div className="flex justify-center mb-5">
+                <img src={qrDataUrl} alt="Tu QR" className="w-56 h-56 rounded-xl" />
+              </div>
+            ) : (
+              <div className="w-56 h-56 mx-auto mb-5 bg-[#f3f4f6] rounded-xl animate-pulse" />
+            )}
+
+            <div className="flex items-center justify-center gap-2 text-xs text-[#9ca3af]">
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              Esperando confirmación del local...
+            </div>
           </motion.div>
         )}
 
