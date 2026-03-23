@@ -21,17 +21,33 @@ export async function GET(request) {
 
     if (error) throw error
 
-    return NextResponse.json({
-      tickets: data.map(v => ({
+    // Generar URLs firmadas para las imágenes (válidas 1 hora)
+    const tickets = await Promise.all(data.map(async v => {
+      let ticketUrl = v.ticket_url
+      if (ticketUrl) {
+        try {
+          // Extraer el path relativo del bucket de la URL pública
+          const match = ticketUrl.match(/\/storage\/v1\/object\/(?:public\/)?tickets\/(.+)/)
+          if (match) {
+            const { data: signed } = await supabaseAdmin.storage
+              .from('tickets')
+              .createSignedUrl(match[1], 3600)
+            if (signed?.signedUrl) ticketUrl = signed.signedUrl
+          }
+        } catch { /* mantener URL original si falla */ }
+      }
+      return {
         id: v.id,
         cliente: v.clientes?.nombre || 'Anónimo',
         referidor: v.referidores?.nombre || '—',
         gasto: v.gasto_confirmado,
-        ticketUrl: v.ticket_url,
+        ticketUrl,
         fecha: new Date(v.confirmado_at || v.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
         hora: new Date(v.confirmado_at || v.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-      }))
-    })
+      }
+    }))
+
+    return NextResponse.json({ tickets })
   } catch (e) {
     console.error('Error tickets manager:', e)
     return NextResponse.json({ error: 'Error cargando tickets' }, { status: 500 })

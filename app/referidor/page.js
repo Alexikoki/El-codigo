@@ -263,7 +263,7 @@ export default function ReferidorPage() {
                 className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors"
               >
                 {copiadoMsj ? <CheckCircle2 size={16} /> : <Copy size={16} />}
-                {copiadoMsj ? '¡Copiado!' : '{t('referidor','copyLink')}'}
+                {copiadoMsj ? '¡Copiado!' : t('referidor','copyLink')}
               </button>
             </div>
           )}

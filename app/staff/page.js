@@ -68,7 +68,7 @@ export default function StaffPage() {
           () => {}
         )
       } catch (e) {
-        setError('{t('staff','errorCamera')}')
+        setError(t('staff','errorCamera'))
       }
     }, 300)
   }
