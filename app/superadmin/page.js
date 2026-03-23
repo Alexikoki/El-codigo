@@ -875,6 +875,11 @@ export default function SuperadminPage() {
                         <p className="text-sm font-semibold text-[#111111] truncate">{c.nombre}</p>
                         <span className="text-[10px] text-[#9ca3af]">{c.num_personas} pers. · {c.referidores?.nombre || '—'}</span>
                         {hasVal && <span className="text-[10px] font-mono text-[#1e3a5f] bg-[#f0f4f8] px-1.5 py-0.5 rounded">{gasto.toFixed(2)}€</span>}
+                        {val?.valoracion && (
+                          <span className="text-[10px] text-amber-500 flex items-center gap-0.5">
+                            {'★'.repeat(val.valoracion)}{'☆'.repeat(5 - val.valoracion)}
+                          </span>
+                        )}
                         {hasVal && <ChevronDown size={12} className={`text-[#9ca3af] transition-transform ${open ? 'rotate-180' : ''}`} />}
                       </div>
                       <p className="text-[10px] text-[#9ca3af] mt-0.5">
@@ -917,6 +922,12 @@ export default function SuperadminPage() {
                         <span className="text-xs text-[#6b7280]">→ Referidor <span className="text-[#9ca3af]">({c.referidores?.nombre || '—'})</span></span>
                         <span className="text-xs font-medium text-[#374151]">{comReferidor.toFixed(2)}€</span>
                       </div>
+                      {val?.ticket_url && (
+                        <div className="pt-2 border-t border-[#f3f4f6]">
+                          <p className="text-[10px] text-[#9ca3af] mb-2">Foto del ticket</p>
+                          <img src={val.ticket_url} alt="Ticket" className="w-full max-h-48 object-contain rounded-lg border border-[#e5e7eb]" />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

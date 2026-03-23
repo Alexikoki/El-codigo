@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import LangSelector from '../../components/LangSelector'
 import { useLanguage } from '../../lib/i18n/LanguageContext'
 import { Camera, LogOut, CheckCircle2, AlertCircle, History, Maximize, Users, Receipt, Upload, X, Euro } from 'lucide-react'
+import QRCode from 'qrcode'
 
 export default function StaffPage() {
   const { t } = useLanguage()
@@ -16,6 +17,7 @@ export default function StaffPage() {
   const [modalConfirmar, setModalConfirmar] = useState(null) // cliente a confirmar
   const [formConfirmar, setFormConfirmar] = useState({ importe: '', foto: null, preview: null })
   const [confirmando, setConfirmando] = useState(false)
+  const [qrReview, setQrReview] = useState(null) // { clienteNombre, qrDataUrl, url }
   const html5QrRef = useRef(null)
   const router = useRouter()
 
@@ -123,6 +125,10 @@ export default function StaffPage() {
         body: fd
       })
       if (res.ok) {
+        const appUrl = window.location.origin
+        const reviewUrl = `${appUrl}/valorar/${modalConfirmar.id}`
+        const qrDataUrl = await QRCode.toDataURL(reviewUrl, { width: 280, margin: 2, color: { dark: '#1e3a5f', light: '#ffffff' } })
+        setQrReview({ clienteNombre: modalConfirmar.nombre, qrDataUrl, url: reviewUrl })
         setModalConfirmar(null)
         setFormConfirmar({ importe: '', foto: null, preview: null })
         cargarVerificadosHoy()
@@ -383,6 +389,35 @@ export default function StaffPage() {
                 className="w-full mt-6 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3.5 rounded-xl transition-colors disabled:opacity-50"
               >
                 {confirmando ? 'Guardando...' : 'Confirmar consumo'}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL QR VALORACIÓN */}
+      <AnimatePresence>
+        {qrReview && (
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60" />
+            <motion.div
+              initial={{ y: '100%', opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }} transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl p-6 shadow-xl text-center"
+            >
+              <div className="w-12 h-12 bg-green-50 border border-green-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 size={22} className="text-green-600" />
+              </div>
+              <h3 className="text-base font-bold text-[#111111] mb-1">¡Mesa cerrada!</h3>
+              <p className="text-sm text-[#6b7280] mb-5">Muestra este QR a <strong>{qrReview.clienteNombre}</strong> para que deje su valoración.</p>
+              <div className="flex justify-center mb-5">
+                <img src={qrReview.qrDataUrl} alt="QR Valoración" className="w-52 h-52 rounded-xl border border-[#e5e7eb]" />
+              </div>
+              <p className="text-xs text-[#9ca3af] mb-5">El cliente escanea este QR con su móvil</p>
+              <button onClick={() => setQrReview(null)}
+                className="w-full bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3 rounded-xl transition-colors">
+                Siguiente cliente
               </button>
             </motion.div>
           </div>
