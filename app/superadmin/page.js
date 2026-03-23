@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LogOut, MapPin, Users, UserCheck, Plus, Shield, Search, CheckCircle2, XCircle, BarChart3, TrendingUp, HandCoins, FileText, Pencil, Download, CreditCard, Clock, Building2, Trash2 } from 'lucide-react'
+import { LogOut, MapPin, Users, UserCheck, Plus, Shield, Search, CheckCircle2, XCircle, BarChart3, TrendingUp, HandCoins, FileText, Pencil, Download, CreditCard, Clock, Building2, Trash2, ChevronDown } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { SkeletonPanel } from '../../components/Skeleton'
@@ -857,29 +857,71 @@ export default function SuperadminPage() {
             if (clientesCargando) return <SkeletonPanel />
             const visitaron = clientes.filter(c => c.verificado)
             const pendientes = clientes.filter(c => !c.verificado)
-            const ClienteRow = ({ c }) => (
-              <div key={c.id} className="flex items-center justify-between gap-4 py-3 border-b border-[#f3f4f6] last:border-0">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-semibold text-[#111111] truncate">{c.nombre}</p>
-                    <span className="text-[10px] text-[#9ca3af]">{c.num_personas} pers. · {c.referidores?.nombre || '—'}</span>
+            const ClienteRow = ({ c }) => {
+              const [open, setOpen] = useState(false)
+              const val = c.valoraciones?.[0]
+              const gasto = val?.gasto_confirmado || 0
+              const comLugar = val?.comision_lugar || 0
+              const comAgencia = val?.comision_agencia || 0
+              const comReferidor = val?.comision_referidor || 0
+              const comPlataforma = comLugar - comAgencia - comReferidor
+              const pctLugar = c.lugares?.porcentaje_plataforma ?? 20
+              const hasVal = gasto > 0
+              return (
+                <div className="border-b border-[#f3f4f6] last:border-0">
+                  <div className="flex items-center justify-between gap-4 py-3">
+                    <button className="flex-1 min-w-0 text-left" onClick={() => hasVal && setOpen(o => !o)}>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-[#111111] truncate">{c.nombre}</p>
+                        <span className="text-[10px] text-[#9ca3af]">{c.num_personas} pers. · {c.referidores?.nombre || '—'}</span>
+                        {hasVal && <span className="text-[10px] font-mono text-[#1e3a5f] bg-[#f0f4f8] px-1.5 py-0.5 rounded">{gasto.toFixed(2)}€</span>}
+                        {hasVal && <ChevronDown size={12} className={`text-[#9ca3af] transition-transform ${open ? 'rotate-180' : ''}`} />}
+                      </div>
+                      <p className="text-[10px] text-[#9ca3af] mt-0.5">
+                        {new Date(c.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </p>
+                    </button>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button onClick={() => { setModalEditCliente(c); setFormCliente({ nombre: c.nombre, num_personas: c.num_personas }) }}
+                        className="p-1.5 rounded-lg border border-[#e5e7eb] hover:bg-[#f3f4f6] text-[#6b7280] hover:text-[#111111] transition-colors">
+                        <Pencil size={12} />
+                      </button>
+                      <button onClick={() => setConfirmBorrar(c)}
+                        className="p-1.5 rounded-lg border border-red-100 hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors">
+                        <XCircle size={12} />
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-[#9ca3af] mt-0.5">
-                    {new Date(c.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </p>
+                  {open && hasVal && (
+                    <div className="mb-3 bg-[#fafaf8] border border-[#e5e7eb] rounded-xl p-4 space-y-2">
+                      <p className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-wider mb-3">Desglose de comisiones</p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-[#6b7280]">Gasto del cliente</span>
+                        <span className="text-xs font-semibold text-[#111111]">{gasto.toFixed(2)}€</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1.5 border-t border-[#f3f4f6]">
+                        <span className="text-xs text-[#6b7280]">Comisión total del local <span className="text-[#9ca3af]">({pctLugar}%)</span></span>
+                        <span className="text-xs font-medium text-[#111111]">{comLugar.toFixed(2)}€</span>
+                      </div>
+                      <div className="flex justify-between items-center pl-3">
+                        <span className="text-xs text-[#1e3a5f]">→ itrustb2b</span>
+                        <span className="text-xs font-semibold text-[#1e3a5f]">{comPlataforma.toFixed(2)}€</span>
+                      </div>
+                      {comAgencia > 0 && (
+                        <div className="flex justify-between items-center pl-3">
+                          <span className="text-xs text-[#6b7280]">→ Agencia <span className="text-[#9ca3af]">({c.referidores?.agencias?.nombre || ''})</span></span>
+                          <span className="text-xs font-medium text-[#374151]">{comAgencia.toFixed(2)}€</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center pl-3">
+                        <span className="text-xs text-[#6b7280]">→ Referidor <span className="text-[#9ca3af]">({c.referidores?.nombre || '—'})</span></span>
+                        <span className="text-xs font-medium text-[#374151]">{comReferidor.toFixed(2)}€</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button onClick={() => { setModalEditCliente(c); setFormCliente({ nombre: c.nombre, num_personas: c.num_personas }) }}
-                    className="p-1.5 rounded-lg border border-[#e5e7eb] hover:bg-[#f3f4f6] text-[#6b7280] hover:text-[#111111] transition-colors">
-                    <Pencil size={12} />
-                  </button>
-                  <button onClick={() => setConfirmBorrar(c)}
-                    className="p-1.5 rounded-lg border border-red-100 hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors">
-                    <XCircle size={12} />
-                  </button>
-                </div>
-              </div>
-            )
+              )
+            }
             if (clientes.length === 0) return (
               <div className="py-14 text-center text-[#9ca3af] border border-dashed border-[#e5e7eb] rounded-xl bg-white text-sm">
                 Sin clientes en este local.

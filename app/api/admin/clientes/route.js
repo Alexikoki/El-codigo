@@ -14,7 +14,10 @@ export async function GET(request) {
 
     let query = supabaseAdmin
       .from('clientes')
-      .select('id, nombre, email, num_personas, verificado, verificado_at, created_at, lugar_id, referidor_id, lugares(nombre), referidores(nombre)')
+      .select(`id, nombre, email, num_personas, verificado, verificado_at, created_at, lugar_id, referidor_id,
+        lugares(nombre, porcentaje_plataforma),
+        referidores(nombre, porcentaje_split, agencia_id, agencias(nombre, porcentaje_split)),
+        valoraciones(gasto_confirmado, comision_lugar, comision_agencia, comision_referidor)`)
       .order('created_at', { ascending: false })
       .limit(200)
 
