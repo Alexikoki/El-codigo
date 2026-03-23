@@ -5,11 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { LogOut, BarChart3, TrendingDown, Building2, Receipt, Zap, Users, Download, Image, UserCheck, X, UserPlus, Shield, ToggleLeft, ToggleRight, CreditCard, Euro, CheckCircle2, Clock } from 'lucide-react'
 import { SkeletonPanel } from '../../components/Skeleton'
 import LangSelector from '../../components/LangSelector'
+import { useLanguage } from '../../lib/i18n/LanguageContext'
 import { toast } from 'react-hot-toast'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { createClient } from '@supabase/supabase-js'
 
 export default function ManagerPage() {
+  const { t } = useLanguage()
   const [manager, setManager] = useState(null)
   const [analytics, setAnalytics] = useState({ chartData: [], stats: { operaciones: 0, volumenEuros: 0, deudaAcumulada: 0 }, hoy: [] })
   const [cargando, setCargando] = useState(true)
@@ -241,7 +243,7 @@ export default function ManagerPage() {
             className="flex items-center gap-2 text-sm text-[#6b7280] hover:text-red-500 transition-colors"
           >
             <LogOut size={15} />
-            <span className="hidden sm:inline">Cerrar Sesión</span>
+            <span className="hidden sm:inline">{t('common','logout')}</span>
           </button>
         </div>
       </nav>
@@ -249,7 +251,7 @@ export default function ManagerPage() {
       {/* Tabs */}
       <div className="max-w-3xl mx-auto px-5 pt-5">
         <div className="flex gap-1 bg-[#f3f4f6] rounded-xl p-1">
-          {[['dashboard', <BarChart3 size={14} />, 'Dashboard'], ['equipo', <Shield size={14} />, 'Mi Equipo'], ['pagos', <CreditCard size={14} />, 'Pagos']].map(([key, icon, label]) => (
+          {[['dashboard', <BarChart3 size={14} />, t('manager','dashboard')], ['equipo', <Shield size={14} />, t('manager','team')], ['pagos', <CreditCard size={14} />, t('manager','payments')]].map(([key, icon, label]) => (
             <button key={key}
               onClick={() => { setTab(key); if (key === 'equipo' && staffList.length === 0) cargarStaff(); if (key === 'pagos') inicializarPeriodo() }}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-white text-[#111111] shadow-sm' : 'text-[#6b7280] hover:text-[#374151]'}`}
@@ -270,22 +272,22 @@ export default function ManagerPage() {
 
             {/* Selector de período */}
             <div className="bg-white border border-[#e5e7eb] rounded-2xl p-5 space-y-4">
-              <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider">Período a liquidar</p>
+              <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider">{t('manager','paymentPeriod')}</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-[#6b7280] mb-1 block">Desde</label>
+                  <label className="text-xs text-[#6b7280] mb-1 block">{t('common','from')}</label>
                   <input type="date" value={periodoDesde} onChange={e => setPeriodoDesde(e.target.value)}
                     className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 bg-white" />
                 </div>
                 <div>
-                  <label className="text-xs text-[#6b7280] mb-1 block">Hasta</label>
+                  <label className="text-xs text-[#6b7280] mb-1 block">{t('common','to')}</label>
                   <input type="date" value={periodoHasta} onChange={e => setPeriodoHasta(e.target.value)}
                     className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg px-3 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 bg-white" />
                 </div>
               </div>
               <button onClick={cargarResumenPago} disabled={cargandoPago || !periodoDesde || !periodoHasta}
                 className="w-full bg-[#f3f4f6] hover:bg-[#e5e7eb] text-[#374151] font-medium py-2.5 rounded-xl text-sm transition-colors disabled:opacity-50">
-                {cargandoPago ? 'Calculando...' : 'Calcular comisión'}
+                {cargandoPago ? 'Calculando...' : t('manager','calcCommission')}
               </button>
             </div>
 
@@ -296,7 +298,7 @@ export default function ManagerPage() {
 
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
-                    <span className="text-sm text-[#6b7280]">Volumen total de consumo</span>
+                    <span className="text-sm text-[#6b7280]">{t('manager','totalVolume')}</span>
                     <span className="text-sm font-semibold text-[#111111]">€{resumenPago.volumenTotal?.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
@@ -308,7 +310,7 @@ export default function ManagerPage() {
                     <span className="text-sm font-medium text-[#1e3a5f]">€{resumenPago.comisionPlataforma?.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-[#f3f4f6]">
-                    <span className="text-sm text-[#6b7280]">Para referidores / agencias</span>
+                    <span className="text-sm text-[#6b7280]">{t('manager','toDistribute')}</span>
                     <span className="text-sm font-medium text-[#374151]">€{resumenPago.comisionRepartir?.toFixed(2)}</span>
                   </div>
                   {resumenPago.totalYaPagado > 0 && (
@@ -318,7 +320,7 @@ export default function ManagerPage() {
                     </div>
                   )}
                   <div className="flex justify-between items-center pt-1">
-                    <span className="text-base font-bold text-[#111111]">Total a pagar</span>
+                    <span className="text-base font-bold text-[#111111]">{t('common','total')}</span>
                     <span className="text-xl font-bold text-[#1e3a5f]">€{resumenPago.pendiente?.toFixed(2)}</span>
                   </div>
                 </div>
@@ -327,7 +329,7 @@ export default function ManagerPage() {
                   <button onClick={iniciarPago} disabled={pagando}
                     className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3.5 rounded-xl transition-colors disabled:opacity-50 mt-2">
                     <CreditCard size={16} />
-                    {pagando ? 'Redirigiendo...' : `Pagar €${resumenPago.pendiente?.toFixed(2)} con tarjeta`}
+                    {pagando ? 'Redirigiendo...' : `${t('manager','payWithCard')}  €${resumenPago.pendiente?.toFixed(2)} con tarjeta`}
                   </button>
                 ) : (
                   <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl p-3 text-green-700 text-sm">
@@ -336,7 +338,7 @@ export default function ManagerPage() {
                 )}
                 <button onClick={exportarLiquidacionesPDF}
                   className="w-full flex items-center justify-center gap-2 border border-[#e5e7eb] hover:border-[#d1d5db] bg-white text-[#374151] font-medium py-2.5 rounded-xl text-sm transition-colors mt-1">
-                  <Download size={15} /> Exportar PDF del período
+                  <Download size={15} /> {t('common','download')} PDF
                 </button>
               </div>
             )}
@@ -356,10 +358,10 @@ export default function ManagerPage() {
         {tab === 'equipo' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[#111111]">Camareros del local</h2>
+              <h2 className="text-sm font-semibold text-[#111111]">{t('manager','staffTitle')}</h2>
               <button onClick={() => { setModalNuevoStaff(true); setErrorStaff('') }}
                 className="flex items-center gap-1.5 bg-[#1e3a5f] hover:bg-[#15294a] text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors">
-                <UserPlus size={15} /> Nuevo camarero
+                <UserPlus size={15} /> {t('manager','addStaff')}
               </button>
             </div>
 
@@ -426,7 +428,7 @@ export default function ManagerPage() {
             {/* Tarjetas */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="glass-panel p-5 border-l-4 border-l-[#1e3a5f]">
-                <p className="text-xs text-[#6b7280] mb-1">Volumen Traído por itrustb2b</p>
+                <p className="text-xs text-[#6b7280] mb-1">{t('manager','volume')}</p>
                 <p className="text-3xl font-bold text-[#111111]">{analytics.stats.volumenEuros.toFixed(2)}€</p>
                 <p className="text-xs text-[#6b7280] mt-2">{analytics.stats.operaciones} clientes validados</p>
                 <div className="mt-3 p-2 bg-[#f0f4f8] rounded-lg w-fit">
@@ -448,7 +450,7 @@ export default function ManagerPage() {
             <div className="glass-panel p-5">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
                 <h3 className="text-sm font-semibold text-[#111111] flex items-center gap-2 flex-shrink-0">
-                  <TrendingDown size={15} className="text-red-400" /> Histórico de Comisiones
+                  <TrendingDown size={15} className="text-red-400" /> {t('manager','commissions')}
                 </h3>
                 <div className="flex flex-wrap gap-1.5 sm:ml-auto">
                   {[['hoy','Hoy'],['semana','Semana'],['mes','Mes'],['año','Año'],['todo','Todo']].map(([key, label]) => (
@@ -489,12 +491,12 @@ export default function ManagerPage() {
               </div>
             </div>
 
-            {/* Clientes de Hoy */}
+            {/* {t('manager','todayTitle')} */}
             <div className="glass-panel overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-[#f3f4f6]">
                 <h3 className="text-sm font-semibold text-[#111111] flex items-center gap-2">
                   <Users size={15} className="text-[#1e3a5f]" />
-                  Clientes de Hoy
+                  {t('manager','todayTitle')}
                   {analytics.hoy?.length > 0 && (
                     <span className="text-xs font-medium bg-[#f0f4f8] text-[#1e3a5f] px-2 py-0.5 rounded-full">
                       {analytics.hoy.length}
@@ -630,7 +632,7 @@ export default function ManagerPage() {
             >
               <div className="flex justify-between items-center mb-5">
                 <div>
-                  <h3 className="text-base font-bold text-[#111111]">Nuevo camarero</h3>
+                  <h3 className="text-base font-bold text-[#111111]">{t('manager','addStaff')}</h3>
                   <p className="text-sm text-[#6b7280]">Acceso al escáner QR del local</p>
                 </div>
                 <button onClick={() => setModalNuevoStaff(false)} className="text-[#9ca3af] hover:text-[#374151]">

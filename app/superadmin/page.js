@@ -7,8 +7,10 @@ import { toast } from 'react-hot-toast'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { SkeletonPanel } from '../../components/Skeleton'
 import LangSelector from '../../components/LangSelector'
+import { useLanguage } from '../../lib/i18n/LanguageContext'
 
 export default function SuperadminPage() {
+  const { t } = useLanguage()
   const [tab, setTab] = useState('lugares')
   const [lugares, setLugares] = useState([])
   const [referidores, setReferidores] = useState([])
@@ -307,13 +309,13 @@ export default function SuperadminPage() {
   }
 
   const tabs = [
-    { id: 'analytics', label: 'Métricas', icon: <BarChart3 size={15} /> },
-    { id: 'lugares', label: 'Locales', icon: <MapPin size={15} /> },
-    { id: 'referidores', label: 'Referidores', icon: <Users size={15} /> },
-    { id: 'staff', label: 'Staff', icon: <UserCheck size={15} /> },
-    { id: 'agencias', label: 'Agencias', icon: <Building2 size={15} /> },
-    { id: 'liquidaciones', label: 'Pagos', icon: <CreditCard size={15} /> },
-    { id: 'clientes', label: 'Clientes', icon: <Users size={15} /> }
+    { id: 'analytics', label: t('superadmin','metrics'), icon: <BarChart3 size={15} /> },
+    { id: 'lugares', label: t('superadmin','places'), icon: <MapPin size={15} /> },
+    { id: 'referidores', label: t('superadmin','referrers'), icon: <Users size={15} /> },
+    { id: 'staff', label: t('superadmin','staff'), icon: <UserCheck size={15} /> },
+    { id: 'agencias', label: t('superadmin','agencies'), icon: <Building2 size={15} /> },
+    { id: 'liquidaciones', label: t('superadmin','payments'), icon: <CreditCard size={15} /> },
+    { id: 'clientes', label: t('superadmin','clients'), icon: <Users size={15} /> }
   ]
 
   const inputClass = "w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg px-4 py-2.5 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white"
@@ -338,7 +340,7 @@ export default function SuperadminPage() {
             onClick={() => { fetch('/api/auth/logout', { method: 'POST' }).finally(() => { localStorage.clear(); router.push('/login') }) }}
             className="flex items-center gap-2 text-sm text-[#6b7280] hover:text-red-500 transition-colors"
           >
-            <LogOut size={15} /> <span className="hidden sm:inline">Desconectar</span>
+            <LogOut size={15} /> <span className="hidden sm:inline">{t('common','logout')}</span>
           </button>
         </div>
       </nav>
@@ -420,7 +422,7 @@ export default function SuperadminPage() {
                 </div>
                 <button onClick={exportarExcel}
                   className="flex items-center gap-2 border border-[#e5e7eb] bg-white hover:bg-[#f3f4f6] text-[#374151] px-4 py-2 rounded-lg text-sm font-medium transition-colors self-start">
-                  <Download size={14} /> Exportar Excel
+                  <Download size={14} /> {t('superadmin','exportExcel')}
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

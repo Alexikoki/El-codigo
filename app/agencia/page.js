@@ -5,9 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { LogOut, BarChart3, TrendingUp, Briefcase, PlusCircle, Users, Link as LinkIcon, ShieldAlert, Trophy, Clock, CreditCard, CheckCircle2, X } from 'lucide-react'
 import { SkeletonPanel } from '../../components/Skeleton'
 import LangSelector from '../../components/LangSelector'
+import { useLanguage } from '../../lib/i18n/LanguageContext'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 
 export default function AgenciaPage() {
+  const { t } = useLanguage()
   const [agencia, setAgencia] = useState(null)
   const [tab, setTab] = useState('dashboard')
   const [analytics, setAnalytics] = useState({ chartData: [], stats: { operacionesTotales: 0, volumenEurosGlobal: 0, comisionesAgencia: 0 } })
@@ -191,7 +193,7 @@ export default function AgenciaPage() {
             className="flex items-center gap-2 text-sm text-[#6b7280] hover:text-red-500 transition-colors"
           >
             <LogOut size={15} />
-            <span className="hidden sm:inline">Cerrar Sesión</span>
+            <span className="hidden sm:inline">{t('common','logout')}</span>
           </button>
         </div>
       </nav>

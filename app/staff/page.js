@@ -3,9 +3,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import LangSelector from '../../components/LangSelector'
+import { useLanguage } from '../../lib/i18n/LanguageContext'
 import { Camera, LogOut, CheckCircle2, AlertCircle, History, Maximize, Users, Receipt, Upload, X, Euro } from 'lucide-react'
 
 export default function StaffPage() {
+  const { t } = useLanguage()
   const [staff, setStaff] = useState(null)
   const [escaneando, setEscaneando] = useState(false)
   const [resultado, setResultado] = useState(null)
@@ -66,7 +68,7 @@ export default function StaffPage() {
           () => {}
         )
       } catch (e) {
-        setError('Error al acceder a la cámara')
+        setError('{t('staff','errorCamera')}')
       }
     }, 300)
   }
@@ -141,7 +143,7 @@ export default function StaffPage() {
       {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-white border-b border-[#e5e7eb] px-6 py-4 flex justify-between items-center">
         <div>
-          <p className="text-base font-semibold text-[#111111]">Escanear Código QR</p>
+          <p className="text-base font-semibold text-[#111111]">{t('staff','title')}</p>
           <p className="text-xs text-[#6b7280]">{staff?.nombre} · {staff?.lugarNombre}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -151,7 +153,7 @@ export default function StaffPage() {
             className="flex items-center gap-2 text-sm text-[#6b7280] hover:text-red-500 transition-colors"
           >
             <LogOut size={15} />
-            <span>Salir</span>
+            <span>{t('common','logout')}</span>
           </button>
         </div>
       </nav>
@@ -215,7 +217,7 @@ export default function StaffPage() {
                 >
                   <CheckCircle2 size={32} className="text-green-600" />
                 </motion.div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-green-600 mb-1">Cliente verificado</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-green-600 mb-1">{t('staff','clientVerified')}</p>
                 <h2 className="text-2xl font-bold text-[#111111] mb-2">{resultado.cliente.nombre}</h2>
                 <div className="inline-flex items-center gap-1.5 bg-[#f0f4f8] px-3 py-1.5 rounded-full text-[#1e3a5f] text-sm font-medium mb-6">
                   <Users size={14} /> {resultado.cliente.numPersonas} {resultado.cliente.numPersonas > 1 ? 'personas' : 'persona'}
@@ -225,7 +227,7 @@ export default function StaffPage() {
                     onClick={() => setResultado(null)}
                     className="w-full bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3.5 rounded-xl transition-colors"
                   >
-                    Escanear otra persona
+                    {t('staff','scanAnother')}
                   </button>
                 </div>
               </div>

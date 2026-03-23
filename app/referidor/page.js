@@ -5,10 +5,12 @@ import { motion } from 'framer-motion'
 import { LogOut, Copy, Users, Calendar, CheckCircle2, Clock, QrCode, BarChart3, TrendingUp, Receipt, Euro, ChevronLeft, ChevronRight, CreditCard } from 'lucide-react'
 import { SkeletonPanel } from '../../components/Skeleton'
 import LangSelector from '../../components/LangSelector'
+import { useLanguage } from '../../lib/i18n/LanguageContext'
 import QRCode from 'qrcode'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 export default function ReferidorPage() {
+  const { t } = useLanguage()
   const [referidor, setReferidor] = useState(null)
   const [tab, setTab] = useState('dashboard')
   const [clientes, setClientes] = useState([])
@@ -132,7 +134,7 @@ export default function ReferidorPage() {
       {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-white border-b border-[#e5e7eb] px-6 py-4 flex justify-between items-center">
         <div>
-          <h1 className="text-lg font-semibold text-[#111111]">Hub de Referidor</h1>
+          <h1 className="text-lg font-semibold text-[#111111]">{t('referidor','title')}</h1>
           <p className="text-sm text-[#6b7280]">{referidor?.nombre}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -142,7 +144,7 @@ export default function ReferidorPage() {
             className="flex items-center gap-2 text-sm text-[#6b7280] hover:text-red-500 transition-colors"
           >
             <LogOut size={15} />
-            <span>Salir</span>
+            <span>{t('common','logout')}</span>
           </button>
         </div>
       </nav>
@@ -261,7 +263,7 @@ export default function ReferidorPage() {
                 className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors"
               >
                 {copiadoMsj ? <CheckCircle2 size={16} /> : <Copy size={16} />}
-                {copiadoMsj ? '¡Copiado!' : 'Copiar enlace'}
+                {copiadoMsj ? '¡Copiado!' : '{t('referidor','copyLink')}'}
               </button>
             </div>
           )}
