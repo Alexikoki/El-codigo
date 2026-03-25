@@ -16,6 +16,7 @@ export default function SuperadminPage() {
   const [referidores, setReferidores] = useState([])
   const [staff, setStaff] = useState([])
   const [analytics, setAnalytics] = useState({ chartData: [], stats: { operaciones: 0, volumenEuros: 0, comisionGenerada: 0 } })
+  const [discrepancias, setDiscrepancias] = useState({ resumen: { total: 0, amarillas: 0, naranjas: 0, rojas: 0, diferencia_total: 0 }, porMes: [], porLocal: [] })
   const [agencias, setAgencias] = useState([])
   const [liquidaciones, setLiquidaciones] = useState([])
   const [modalLiq, setModalLiq] = useState(false)
@@ -106,6 +107,9 @@ export default function SuperadminPage() {
     if (hasta) params.set('hasta', hasta)
     const res = await fetch(`/api/analytics/superadmin?${params}`, { credentials: 'include' })
     if (res.ok) setAnalytics(await res.json())
+    // Cargar discrepancias con mismo rango
+    const resDisc = await fetch(`/api/admin/discrepancias?${params}`, { credentials: 'include' })
+    if (resDisc.ok) setDiscrepancias(await resDisc.json())
   }
 
   const crearLiquidacion = async () => {
@@ -529,6 +533,84 @@ export default function SuperadminPage() {
                     <Area type="monotone" dataKey="gastoTotal" name="Volumen (€)" stroke="#1e3a5f" strokeWidth={2} fillOpacity={1} fill="url(#colorGasto)" />
                   </AreaChart>
                 </ResponsiveContainer>
+              </div>
+
+              {/* DISCREPANCIAS */}
+              <div className="glass-panel p-5">
+                <h3 className="text-sm font-semibold text-[#111111] mb-4 flex items-center gap-2">
+                  ⚠ Discrepancias de consumo
+                  {discrepancias.resumen.total > 0 && (
+                    <span className="text-xs bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded-full">{discrepancias.resumen.total} casos</span>
+                  )}
+                </h3>
+
+                {discrepancias.resumen.total === 0 ? (
+                  <p className="text-sm text-[#9ca3af] text-center py-4">Sin discrepancias en el período seleccionado.</p>
+                ) : (
+                  <div className="space-y-5">
+                    {/* KPIs */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+                        <p className="text-xs text-amber-600 mb-1">Leves (1-5%)</p>
+                        <p className="text-2xl font-bold text-amber-700">{discrepancias.resumen.amarillas}</p>
+                      </div>
+                      <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 text-center">
+                        <p className="text-xs text-orange-600 mb-1">Moderadas (5-15%)</p>
+                        <p className="text-2xl font-bold text-orange-700">{discrepancias.resumen.naranjas}</p>
+                      </div>
+                      <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
+                        <p className="text-xs text-red-600 mb-1">Graves (&gt;15%)</p>
+                        <p className="text-2xl font-bold text-red-700">{discrepancias.resumen.rojas}</p>
+                      </div>
+                      <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-xl p-3 text-center">
+                        <p className="text-xs text-[#6b7280] mb-1">Diferencia total</p>
+                        <p className="text-2xl font-bold text-[#111111]">{discrepancias.resumen.diferencia_total.toFixed(2)}€</p>
+                      </div>
+                    </div>
+
+                    {/* Por mes */}
+                    {discrepancias.porMes.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider mb-2">Por mes</p>
+                        <div className="space-y-1">
+                          {discrepancias.porMes.map(m => (
+                            <div key={m.mes} className="flex items-center justify-between py-2 border-b border-[#f3f4f6] last:border-0">
+                              <span className="text-sm font-medium text-[#374151]">
+                                {new Date(m.mes + '-01').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                              </span>
+                              <div className="flex items-center gap-2 text-xs">
+                                {m.amarillas > 0 && <span className="text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">⚠ {m.amarillas}</span>}
+                                {m.naranjas > 0 && <span className="text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded">⚠ {m.naranjas}</span>}
+                                {m.rojas > 0 && <span className="text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">⚠ {m.rojas}</span>}
+                                <span className="text-[#6b7280] font-mono ml-1">{m.diferencia_total.toFixed(2)}€</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Por local */}
+                    {discrepancias.porLocal.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider mb-2">Por local</p>
+                        <div className="space-y-1">
+                          {discrepancias.porLocal.map(l => (
+                            <div key={l.lugarId} className="flex items-center justify-between py-2 border-b border-[#f3f4f6] last:border-0">
+                              <span className="text-sm font-medium text-[#374151]">{l.lugarNombre}</span>
+                              <div className="flex items-center gap-2 text-xs">
+                                {l.amarillas > 0 && <span className="text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">⚠ {l.amarillas}</span>}
+                                {l.naranjas > 0 && <span className="text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded">⚠ {l.naranjas}</span>}
+                                {l.rojas > 0 && <span className="text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">⚠ {l.rojas}</span>}
+                                <span className="text-[#6b7280] font-mono ml-1">{l.diferencia_total.toFixed(2)}€</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
