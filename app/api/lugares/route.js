@@ -31,7 +31,7 @@ export async function POST(request) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
-  const { nombre, tipo, descripcion, direccion, descuento, porcentaje_plataforma,
+  const { nombre, tipo, descripcion, direccion, barrio, descuento, porcentaje_plataforma,
           manager_nombre, manager_email, manager_password } = await request.json()
 
   if (!nombre || !tipo) {
@@ -56,6 +56,7 @@ export async function POST(request) {
     .from('lugares')
     .insert({
       nombre, tipo, descripcion, direccion,
+      barrio: barrio || '',
       descuento: descuento ?? 10,
       porcentaje_plataforma: porcentaje_plataforma ?? 20
     })
@@ -105,7 +106,7 @@ export async function PATCH(request) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
-  const { id, nombre, descuento, porcentaje_plataforma, activo } = await request.json()
+  const { id, nombre, descuento, porcentaje_plataforma, activo, barrio } = await request.json()
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
 
   const update = {}
@@ -113,6 +114,7 @@ export async function PATCH(request) {
   if (descuento !== undefined) update.descuento = parseInt(descuento)
   if (porcentaje_plataforma !== undefined) update.porcentaje_plataforma = parseFloat(porcentaje_plataforma)
   if (activo !== undefined) update.activo = activo
+  if (barrio !== undefined) update.barrio = barrio
 
   await supabaseAdmin.from('lugares').update(update).eq('id', id)
   return NextResponse.json({ ok: true })

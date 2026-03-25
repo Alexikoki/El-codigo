@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
 import { rateLimit, getIP } from '../../../../lib/rateLimit'
+import { enviarEmailValoracion } from '../../../../lib/email'
 
 // GET — lista de clientes verificados hoy en el local del staff
 export async function GET(request) {
@@ -146,12 +147,28 @@ export async function POST(request) {
       lugar_id: payload.lugarId,
       referidor_id: cliente.referidor_id,
       gasto: gastoConfirmado,
-      valoracion: 5,
       ...update
     })
-    await supabaseAdmin.from('clientes').update({
-      gasto: gastoConfirmado, valoracion: 5, valorado_at: new Date().toISOString()
-    }).eq('id', clienteId)
+    await supabaseAdmin.from('clientes').update({ gasto: gastoConfirmado }).eq('id', clienteId)
+  }
+
+  // Enviar email de valoración al cliente
+  try {
+    const { data: clienteEmail } = await supabaseAdmin
+      .from('clientes').select('nombre, email').eq('id', clienteId).single()
+    const { data: lugarInfo } = await supabaseAdmin
+      .from('lugares').select('nombre').eq('id', payload.lugarId).single()
+    if (clienteEmail?.email) {
+      await enviarEmailValoracion({
+        nombre: clienteEmail.nombre,
+        email: clienteEmail.email,
+        clienteId,
+        lugarNombre: lugarInfo?.nombre || '',
+        gastoConfirmado
+      })
+    }
+  } catch (e) {
+    console.error('Error enviando email valoración:', e)
   }
 
   // ── Auto-liquidaciones ──────────────────────────────────────────

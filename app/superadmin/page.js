@@ -38,6 +38,7 @@ export default function SuperadminPage() {
   const [modalEditar, setModalEditar] = useState(null)
   const [form, setForm] = useState({})
   const [lugarFiltroClientes, setLugarFiltroClientes] = useState('')
+  const [barrioFiltro, setBarrioFiltro] = useState('')
   const [filtroLugarPagos, setFiltroLugarPagos] = useState('')
   const [confirmEliminarLugar, setConfirmEliminarLugar] = useState(null)
   const router = useRouter()
@@ -184,7 +185,8 @@ export default function SuperadminPage() {
         id: modalEditar.id,
         nombre: form.nombre || modalEditar.nombre,
         descuento: parseInt(form.descuento ?? modalEditar.descuento),
-        porcentaje_plataforma: parseFloat(form.porcentaje_plataforma ?? modalEditar.porcentaje_plataforma ?? 20)
+        porcentaje_plataforma: parseFloat(form.porcentaje_plataforma ?? modalEditar.porcentaje_plataforma ?? 20),
+        barrio: form.barrio ?? modalEditar.barrio ?? ''
       })
     })
     if (res.ok) {
@@ -398,20 +400,54 @@ export default function SuperadminPage() {
 
         {tab === 'clientes' && (
           <div className="mb-5 space-y-3">
-            <div className="flex flex-wrap gap-2">
-              {lugares.map(l => (
-                <button key={l.id}
-                  onClick={() => { setLugarFiltroClientes(l.id); setClientes([]); cargarClientes('', l.id) }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                    lugarFiltroClientes === l.id
-                      ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]'
-                      : 'bg-white text-[#6b7280] border-[#e5e7eb] hover:bg-[#f3f4f6]'
-                  }`}
-                >
-                  <MapPin size={10} className="inline mr-1" />{l.nombre}
-                </button>
-              ))}
-            </div>
+            {/* Paso 1: selección de barrio */}
+            {(() => {
+              const barrios = [...new Set(lugares.map(l => l.barrio).filter(Boolean))].sort()
+              const lugaresDelBarrio = barrioFiltro ? lugares.filter(l => l.barrio === barrioFiltro) : lugares
+              return (
+                <>
+                  {barrios.length > 0 && (
+                    <div>
+                      <p className="text-[10px] text-[#9ca3af] uppercase tracking-wider mb-1.5 font-medium">Barrio</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => { setBarrioFiltro(''); setLugarFiltroClientes(''); setClientes([]) }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                            !barrioFiltro ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]' : 'bg-white text-[#6b7280] border-[#e5e7eb] hover:bg-[#f3f4f6]'
+                          }`}
+                        >Todos</button>
+                        {barrios.map(b => (
+                          <button key={b}
+                            onClick={() => { setBarrioFiltro(b); setLugarFiltroClientes(''); setClientes([]) }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                              barrioFiltro === b ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]' : 'bg-white text-[#6b7280] border-[#e5e7eb] hover:bg-[#f3f4f6]'
+                            }`}
+                          >{b}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Paso 2: selección de local */}
+                  <div>
+                    {barrios.length > 0 && <p className="text-[10px] text-[#9ca3af] uppercase tracking-wider mb-1.5 font-medium">Local</p>}
+                    <div className="flex flex-wrap gap-2">
+                      {lugaresDelBarrio.map(l => (
+                        <button key={l.id}
+                          onClick={() => { setLugarFiltroClientes(l.id); setClientes([]); cargarClientes('', l.id) }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                            lugarFiltroClientes === l.id
+                              ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]'
+                              : 'bg-white text-[#6b7280] border-[#e5e7eb] hover:bg-[#f3f4f6]'
+                          }`}
+                        >
+                          <MapPin size={10} className="inline mr-1" />{l.nombre}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )
+            })()}
             {lugarFiltroClientes && (
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={14} />
@@ -533,7 +569,7 @@ export default function SuperadminPage() {
                         <p className="text-xs font-medium text-[#374151]">{l.managers_locales[0].nombre}</p>
                         <p className="text-[10px] text-[#9ca3af]">{l.managers_locales[0].email}</p>
                       </div>
-                      <button onClick={() => { setModalEditar(l); setForm({ nombre: l.nombre, descuento: l.descuento, porcentaje_plataforma: l.porcentaje_plataforma ?? 20 }) }}
+                      <button onClick={() => { setModalEditar(l); setForm({ nombre: l.nombre, descuento: l.descuento, porcentaje_plataforma: l.porcentaje_plataforma ?? 20, barrio: l.barrio || '' }) }}
                         className="ml-auto text-[#9ca3af] hover:text-[#1e3a5f] transition-colors p-1">
                         <Pencil size={13} />
                       </button>
@@ -541,7 +577,7 @@ export default function SuperadminPage() {
                   ) : (
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-red-400">Sin manager asignado</p>
-                      <button onClick={() => { setModalEditar(l); setForm({ nombre: l.nombre, descuento: l.descuento, porcentaje_plataforma: l.porcentaje_plataforma ?? 20 }) }}
+                      <button onClick={() => { setModalEditar(l); setForm({ nombre: l.nombre, descuento: l.descuento, porcentaje_plataforma: l.porcentaje_plataforma ?? 20, barrio: l.barrio || '' }) }}
                         className="text-[#9ca3af] hover:text-[#1e3a5f] transition-colors p-1">
                         <Pencil size={13} />
                       </button>
@@ -867,6 +903,11 @@ export default function SuperadminPage() {
               const comPlataforma = comLugar - comAgencia - comReferidor
               const pctLugar = c.lugares?.porcentaje_plataforma ?? 20
               const hasVal = gasto > 0
+              const disc = val?.discrepancia_pct
+              const DiscBadge = disc == null ? null : disc < 1 ? null
+                : disc < 5 ? <span title={`Discrepancia: ${disc.toFixed(1)}%`} className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">⚠ {disc.toFixed(1)}%</span>
+                : disc < 15 ? <span title={`Discrepancia: ${disc.toFixed(1)}%`} className="text-[10px] text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">⚠ {disc.toFixed(1)}%</span>
+                : <span title={`Discrepancia: ${disc.toFixed(1)}%`} className="text-[10px] text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">⚠ {disc.toFixed(1)}%</span>
               return (
                 <div className="border-b border-[#f3f4f6] last:border-0">
                   <div className="flex items-center justify-between gap-4 py-3">
@@ -880,6 +921,7 @@ export default function SuperadminPage() {
                             {'★'.repeat(val.valoracion)}{'☆'.repeat(5 - val.valoracion)}
                           </span>
                         )}
+                        {DiscBadge}
                         {hasVal && <ChevronDown size={12} className={`text-[#9ca3af] transition-transform ${open ? 'rotate-180' : ''}`} />}
                       </div>
                       <p className="text-[10px] text-[#9ca3af] mt-0.5">
@@ -901,9 +943,18 @@ export default function SuperadminPage() {
                     <div className="mb-3 bg-[#fafaf8] border border-[#e5e7eb] rounded-xl p-4 space-y-2">
                       <p className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-wider mb-3">Desglose de comisiones</p>
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-[#6b7280]">Gasto del cliente</span>
+                        <span className="text-xs text-[#6b7280]">Consumo (registrado por local)</span>
                         <span className="text-xs font-semibold text-[#111111]">{gasto.toFixed(2)}€</span>
                       </div>
+                      {val?.gasto_cliente != null && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-[#6b7280]">Consumo (según el cliente)</span>
+                          <span className={`text-xs font-semibold ${disc >= 15 ? 'text-red-600' : disc >= 5 ? 'text-orange-600' : disc >= 1 ? 'text-amber-600' : 'text-[#111111]'}`}>
+                            {parseFloat(val.gasto_cliente).toFixed(2)}€
+                            {disc != null && disc >= 1 && <span className="ml-1 font-normal opacity-70">({disc.toFixed(1)}% dif.)</span>}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex justify-between items-center py-1.5 border-t border-[#f3f4f6]">
                         <span className="text-xs text-[#6b7280]">Comisión total del local <span className="text-[#9ca3af]">({pctLugar}%)</span></span>
                         <span className="text-xs font-medium text-[#111111]">{comLugar.toFixed(2)}€</span>
@@ -1102,7 +1153,10 @@ export default function SuperadminPage() {
                     <option value="">Tipo de lugar</option>
                     {['Restaurante', 'Bar', 'Club', 'Hotel', 'Turismo', 'Experiencia'].map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
-                  <input placeholder="Dirección física" value={form.direccion || ''} onChange={e => setForm({ ...form, direccion: e.target.value })} className={inputClass} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input placeholder="Dirección física" value={form.direccion || ''} onChange={e => setForm({ ...form, direccion: e.target.value })} className={inputClass} />
+                    <input placeholder="Barrio / Zona" value={form.barrio || ''} onChange={e => setForm({ ...form, barrio: e.target.value })} className={inputClass} />
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-[#6b7280] mb-1 block">Descuento turistas (%)</label>
@@ -1284,6 +1338,10 @@ export default function SuperadminPage() {
                 <div>
                   <label className="text-xs text-[#6b7280] mb-1 block">Nombre del local</label>
                   <input value={form.nombre || ''} onChange={e => setForm({ ...form, nombre: e.target.value })} className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-xs text-[#6b7280] mb-1 block">Barrio / Zona</label>
+                  <input value={form.barrio || ''} onChange={e => setForm({ ...form, barrio: e.target.value })} className={inputClass} placeholder="Ej. Centro, Gràcia, Eixample..." />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>

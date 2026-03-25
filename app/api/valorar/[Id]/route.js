@@ -5,23 +5,30 @@ export async function GET(request, { params }) {
   try {
     const { id } = params
 
-    const { data: cliente, error } = await supabaseAdmin
-      .from('clientes')
-      .select('*, lugares(nombre, descuento)')
-      .eq('id', id)
-      .single()
+    const { data: val, error } = await supabaseAdmin
+      .from('valoraciones')
+      .select('*, lugares(nombre, descuento), clientes(nombre)')
+      .eq('cliente_id', id)
+      .maybeSingle()
 
-    if (error || !cliente) {
-      return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 })
+    if (error) {
+      return NextResponse.json({ error: 'Error consultando valoración' }, { status: 500 })
     }
 
-    if (cliente.valoracion) {
+    // No valoracion record or no spend confirmed yet → pending
+    if (!val || val.gasto_confirmado == null) {
+      return NextResponse.json({ pendiente: true })
+    }
+
+    // Already rated
+    if (val.valoracion != null) {
       return NextResponse.json({ yaValorado: true })
     }
 
     return NextResponse.json({
-      cliente: { nombre: cliente.nombre },
-      lugar: { nombre: cliente.lugares.nombre, descuento: cliente.lugares.descuento }
+      gasto: val.gasto_confirmado,
+      lugar: { nombre: val.lugares?.nombre, descuento: val.lugares?.descuento },
+      cliente: { nombre: val.clientes?.nombre }
     })
   } catch (globalError) {
     console.error('Crash API /valorar GET:', globalError)
@@ -32,61 +39,82 @@ export async function GET(request, { params }) {
 export async function POST(request, { params }) {
   try {
     const { id } = params
-    const { gasto, valoracion } = await request.json()
 
-    if (!gasto || !valoracion || valoracion < 1 || valoracion > 5) {
-      return NextResponse.json({ error: 'Datos numéricos inválidos' }, { status: 400 })
+    const formData = await request.formData()
+    const valoracionRaw = formData.get('valoracion')
+    const gastoClienteRaw = formData.get('gasto_cliente')
+    const foto = formData.get('foto')
+
+    const valoracion = parseInt(valoracionRaw, 10)
+    if (!valoracion || valoracion < 1 || valoracion > 5) {
+      return NextResponse.json({ error: 'Valoración inválida (1-5)' }, { status: 400 })
     }
 
-    const { data: cliente, error: cliError } = await supabaseAdmin
-      .from('clientes')
-      .select('valoracion, lugar_id, referidor_id')
-      .eq('id', id)
-      .single()
+    const gastoCliente = gastoClienteRaw ? parseFloat(gastoClienteRaw) : null
 
-    if (cliError || !cliente) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
-    if (cliente.valoracion) return NextResponse.json({ error: 'El ticket ya fue cobrado y valorado.' }, { status: 400 })
+    // Get the existing valoracion record
+    const { data: val, error: valError } = await supabaseAdmin
+      .from('valoraciones')
+      .select('id, valoracion, gasto_confirmado')
+      .eq('cliente_id', id)
+      .maybeSingle()
 
-    // -- INICIO SPLIT ENGINE (Cálculo B2B de Comisiones Jerárquicas) --
-    // 1. Obtener porcentajes base del Local y del Referidor
-    const { data: lugar } = await supabaseAdmin.from('lugares').select('porcentaje_plataforma').eq('id', cliente.lugar_id).single()
-    const { data: referidor } = await supabaseAdmin.from('referidores').select('agencia_id, porcentaje_split').eq('id', cliente.referidor_id).single()
-
-    const perc_plataforma = lugar?.porcentaje_plataforma != null ? parseFloat(lugar.porcentaje_plataforma) : 20.00
-    const perc_rrpp = referidor?.porcentaje_split != null ? parseFloat(referidor.porcentaje_split) : 50.00
-
-    const com_lugar = parseFloat(gasto) * (perc_plataforma / 100)
-    let com_agencia = 0
-    let com_rrpp = com_lugar * (perc_rrpp / 100)
-
-    if (referidor?.agencia_id) {
-      const { data: agencia } = await supabaseAdmin.from('agencias').select('porcentaje_split').eq('id', referidor.agencia_id).single()
-      const perc_agencia = agencia?.porcentaje_split != null ? parseFloat(agencia.porcentaje_split) : 30.00
-      com_agencia = com_lugar * (perc_agencia / 100)
+    if (valError || !val) {
+      return NextResponse.json({ error: 'Valoración no encontrada. El local debe confirmar la visita primero.' }, { status: 404 })
     }
-    // -- FIN SPLIT ENGINE --
 
-    await supabaseAdmin
-      .from('clientes')
-      .update({ gasto, valoracion, valorado_at: new Date().toISOString() })
-      .eq('id', id)
+    if (val.valoracion != null) {
+      return NextResponse.json({ error: 'Esta visita ya fue valorada.' }, { status: 400 })
+    }
 
+    // Upload photo if provided
+    let ticketUrl = null
+    if (foto && foto.size > 0) {
+      const buffer = Buffer.from(await foto.arrayBuffer())
+      const ext = foto.name?.split('.').pop() || 'jpg'
+      const fileName = `review_${id}_${Date.now()}.${ext}`
+
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from('tickets')
+        .upload(fileName, buffer, { contentType: foto.type, upsert: false })
+
+      if (!uploadError) {
+        const { data: urlData } = supabaseAdmin.storage
+          .from('tickets')
+          .getPublicUrl(fileName)
+        ticketUrl = urlData?.publicUrl || null
+      }
+    }
+
+    const now = new Date().toISOString()
+
+    // Calcular discrepancia si el cliente indicó su gasto
+    let discrepancia_pct = null
+    if (gastoCliente != null && val.gasto_confirmado > 0) {
+      discrepancia_pct = Math.abs(gastoCliente - val.gasto_confirmado) / val.gasto_confirmado * 100
+    }
+
+    // Update valoracion record
     await supabaseAdmin
       .from('valoraciones')
-      .insert({
-        cliente_id: id,
-        lugar_id: cliente.lugar_id,
-        referidor_id: cliente.referidor_id,
-        gasto,
+      .update({
         valoracion,
-        comision_lugar: com_lugar,
-        comision_agencia: com_agencia,
-        comision_referidor: com_rrpp
+        ...(gastoCliente != null ? { gasto_cliente: gastoCliente } : {}),
+        ...(discrepancia_pct != null ? { discrepancia_pct } : {}),
+        ...(ticketUrl ? { ticket_url: ticketUrl } : {}),
+        valorado_at: now
       })
+      .eq('id', val.id)
+
+    // Update clientes table
+    await supabaseAdmin
+      .from('clientes')
+      .update({ valoracion, valorado_at: now })
+      .eq('id', id)
 
     return NextResponse.json({ ok: true })
   } catch (globalError) {
     console.error('Crash API /valorar POST:', globalError)
-    return NextResponse.json({ error: 'Error interno registrando la recaudación.' }, { status: 500 })
+    return NextResponse.json({ error: 'Error interno registrando la valoración.' }, { status: 500 })
   }
 }

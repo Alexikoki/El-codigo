@@ -17,7 +17,7 @@ export async function GET(request) {
       .select(`id, nombre, email, num_personas, verificado, verificado_at, created_at, lugar_id, referidor_id,
         lugares(nombre, porcentaje_plataforma),
         referidores(nombre, porcentaje_split, agencia_id, agencias(nombre, porcentaje_split)),
-        valoraciones(gasto_confirmado, comision_lugar, comision_agencia, comision_referidor)`)
+        valoraciones(gasto_confirmado, gasto_cliente, discrepancia_pct, comision_lugar, comision_agencia, comision_referidor, valoracion, ticket_url)`)
       .order('created_at', { ascending: false })
       .limit(200)
 

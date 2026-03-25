@@ -8,6 +8,7 @@ export default function ValorarPage({ params }) {
   const [info, setInfo] = useState(null)
   const [estado, setEstado] = useState('cargando')
   const [valoracion, setValoracion] = useState(0)
+  const [gastoCliente, setGastoCliente] = useState('')
   const [foto, setFoto] = useState(null)
   const [preview, setPreview] = useState(null)
   const [error, setError] = useState('')
@@ -68,6 +69,7 @@ export default function ValorarPage({ params }) {
     try {
       const fd = new FormData()
       fd.append('valoracion', valoracion)
+      if (gastoCliente !== '') fd.append('gasto_cliente', gastoCliente)
       if (foto) fd.append('foto', foto)
 
       const res = await fetch(`/api/valorar/${info.id}`, {
@@ -174,13 +176,28 @@ export default function ValorarPage({ params }) {
             </div>
 
             <div className="space-y-5">
-              {/* Gasto confirmado (read-only) */}
+              {/* Gasto del local (read-only) */}
               {info?.gasto != null && (
                 <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-xl px-4 py-3 flex items-center justify-between">
-                  <span className="text-sm text-[#6b7280]">Consumo registrado</span>
+                  <span className="text-sm text-[#6b7280]">Consumo registrado por el local</span>
                   <span className="text-sm font-bold text-[#111111] font-mono">{parseFloat(info.gasto).toFixed(2)}€</span>
                 </div>
               )}
+
+              {/* Gasto del cliente (editable) */}
+              <div>
+                <label className="text-sm font-medium text-[#374151] mb-1.5 block">¿Cuánto pagaste tú? <span className="text-[#9ca3af] font-normal text-xs">(opcional)</span></label>
+                <div className="relative">
+                  <input
+                    type="number" min="0" step="0.01"
+                    value={gastoCliente}
+                    onChange={e => setGastoCliente(e.target.value)}
+                    placeholder={info?.gasto != null ? parseFloat(info.gasto).toFixed(2) : '0.00'}
+                    className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-xl px-4 py-3 pr-8 text-sm focus:outline-none transition-colors bg-white"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9ca3af] text-sm">€</span>
+                </div>
+              </div>
 
               {/* Star rating */}
               <div>
