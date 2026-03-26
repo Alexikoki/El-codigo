@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
 import { rateLimit, getIP } from '../../../../lib/rateLimit'
@@ -112,16 +113,33 @@ export async function POST(request) {
   const perc_plataforma = lugar?.porcentaje_plataforma != null ? parseFloat(lugar.porcentaje_plataforma) : 20.00
   const perc_rrpp = referidor?.porcentaje_split != null ? parseFloat(referidor.porcentaje_split) : 50.00
 
+  // com_lugar = comisión total que cobra la plataforma al local
   const com_lugar = gastoConfirmado * (perc_plataforma / 100)
   let com_agencia = 0
-  let com_rrpp = com_lugar * (perc_rrpp / 100)
+  let com_rrpp = 0
 
   if (referidor?.agencia_id) {
+    // Con agencia: el referidor se lleva su %, la agencia el resto
     const { data: agencia } = await supabaseAdmin.from('agencias').select('porcentaje_split').eq('id', referidor.agencia_id).single()
     const perc_agencia = agencia?.porcentaje_split != null ? parseFloat(agencia.porcentaje_split) : 30.00
+    // perc_rrpp = % que se lleva el referidor de com_lugar
+    // perc_agencia = % que se lleva la agencia de com_lugar
+    // La plataforma se queda el resto (100 - perc_rrpp - perc_agencia)%
+    com_rrpp = com_lugar * (perc_rrpp / 100)
     com_agencia = com_lugar * (perc_agencia / 100)
+    // Validar que no supere el 100% de com_lugar
+    if (com_rrpp + com_agencia > com_lugar) {
+      const total = perc_rrpp + perc_agencia
+      com_rrpp = com_lugar * (perc_rrpp / total)
+      com_agencia = com_lugar * (perc_agencia / total)
+    }
+  } else {
+    // Sin agencia: el referidor se lleva su % directo
     com_rrpp = com_lugar * (perc_rrpp / 100)
   }
+
+  // Token seguro para el link de valoración del cliente
+  const tokenValoracion = crypto.randomBytes(32).toString('hex')
 
   const update = {
     gasto_confirmado: gastoConfirmado,
@@ -129,6 +147,7 @@ export async function POST(request) {
     comision_lugar: com_lugar,
     comision_agencia: com_agencia,
     comision_referidor: com_rrpp,
+    token_valoracion: tokenValoracion,
     ...(ticket_url && { ticket_url })
   }
 
@@ -164,7 +183,8 @@ export async function POST(request) {
         email: clienteEmail.email,
         clienteId,
         lugarNombre: lugarInfo?.nombre || '',
-        gastoConfirmado
+        gastoConfirmado,
+        token: tokenValoracion
       })
     }
   } catch (e) {

@@ -15,9 +15,11 @@ export default function ValorarPage({ params }) {
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [clienteId, setClienteId] = useState('')
   const pollingRef = useRef(null)
+  const [token, setToken] = useState('')
 
-  async function consultarEstado(id) {
-    const res = await fetch(`/api/valorar/${id}`)
+  async function consultarEstado(id, t) {
+    const res = await fetch(`/api/valorar/${id}${t ? `?t=${t}` : ''}`)
+    if (res.status === 403) { setEstado('invalido'); return true }
     const data = await res.json()
     if (data.yaValorado) { setEstado('yaValorado'); return true }
     if (!data.pendiente) { setInfo({ ...data, id }); setEstado('formulario'); return true }
@@ -27,9 +29,12 @@ export default function ValorarPage({ params }) {
   async function cargarInfo() {
     if (typeof window === 'undefined') return
     const id = window.location.pathname.split('/').pop()
+    const urlParams = new URLSearchParams(window.location.search)
+    const t = urlParams.get('t') || ''
+    setToken(t)
     setClienteId(id)
     try {
-      const done = await consultarEstado(id)
+      const done = await consultarEstado(id, t)
       if (!done) {
         setEstado('pendiente')
         // Generar QR de esta misma URL para mostrar al staff
@@ -47,11 +52,11 @@ export default function ValorarPage({ params }) {
   useEffect(() => {
     if (estado !== 'pendiente' || !clienteId) return
     pollingRef.current = setInterval(async () => {
-      const done = await consultarEstado(clienteId)
+      const done = await consultarEstado(clienteId, token)
       if (done) clearInterval(pollingRef.current)
     }, 4000)
     return () => clearInterval(pollingRef.current)
-  }, [estado, clienteId])
+  }, [estado, clienteId, token])
 
   useEffect(() => { cargarInfo() }, [])
 
@@ -71,6 +76,7 @@ export default function ValorarPage({ params }) {
       fd.append('valoracion', valoracion)
       if (gastoCliente !== '') fd.append('gasto_cliente', gastoCliente)
       if (foto) fd.append('foto', foto)
+      if (token) fd.append('token', token)
 
       const res = await fetch(`/api/valorar/${info.id}`, {
         method: 'POST',
@@ -102,6 +108,18 @@ export default function ValorarPage({ params }) {
   return (
     <div className="min-h-screen bg-[#fafaf8] flex items-center justify-center p-4">
       <AnimatePresence mode="wait">
+
+        {estado === 'invalido' && (
+          <motion.div key="invalido" variants={cardVars} initial="hidden" animate="visible" exit="exit"
+            className="bg-white border border-[#e5e7eb] rounded-2xl p-8 w-full max-w-sm text-center shadow-sm"
+          >
+            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
+              <X size={28} className="text-red-500" />
+            </div>
+            <h2 className="text-lg font-bold text-[#111111] mb-2">Enlace inválido</h2>
+            <p className="text-[#6b7280] text-sm">Este enlace de valoración no es válido o ha expirado. Usa el enlace que recibiste en tu email.</p>
+          </motion.div>
+        )}
 
         {estado === 'pendiente' && (
           <motion.div key="pendiente" variants={cardVars} initial="hidden" animate="visible" exit="exit"
