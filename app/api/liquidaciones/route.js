@@ -111,6 +111,7 @@ export async function PATCH(request) {
 
   const { id, estado } = await request.json()
   if (!id || !estado) return NextResponse.json({ error: 'Faltan campos' }, { status: 400 })
+  if (!['pendiente', 'pagado'].includes(estado)) return NextResponse.json({ error: 'Estado no válido' }, { status: 400 })
 
   // Si es agencia, verificar que la liquidación es de uno de sus promotores
   if (esAgencia) {

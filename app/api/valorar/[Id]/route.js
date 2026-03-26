@@ -68,10 +68,14 @@ export async function POST(request, { params }) {
     }
 
     // Upload photo if provided
+    const MAX_FOTO_SIZE = 5 * 1024 * 1024 // 5MB
+    const VALID_FOTO_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic' }
     let ticketUrl = null
     if (foto && foto.size > 0) {
+      if (foto.size > MAX_FOTO_SIZE) return NextResponse.json({ error: 'Imagen demasiado grande (máx 5MB)' }, { status: 400 })
+      if (!VALID_FOTO_TYPES[foto.type]) return NextResponse.json({ error: 'Formato de imagen no válido' }, { status: 400 })
       const buffer = Buffer.from(await foto.arrayBuffer())
-      const ext = foto.name?.split('.').pop() || 'jpg'
+      const ext = VALID_FOTO_TYPES[foto.type]
       const fileName = `review_${id}_${Date.now()}.${ext}`
 
       const { error: uploadError } = await supabaseAdmin.storage

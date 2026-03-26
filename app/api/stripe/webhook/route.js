@@ -60,7 +60,8 @@ export async function POST(request) {
     const account = event.data.object
     if (account.details_submitted && account.charges_enabled) {
       const meta = account.metadata || {}
-      if (meta.tabla && meta.id) {
+      const TABLAS_PERMITIDAS = ['referidores', 'agencias', 'managers_locales']
+      if (meta.tabla && meta.id && TABLAS_PERMITIDAS.includes(meta.tabla)) {
         await supabaseAdmin
           .from(meta.tabla)
           .update({ stripe_onboarded: true })
