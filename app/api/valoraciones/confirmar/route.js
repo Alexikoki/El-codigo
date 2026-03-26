@@ -107,8 +107,10 @@ export async function POST(request) {
   }
 
   // Calcular comisiones con el importe confirmado
-  const { data: lugar } = await supabaseAdmin.from('lugares').select('porcentaje_plataforma').eq('id', payload.lugarId).single()
-  const { data: referidor } = await supabaseAdmin.from('referidores').select('agencia_id, porcentaje_split').eq('id', cliente.referidor_id).single()
+  const [{ data: lugar }, { data: referidor }] = await Promise.all([
+    supabaseAdmin.from('lugares').select('porcentaje_plataforma').eq('id', payload.lugarId).single(),
+    supabaseAdmin.from('referidores').select('agencia_id, porcentaje_split').eq('id', cliente.referidor_id).single()
+  ])
 
   const perc_plataforma = lugar?.porcentaje_plataforma != null ? parseFloat(lugar.porcentaje_plataforma) : 20.00
   const perc_rrpp = referidor?.porcentaje_split != null ? parseFloat(referidor.porcentaje_split) : 50.00

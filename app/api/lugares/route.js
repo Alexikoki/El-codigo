@@ -93,14 +93,19 @@ export async function DELETE(request) {
   const { data: clientesLocal } = await supabaseAdmin.from('clientes').select('id').eq('lugar_id', id)
   const clienteIds = (clientesLocal || []).map(c => c.id)
 
-  // Borrar en cascada: liquidaciones → valoraciones → clientes → staff → manager → lugar
-  if (clienteIds.length > 0) {
-    await supabaseAdmin.from('liquidaciones').delete().in('cliente_id', clienteIds)
-  }
-  await supabaseAdmin.from('valoraciones').delete().eq('lugar_id', id)
-  await supabaseAdmin.from('clientes').delete().eq('lugar_id', id)
-  await supabaseAdmin.from('staff').delete().eq('lugar_id', id)
-  await supabaseAdmin.from('managers_locales').delete().eq('lugar_id', id)
+  // Borrar en cascada paralelizando queries independientes
+  // Paso 1: liquidaciones + valoraciones (no dependen entre sí)
+  await Promise.all([
+    clienteIds.length > 0 ? supabaseAdmin.from('liquidaciones').delete().in('cliente_id', clienteIds) : null,
+    supabaseAdmin.from('valoraciones').delete().eq('lugar_id', id)
+  ])
+  // Paso 2: clientes + staff + managers (dependen de paso 1 por FK)
+  await Promise.all([
+    supabaseAdmin.from('clientes').delete().eq('lugar_id', id),
+    supabaseAdmin.from('staff').delete().eq('lugar_id', id),
+    supabaseAdmin.from('managers_locales').delete().eq('lugar_id', id)
+  ])
+  // Paso 3: lugar (depende de paso 2)
   const { error } = await supabaseAdmin.from('lugares').delete().eq('id', id)
   if (error) return NextResponse.json({ error: 'Error al eliminar' }, { status: 500 })
 

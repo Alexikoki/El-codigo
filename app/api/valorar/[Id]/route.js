@@ -64,7 +64,7 @@ export async function POST(request, { params }) {
     // Get the existing valoracion record
     const { data: val, error: valError } = await supabaseAdmin
       .from('valoraciones')
-      .select('id, valoracion, gasto_confirmado, comision_lugar, comision_agencia, comision_referidor, lugar_id, referidor_id, token_valoracion')
+      .select('id, valoracion, gasto_confirmado, comision_lugar, comision_agencia, comision_referidor, lugar_id, referidor_id, token_valoracion, referidores(agencia_id)')
       .eq('cliente_id', id)
       .maybeSingle()
 
@@ -130,16 +130,13 @@ export async function POST(request, { params }) {
             .eq('referidor_id', val.referidor_id)
             .eq('estado', 'pendiente')
         }
-        if (comisionUpdate.comision_agencia > 0) {
-          const { data: ref } = await supabaseAdmin.from('referidores')
-            .select('agencia_id').eq('id', val.referidor_id).single()
-          if (ref?.agencia_id) {
-            await supabaseAdmin.from('liquidaciones')
-              .update({ importe: comisionUpdate.comision_agencia })
-              .eq('cliente_id', id)
-              .eq('agencia_id', ref.agencia_id)
-              .eq('estado', 'pendiente')
-          }
+        const agenciaId = val.referidores?.agencia_id
+        if (comisionUpdate.comision_agencia > 0 && agenciaId) {
+          await supabaseAdmin.from('liquidaciones')
+            .update({ importe: comisionUpdate.comision_agencia })
+            .eq('cliente_id', id)
+            .eq('agencia_id', agenciaId)
+            .eq('estado', 'pendiente')
         }
       }
     }

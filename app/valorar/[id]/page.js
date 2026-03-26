@@ -48,14 +48,21 @@ export default function ValorarPage({ params }) {
     }
   }
 
-  // Polling: mientras pendiente, comprobar cada 4s si el staff ya confirmó
+  // Polling con backoff: 4s → 8s → 16s → ... → 60s max, para 15 min
   useEffect(() => {
     if (estado !== 'pendiente' || !clienteId) return
-    pollingRef.current = setInterval(async () => {
+    let delay = 4000
+    let attempts = 0
+    const maxAttempts = 60 // ~15 min con backoff
+    const poll = async () => {
       const done = await consultarEstado(clienteId, token)
-      if (done) clearInterval(pollingRef.current)
-    }, 4000)
-    return () => clearInterval(pollingRef.current)
+      attempts++
+      if (done || attempts >= maxAttempts) return
+      delay = Math.min(delay * 1.5, 60000)
+      pollingRef.current = setTimeout(poll, delay)
+    }
+    pollingRef.current = setTimeout(poll, delay)
+    return () => clearTimeout(pollingRef.current)
   }, [estado, clienteId, token])
 
   useEffect(() => { cargarInfo() }, [])
