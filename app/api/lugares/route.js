@@ -18,7 +18,7 @@ export async function GET(request) {
 
   const { data: lugares } = await supabaseAdmin
     .from('lugares')
-    .select('id, nombre, tipo')
+    .select('id, nombre, tipo, barrio, descuento')
     .eq('activo', true)
     .order('nombre')
 
@@ -89,7 +89,14 @@ export async function DELETE(request) {
   const { id } = await request.json()
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
 
-  // Borrar en cascada: valoraciones → clientes → staff → manager → lugar
+  // Obtener IDs de clientes y referidores del local para borrar liquidaciones
+  const { data: clientesLocal } = await supabaseAdmin.from('clientes').select('id').eq('lugar_id', id)
+  const clienteIds = (clientesLocal || []).map(c => c.id)
+
+  // Borrar en cascada: liquidaciones → valoraciones → clientes → staff → manager → lugar
+  if (clienteIds.length > 0) {
+    await supabaseAdmin.from('liquidaciones').delete().in('cliente_id', clienteIds)
+  }
   await supabaseAdmin.from('valoraciones').delete().eq('lugar_id', id)
   await supabaseAdmin.from('clientes').delete().eq('lugar_id', id)
   await supabaseAdmin.from('staff').delete().eq('lugar_id', id)

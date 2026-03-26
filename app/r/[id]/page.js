@@ -9,6 +9,8 @@ export default function FormularioClientePage() {
   const [qrToken, setQrToken] = useState('')
   const [referidor, setReferidor] = useState(null)
   const [lugares, setLugares] = useState([])
+  const [barrios, setBarrios] = useState([])
+  const [barrioSeleccionado, setBarrioSeleccionado] = useState('')
   const [form, setForm] = useState({ nombre: '', email: '', numPersonas: 1, lugarId: '' })
   const [estado, setEstado] = useState('cargando')
   const [clienteId, setClienteId] = useState(null)
@@ -33,7 +35,11 @@ export default function FormularioClientePage() {
       setReferidor(await resRef.json())
       if (resLug.ok) {
         const data = await resLug.json()
-        setLugares(data.lugares || [])
+        const lugs = data.lugares || []
+        setLugares(lugs)
+        // Extraer barrios únicos
+        const barriosUnicos = [...new Set(lugs.map(l => l.barrio).filter(Boolean))].sort()
+        setBarrios(barriosUnicos)
       }
       setEstado('formulario')
     } else {
@@ -207,27 +213,42 @@ export default function FormularioClientePage() {
                   value={form.email} onChange={handleChange} className={inputClass} />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="relative">
-                  <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={16} />
-                  <select name="numPersonas" value={form.numPersonas} onChange={handleChange}
-                    className={`${inputClass} appearance-none`}>
-                    {Array.from({ length: 20 }, (_, i) => i + 1).map(n => (
-                      <option key={n} value={n}>{n} {n === 1 ? 'persona' : 'personas'}</option>
-                    ))}
-                  </select>
-                </div>
+              <div className="relative">
+                <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={16} />
+                <select name="numPersonas" value={form.numPersonas} onChange={handleChange}
+                  className={`${inputClass} appearance-none`}>
+                  {Array.from({ length: 20 }, (_, i) => i + 1).map(n => (
+                    <option key={n} value={n}>{n} {n === 1 ? 'persona' : 'personas'}</option>
+                  ))}
+                </select>
+              </div>
 
+              {barrios.length > 0 && (
                 <div className="relative">
                   <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={16} />
-                  <select name="lugarId" value={form.lugarId} onChange={handleChange}
+                  <select value={barrioSeleccionado}
+                    onChange={e => { setBarrioSeleccionado(e.target.value); setForm({ ...form, lugarId: '' }) }}
                     className={`${inputClass} appearance-none`}>
-                    <option value="">Selecciona el local</option>
-                    {lugares.map(l => (
-                      <option key={l.id} value={l.id}>{l.nombre}</option>
+                    <option value="">Selecciona la zona</option>
+                    {barrios.map(b => (
+                      <option key={b} value={b}>{b}</option>
                     ))}
                   </select>
                 </div>
+              )}
+
+              <div className="relative">
+                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={16} />
+                <select name="lugarId" value={form.lugarId} onChange={handleChange}
+                  className={`${inputClass} appearance-none`}
+                  disabled={barrios.length > 0 && !barrioSeleccionado}>
+                  <option value="">{barrios.length > 0 && !barrioSeleccionado ? 'Selecciona primero una zona' : 'Selecciona el local'}</option>
+                  {lugares
+                    .filter(l => !barrioSeleccionado || l.barrio === barrioSeleccionado)
+                    .map(l => (
+                      <option key={l.id} value={l.id}>{l.nombre}</option>
+                    ))}
+                </select>
               </div>
             </div>
 

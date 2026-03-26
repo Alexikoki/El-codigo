@@ -26,8 +26,6 @@ export default function ManagerPage() {
   const [resumenPago, setResumenPago] = useState(null)
   const [cargandoPago, setCargandoPago] = useState(false)
   const [pagando, setPagando] = useState(false)
-  const [periodoDesde, setPeriodoDesde] = useState('')
-  const [periodoHasta, setPeriodoHasta] = useState('')
   const [staffList, setStaffList] = useState([])
   const [cargandoStaff, setCargandoStaff] = useState(false)
   const [modalNuevoStaff, setModalNuevoStaff] = useState(false)
@@ -149,24 +147,23 @@ export default function ManagerPage() {
     setStaffList(prev => prev.map(s => s.id === id ? { ...s, activo: !activo } : s))
   }
 
-  const cargarResumenPago = async (desde, hasta) => {
+  const cargarResumenPago = async () => {
     setCargandoPago(true)
     setResumenPago(null)
     try {
-      const res = await fetch(`/api/stripe/pago-manager?desde=${desde}&hasta=${hasta}`, { credentials: 'include' })
+      const res = await fetch('/api/stripe/pago-manager', { credentials: 'include' })
       if (res.ok) setResumenPago(await res.json())
     } finally { setCargandoPago(false) }
   }
 
   const iniciarPago = async () => {
-    if (!periodoDesde || !periodoHasta) return
     setPagando(true)
     try {
       const res = await fetch('/api/stripe/pago-manager', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ periodo_desde: periodoDesde, periodo_hasta: periodoHasta })
+        body: JSON.stringify({})
       })
       const data = await res.json()
       if (res.ok && data.checkoutUrl) {
@@ -175,29 +172,16 @@ export default function ManagerPage() {
     } finally { setPagando(false) }
   }
 
-  // Cargar pagos del mes actual automáticamente
-  const inicializarPagos = () => {
-    const hoy = new Date()
-    const desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0]
-    const hasta = hoy.toISOString().split('T')[0]
-    setPeriodoDesde(desde)
-    setPeriodoHasta(hasta)
-    cargarResumenPago(desde, hasta)
-  }
-
   const exportarLiquidacionesPDF = async () => {
     toast.loading('Generando PDF...', { id: 'pdf-liq' })
     try {
-      const params = new URLSearchParams()
-      if (periodoDesde) params.set('desde', periodoDesde)
-      if (periodoHasta) params.set('hasta', periodoHasta)
-      const res = await fetch(`/api/export/pdf-liquidaciones?${params}`, { credentials: 'include' })
+      const res = await fetch('/api/export/pdf-liquidaciones', { credentials: 'include' })
       if (!res.ok) throw new Error('Fallo al generar el PDF')
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `liquidaciones_${periodoDesde || 'todo'}_${periodoHasta || 'todo'}.pdf`
+      a.download = `liquidaciones_${new Date().toISOString().split('T')[0]}.pdf`
       document.body.appendChild(a); a.click()
       window.URL.revokeObjectURL(url)
       toast.success('PDF descargado', { id: 'pdf-liq' })
@@ -253,7 +237,7 @@ export default function ManagerPage() {
         <div className="flex gap-1 bg-[#f3f4f6] rounded-xl p-1">
           {[['dashboard', <BarChart3 size={14} />, t('manager','dashboard')], ['equipo', <Shield size={14} />, t('manager','team')], ['pagos', <CreditCard size={14} />, t('manager','payments')]].map(([key, icon, label]) => (
             <button key={key}
-              onClick={() => { setTab(key); if (key === 'equipo' && staffList.length === 0) cargarStaff(); if (key === 'pagos') inicializarPagos() }}
+              onClick={() => { setTab(key); if (key === 'equipo' && staffList.length === 0) cargarStaff(); if (key === 'pagos') cargarResumenPago() }}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${tab === key ? 'bg-white text-[#111111] shadow-sm' : 'text-[#6b7280] hover:text-[#374151]'}`}
             >{icon}{label}</button>
           ))}
@@ -266,14 +250,10 @@ export default function ManagerPage() {
         {tab === 'pagos' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
 
-            {/* Cabecera con período */}
+            {/* Cabecera */}
             <div>
-              <h2 className="text-sm font-semibold text-[#111111]">Liquidación del mes</h2>
-              {periodoDesde && periodoHasta && (
-                <p className="text-xs text-[#9ca3af] mt-0.5">
-                  {new Date(periodoDesde).toLocaleDateString('es-ES', { day: '2-digit', month: 'long' })} — {new Date(periodoHasta).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
-                </p>
-              )}
+              <h2 className="text-sm font-semibold text-[#111111]">Comisiones pendientes</h2>
+              <p className="text-xs text-[#9ca3af] mt-0.5">Resumen de deuda acumulada con la plataforma</p>
             </div>
 
             {/* Skeleton / Resumen */}
