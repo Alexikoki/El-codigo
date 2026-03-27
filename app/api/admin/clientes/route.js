@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { requireAuth } from '../../../../lib/auth'
+import { checkRateLimit } from '../../../../lib/rateLimitMiddleware'
+import { validateBody, clienteUpdateSchema, idSchema } from '../../../../lib/validation'
 
 export async function GET(request) {
   const { response } = requireAuth(request, 'superadmin')
@@ -34,12 +36,17 @@ export async function GET(request) {
 }
 
 export async function PATCH(request) {
+  const rl = checkRateLimit(request, { limite: 20, ventanaMs: 60000 })
+  if (rl) return rl
   const { response } = requireAuth(request, 'superadmin')
   if (response) return response
 
   try {
-    const { id, nombre, num_personas, referidor_id } = await request.json()
-    if (!id) return NextResponse.json({ error: 'Falta el id' }, { status: 400 })
+    const body = await request.json()
+    const { data: validated, response: valErr } = validateBody(body, clienteUpdateSchema)
+    if (valErr) return valErr
+    const { id, nombre, num_personas } = validated
+    const referidor_id = body.referidor_id // optional, not in schema
 
     const update = {}
     if (nombre !== undefined) update.nombre = nombre.trim()
@@ -57,12 +64,16 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
+  const rl = checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
+  if (rl) return rl
   const { response } = requireAuth(request, 'superadmin')
   if (response) return response
 
   try {
-    const { id } = await request.json()
-    if (!id) return NextResponse.json({ error: 'Falta el id' }, { status: 400 })
+    const body = await request.json()
+    const result = idSchema.safeParse(body.id)
+    if (!result.success) return NextResponse.json({ error: 'ID no válido' }, { status: 400 })
+    const id = result.data
 
     await Promise.all([
       supabaseAdmin.from('valoraciones').delete().eq('cliente_id', id),

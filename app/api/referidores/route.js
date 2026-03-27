@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { requireAuth } from '../../../lib/auth'
+import { checkRateLimit } from '../../../lib/rateLimitMiddleware'
+import { validateBody, referidorSchema } from '../../../lib/validation'
 import { generarQRToken } from '../../../lib/qr'
 import bcrypt from 'bcryptjs'
 
@@ -17,13 +19,15 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const rl = checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
+  if (rl) return rl
   const { response } = requireAuth(request, 'superadmin')
   if (response) return response
 
-  const { nombre, email, password } = await request.json()
-  if (!nombre || !email || !password) {
-    return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
-  }
+  const body = await request.json()
+  const { data: validated, response: valErr } = validateBody(body, referidorSchema)
+  if (valErr) return valErr
+  const { nombre, email, password } = validated
 
   const password_hash = await bcrypt.hash(password, 12)
   const qr_token = generarQRToken()
@@ -44,6 +48,8 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
+  const rl = checkRateLimit(request, { limite: 20, ventanaMs: 60000 })
+  if (rl) return rl
   const { response } = requireAuth(request, 'superadmin')
   if (response) return response
 

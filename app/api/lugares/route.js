@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { requireAuth } from '../../../lib/auth'
 import { verificarToken, extraerTokenDeCookie } from '../../../lib/jwt'
+import { checkRateLimit } from '../../../lib/rateLimitMiddleware'
+import { validateBody, lugarSchema, lugarUpdateSchema, idSchema } from '../../../lib/validation'
 import bcrypt from 'bcryptjs'
 
 export async function GET(request) {
@@ -27,21 +29,18 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const rl = checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
+  if (rl) return rl
   const { response } = requireAuth(request, 'superadmin')
   if (response) return response
 
-  const { nombre, tipo, descripcion, direccion, barrio, descuento, porcentaje_plataforma,
-          manager_nombre, manager_email, manager_password } = await request.json()
+  const body = await request.json()
+  const { data: validated, response: valErr } = validateBody(body, lugarSchema)
+  if (valErr) return valErr
 
-  if (!nombre || !tipo) {
-    return NextResponse.json({ error: 'Faltan nombre y tipo' }, { status: 400 })
-  }
-  if (!manager_nombre || !manager_email || !manager_password) {
-    return NextResponse.json({ error: 'Faltan datos del manager (nombre, email y contraseña)' }, { status: 400 })
-  }
-  if (manager_password.length < 6) {
-    return NextResponse.json({ error: 'La contraseña del manager debe tener al menos 6 caracteres' }, { status: 400 })
-  }
+  const { nombre, tipo, direccion, barrio, descuento, porcentaje_plataforma,
+          manager_nombre, manager_email, manager_password } = validated
+  const descripcion = body.descripcion || ''
 
   const { data: emailExistente } = await supabaseAdmin
     .from('managers_locales').select('id').eq('email', manager_email).single()
@@ -76,11 +75,15 @@ export async function POST(request) {
 }
 
 export async function DELETE(request) {
+  const rl = checkRateLimit(request, { limite: 5, ventanaMs: 60000 })
+  if (rl) return rl
   const { response } = requireAuth(request, 'superadmin')
   if (response) return response
 
-  const { id } = await request.json()
-  if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
+  const body = await request.json()
+  const result = idSchema.safeParse(body.id)
+  if (!result.success) return NextResponse.json({ error: 'ID no válido' }, { status: 400 })
+  const id = result.data
 
   const { data: clientesLocal } = await supabaseAdmin.from('clientes').select('id').eq('lugar_id', id)
   const clienteIds = (clientesLocal || []).map(c => c.id)
@@ -101,18 +104,22 @@ export async function DELETE(request) {
 }
 
 export async function PATCH(request) {
+  const rl = checkRateLimit(request, { limite: 20, ventanaMs: 60000 })
+  if (rl) return rl
   const { response } = requireAuth(request, 'superadmin')
   if (response) return response
 
-  const { id, nombre, descuento, porcentaje_plataforma, activo, barrio } = await request.json()
-  if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
+  const body = await request.json()
+  const { data: validated, response: valErr } = validateBody(body, lugarUpdateSchema)
+  if (valErr) return valErr
 
+  const { id, ...fields } = validated
   const update = {}
-  if (nombre !== undefined) update.nombre = nombre
-  if (descuento !== undefined) update.descuento = parseInt(descuento)
-  if (porcentaje_plataforma !== undefined) update.porcentaje_plataforma = parseFloat(porcentaje_plataforma)
-  if (activo !== undefined) update.activo = activo
-  if (barrio !== undefined) update.barrio = barrio
+  if (fields.nombre !== undefined) update.nombre = fields.nombre
+  if (fields.descuento !== undefined) update.descuento = fields.descuento
+  if (fields.porcentaje_plataforma !== undefined) update.porcentaje_plataforma = fields.porcentaje_plataforma
+  if (fields.activo !== undefined) update.activo = fields.activo
+  if (fields.barrio !== undefined) update.barrio = fields.barrio
 
   await supabaseAdmin.from('lugares').update(update).eq('id', id)
   return NextResponse.json({ ok: true })

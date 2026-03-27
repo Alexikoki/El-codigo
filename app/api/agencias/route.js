@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { requireAuth } from '../../../lib/auth'
+import { checkRateLimit } from '../../../lib/rateLimitMiddleware'
+import { validateBody, agenciaSchema } from '../../../lib/validation'
 import bcrypt from 'bcryptjs'
 
 // GET — superadmin lista todas las agencias
@@ -19,13 +21,15 @@ export async function GET(request) {
 
 // POST — superadmin crea una agencia
 export async function POST(request) {
+  const rl = checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
+  if (rl) return rl
   const { response } = requireAuth(request, 'superadmin')
   if (response) return response
 
-  const { nombre, email, password } = await request.json()
-  if (!nombre || !email || !password) {
-    return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
-  }
+  const body = await request.json()
+  const { data: validated, response: valErr } = validateBody(body, agenciaSchema)
+  if (valErr) return valErr
+  const { nombre, email, password } = validated
 
   const password_hash = await bcrypt.hash(password, 12)
 
@@ -45,6 +49,8 @@ export async function POST(request) {
 
 // PATCH — superadmin activa/desactiva agencia
 export async function PATCH(request) {
+  const rl = checkRateLimit(request, { limite: 20, ventanaMs: 60000 })
+  if (rl) return rl
   const { response } = requireAuth(request, 'superadmin')
   if (response) return response
 

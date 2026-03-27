@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { requireAuth } from '../../../lib/auth'
+import { checkRateLimit } from '../../../lib/rateLimitMiddleware'
+import { validateBody, liquidacionSchema, liquidacionPatchSchema } from '../../../lib/validation'
 import { enviarEmailLiquidacionCreada, enviarEmailLiquidacionPagada } from '../../../lib/email'
 
 // GET — superadmin: todas | agencia: las de sus promotores + las propias | referidor: las suyas
@@ -69,14 +71,16 @@ export async function GET(request) {
 
 // POST — superadmin o agencia crean una liquidación
 export async function POST(request) {
+  const rl = checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
+  if (rl) return rl
   const { payload, response } = requireAuth(request, ['superadmin', 'agencia'])
   if (response) return response
 
   try {
-    const { referidor_id, importe, periodo_desde, periodo_hasta, notas } = await request.json()
-    if (!referidor_id || !importe || !periodo_desde || !periodo_hasta) {
-      return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
-    }
+    const body = await request.json()
+    const { data: validated, response: valErr } = validateBody(body, liquidacionSchema)
+    if (valErr) return valErr
+    const { referidor_id, importe, periodo_desde, periodo_hasta, notas } = validated
 
     // Si es agencia, verificar que el referidor pertenece a ella
     if (payload.rol === 'agencia') {
@@ -115,13 +119,16 @@ export async function POST(request) {
 
 // PATCH — superadmin o agencia marcan como pagado
 export async function PATCH(request) {
+  const rl = checkRateLimit(request, { limite: 20, ventanaMs: 60000 })
+  if (rl) return rl
   const { payload, response } = requireAuth(request, ['superadmin', 'agencia'])
   if (response) return response
 
   try {
-    const { id, estado } = await request.json()
-    if (!id || !estado) return NextResponse.json({ error: 'Faltan campos' }, { status: 400 })
-    if (!['pendiente', 'pagado'].includes(estado)) return NextResponse.json({ error: 'Estado no válido' }, { status: 400 })
+    const body = await request.json()
+    const { data: validated, response: valErr } = validateBody(body, liquidacionPatchSchema)
+    if (valErr) return valErr
+    const { id, estado } = validated
 
     if (payload.rol === 'agencia') {
       const { data: liq } = await supabaseAdmin
