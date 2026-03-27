@@ -5,10 +5,21 @@
 
 ---
 
-## Estado actual: MVP Funcional
+## Estado actual: MVP Funcional + Refactor Completo
 
 La plataforma está desplegada en producción con todas las funcionalidades core operativas.
 Stripe está en modo test (pendiente verificación de empresa).
+
+### Última sesión: 27/03/2026
+
+**Refactor de arquitectura completo:**
+- `lib/auth.js`: middleware `requireAuth` aplicado en 27 rutas API (antes: 4 líneas boilerplate × 27)
+- `lib/commissions.js`: lógica de comisiones centralizada (calcular + ajustar por discrepancia)
+- `lib/uploads.js`: validación de imágenes centralizada (tipo MIME + tamaño)
+- Eliminado localStorage de auth en 5 paneles + login (solo cookies httpOnly)
+- Fix inyección en liquidaciones: `.or()` con interpolación → queries separadas
+- Try/catch en todas las rutas GET
+- Paralelización de queries adicionales (analytics/manager, admin/DELETE)
 
 ---
 
@@ -71,6 +82,9 @@ app/
 │   └── notificaciones/         # Push notifications (web push)
 
 lib/
+├── auth.js                     # Middleware requireAuth (roles, JWT cookie)
+├── commissions.js              # Cálculo y ajuste de comisiones
+├── uploads.js                  # Validación de imágenes (tipo, tamaño)
 ├── supabase.js                 # Cliente Supabase admin
 ├── jwt.js                      # Firmar/verificar JWT + extraer de cookie
 ├── email.js                    # Templates email (QR, confirmación, valoración)
@@ -193,6 +207,8 @@ components/
 
 | Commit | Descripción |
 |---|---|
+| `c82ebb9` | Refactor: requireAuth middleware, eliminar localStorage, fix inyección, DRY comisiones |
+| `9b205d0` | Docs: añadir CHANGELOG con estado completo del proyecto |
 | `d79b4cf` | Paralelizar queries, eliminar fetch redundante, polling con backoff |
 | `84e2311` | Simplificar pagos manager, cascade delete con liquidaciones, flujo barrio→local |
 | `bd30dc1` | Fix comisiones, recálculo por discrepancia y token seguro en valoración |
@@ -216,20 +232,20 @@ components/
 | 1 | **Verificar empresa en Stripe** | Completar KYC para activar pagos reales |
 | 2 | **Cambiar claves Stripe a live** | Actualizar STRIPE_SECRET_KEY y STRIPE_WEBHOOK_SECRET en Vercel |
 | 3 | **Completar Aviso Legal** | Añadir NIF/CIF, dirección fiscal y datos de Registro Mercantil |
-| 4 | **Crear datos demo limpios** | SQL para insertar 1 local + 1 manager + 1 staff + 1 agencia + 1 referidor con contraseñas demo |
-| 5 | **Test E2E completo en producción** | Probar flujo referido → registro → QR → escaneo → valoración con datos reales |
+| 4 | **Test E2E completo en producción** | Probar flujo referido → registro → QR → escaneo → valoración con datos reales |
 
-### Mejoras opcionales
+### Mejoras de calidad
 
-| # | Tarea | Detalle |
-|---|---|---|
-| 6 | Rate limiting más estricto | Evaluar límites por endpoint y por rol |
-| 7 | Normalizar respuesta password recovery | Misma respuesta para email existente y no existente |
-| 8 | Añadir columna `token_valoracion` a tabla | Migración SQL si no existe |
-| 9 | Dashboard analytics mejorado | Gráficas comparativas mes a mes en superadmin |
-| 10 | Notificaciones push al manager | Cuando llega un nuevo cliente referido |
-| 11 | Tests unitarios | Cubrir lógica de comisiones y cálculo de discrepancias |
-| 12 | Expiración de QR | Validar que el QR de descuento no pase de 7 días |
+| # | Tarea | Prioridad | Detalle |
+|---|---|---|---|
+| 5 | Completar i18n en staff/registro/valoración | Media | Textos hardcoded en español sin pasar por `t()` |
+| 6 | Dividir superadmin/page.js en componentes | Media | ~1400 líneas en un solo archivo |
+| 7 | Crear índices en Supabase | Media | `valoraciones(lugar_id)`, `valoraciones(referidor_id)`, `referidores(agencia_id)` |
+| 8 | Rate limiting en POST/PATCH admin | Baja | Solo confirmar y clientes tienen rate limit |
+| 9 | Validación con Zod para inputs de API | Baja | Reemplazar if/else manual |
+| 10 | ARIA en tabs del login | Baja | `role="tab"`, `aria-selected` |
+| 11 | Tests unitarios para comisiones | Baja | Cubrir `lib/commissions.js` |
+| 12 | Expiración de QR de descuento | Baja | Validar que no pase de 7 días |
 
 ---
 
