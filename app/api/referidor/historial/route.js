@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
+import { requireAuth } from '../../../../lib/auth'
 
 export async function GET(request) {
   try {
-    const payload = verificarToken(extraerTokenDeCookie(request))
-    if (!payload || payload.rol !== 'referidor') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const { payload, response } = requireAuth(request, 'referidor')
+    if (response) return response
 
     const { searchParams } = new URL(request.url)
     const pagina = parseInt(searchParams.get('pagina') || '1')

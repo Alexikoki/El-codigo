@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
+import { requireAuth } from '../../../../lib/auth'
 
 export async function GET(request) {
   try {
-    const payload = verificarToken(extraerTokenDeCookie(request))
-    if (!payload || payload.rol !== 'superadmin') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const { payload, response } = requireAuth(request, 'superadmin')
+    if (response) return response
 
     const { searchParams } = new URL(request.url)
     const desde = searchParams.get('desde')

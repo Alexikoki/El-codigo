@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server'
 import { stripe, PLATAFORMA_PCT } from '../../../../lib/stripe'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
+import { requireAuth } from '../../../../lib/auth'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://itrustb2b.com'
 
 // POST — manager inicia el pago de sus comisiones del mes
 export async function POST(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'manager') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const { payload, response } = requireAuth(request, 'manager')
+  if (response) return response
 
   const { periodo_desde, periodo_hasta } = await request.json()
   if (!periodo_desde || !periodo_hasta) {
@@ -137,10 +135,8 @@ export async function POST(request) {
 
 // GET — resumen de comisiones del mes actual para el manager
 export async function GET(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'manager') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const { payload, response } = requireAuth(request, 'manager')
+  if (response) return response
 
   const { searchParams } = new URL(request.url)
   const desde = searchParams.get('desde')

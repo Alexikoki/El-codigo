@@ -19,16 +19,10 @@ export default function StaffPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const rol = localStorage.getItem('rol')
-    const s = localStorage.getItem('staff')
-    if (s && rol === 'staff') { setStaff(JSON.parse(s)); cargarVerificadosHoy(); return }
-
     fetch('/api/auth/me', { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         if (data.rol === 'staff') {
-          localStorage.setItem('rol', 'staff')
-          localStorage.setItem('staff', JSON.stringify(data.staff))
           setStaff(data.staff)
           cargarVerificadosHoy()
         } else { router.push('/login') }

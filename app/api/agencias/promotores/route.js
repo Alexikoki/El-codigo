@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
+import { requireAuth } from '../../../../lib/auth'
 import { generarQRToken } from '../../../../lib/qr'
 import bcrypt from 'bcryptjs'
 
 export async function GET(request) {
-    const payload = verificarToken(extraerTokenDeCookie(request))
-    if (!payload || payload.rol !== 'agencia' || !payload.agenciaId) {
-        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const { payload, response } = requireAuth(request, 'agencia')
+    if (response) return response
 
     const { data } = await supabaseAdmin
         .from('referidores')
@@ -20,10 +18,8 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-    const payload = verificarToken(extraerTokenDeCookie(request))
-    if (!payload || payload.rol !== 'agencia' || !payload.agenciaId) {
-        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const { payload, response } = requireAuth(request, 'agencia')
+    if (response) return response
 
     const { nombre, email, password, porcentaje_split } = await request.json()
     if (!nombre || !email || !password) {
@@ -61,10 +57,8 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
-    const payload = verificarToken(extraerTokenDeCookie(request))
-    if (!payload || payload.rol !== 'agencia' || !payload.agenciaId) {
-        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const { payload, response } = requireAuth(request, 'agencia')
+    if (response) return response
 
     const { id, activo } = await request.json()
 

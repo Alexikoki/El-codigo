@@ -3,7 +3,7 @@ import { renderToStream } from '@react-pdf/renderer'
 import React from 'react'
 import { Document, Page, Text, View, StyleSheet, Svg, Line } from '@react-pdf/renderer'
 import { supabaseAdmin } from '../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../lib/jwt'
+import { requireAuth } from '../../../lib/auth'
 
 const C = {
   navy: '#1e3a5f',
@@ -184,10 +184,8 @@ const FacturaPDF = ({ datos }) => {
 
 export async function GET(request) {
   try {
-    const payload = verificarToken(extraerTokenDeCookie(request))
-    if (!payload || payload.rol !== 'superadmin') {
-      return NextResponse.json({ error: 'Prohibido: Solo Superadmin puede emitir pagos.' }, { status: 403 })
-    }
+    const { payload, response } = requireAuth(request, 'superadmin')
+    if (response) return response
 
     const { searchParams } = new URL(request.url)
     const referidorId = searchParams.get('referidorid')

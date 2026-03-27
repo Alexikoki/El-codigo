@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
+import { requireAuth } from '../../../../lib/auth'
 
 export async function GET(request) {
-  try {
-    const payload = verificarToken(extraerTokenDeCookie(request))
-    if (!payload) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    if (payload.rol !== 'superadmin') return NextResponse.json({ error: 'Sin permiso' }, { status: 403 })
+  const { response } = requireAuth(request, 'superadmin')
+  if (response) return response
 
+  try {
     const { searchParams } = new URL(request.url)
     const busqueda = searchParams.get('busqueda') || ''
     const lugarId = searchParams.get('lugarId') || ''
@@ -35,11 +34,10 @@ export async function GET(request) {
 }
 
 export async function PATCH(request) {
-  try {
-    const payload = verificarToken(extraerTokenDeCookie(request))
-    if (!payload) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    if (payload.rol !== 'superadmin') return NextResponse.json({ error: 'Sin permiso' }, { status: 403 })
+  const { response } = requireAuth(request, 'superadmin')
+  if (response) return response
 
+  try {
     const { id, nombre, num_personas, referidor_id } = await request.json()
     if (!id) return NextResponse.json({ error: 'Falta el id' }, { status: 400 })
 
@@ -59,19 +57,19 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
-  try {
-    const payload = verificarToken(extraerTokenDeCookie(request))
-    if (!payload) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    if (payload.rol !== 'superadmin') return NextResponse.json({ error: 'Sin permiso' }, { status: 403 })
+  const { response } = requireAuth(request, 'superadmin')
+  if (response) return response
 
+  try {
     const { id } = await request.json()
     if (!id) return NextResponse.json({ error: 'Falta el id' }, { status: 400 })
 
-    const { error: errorVal } = await supabaseAdmin.from('valoraciones').delete().eq('cliente_id', id)
-    if (errorVal) throw errorVal
-
-    const { error: errorCli } = await supabaseAdmin.from('clientes').delete().eq('id', id)
-    if (errorCli) throw errorCli
+    await Promise.all([
+      supabaseAdmin.from('valoraciones').delete().eq('cliente_id', id),
+      supabaseAdmin.from('liquidaciones').delete().eq('cliente_id', id)
+    ])
+    const { error } = await supabaseAdmin.from('clientes').delete().eq('id', id)
+    if (error) throw error
 
     return NextResponse.json({ ok: true })
   } catch (e) {

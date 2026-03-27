@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
+import { requireAuth } from '../../../../lib/auth'
 
 export const runtime = 'nodejs' // web-push requiere Node.js runtime
 
@@ -8,10 +8,8 @@ export const runtime = 'nodejs' // web-push requiere Node.js runtime
 // Guarda la suscripción push del navegador del referidor en BD
 export async function POST(request) {
   try {
-    const payload = verificarToken(extraerTokenDeCookie(request))
-    if (!payload || payload.rol !== 'referidor') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const { payload, response } = requireAuth(request, 'referidor')
+    if (response) return response
 
     const { subscription } = await request.json()
     if (!subscription || !subscription.endpoint) {
@@ -43,10 +41,8 @@ export async function POST(request) {
 // El referidor desactiva las notificaciones (borra su suscripción)
 export async function DELETE(request) {
   try {
-    const payload = verificarToken(extraerTokenDeCookie(request))
-    if (!payload || payload.rol !== 'referidor') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const { payload, response } = requireAuth(request, 'referidor')
+    if (response) return response
 
     await supabaseAdmin
       .from('push_subscriptions')

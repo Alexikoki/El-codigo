@@ -1,63 +1,66 @@
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
+import { requireAuth } from '../../../../lib/auth'
 import { rateLimit, getIP } from '../../../../lib/rateLimit'
 import { enviarEmailValoracion } from '../../../../lib/email'
+import { calcularComisiones } from '../../../../lib/commissions'
+import { validarImagen } from '../../../../lib/uploads'
 
 // GET — lista de clientes verificados hoy en el local del staff
 export async function GET(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'staff') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const { payload, response } = requireAuth(request, 'staff')
+  if (response) return response
+
+  try {
+    const hoyInicio = new Date()
+    hoyInicio.setHours(0, 0, 0, 0)
+
+    const { data: clientes } = await supabaseAdmin
+      .from('clientes')
+      .select('id, nombre, num_personas, verificado_at, referidores(nombre)')
+      .eq('lugar_id', payload.lugarId)
+      .eq('verificado', true)
+      .gte('verificado_at', hoyInicio.toISOString())
+      .order('verificado_at', { ascending: false })
+
+    if (!clientes?.length) return NextResponse.json({ clientes: [] })
+
+    const ids = clientes.map(c => c.id)
+    const { data: valoraciones } = await supabaseAdmin
+      .from('valoraciones')
+      .select('cliente_id, gasto, gasto_confirmado, ticket_url, confirmado_at')
+      .in('cliente_id', ids)
+
+    const resultado = clientes.map(c => {
+      const val = valoraciones?.find(v => v.cliente_id === c.id)
+      return {
+        id: c.id,
+        nombre: c.nombre,
+        personas: c.num_personas,
+        hora: new Date(c.verificado_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+        referidor: c.referidores?.nombre || '—',
+        gastoEstimado: val?.gasto || null,
+        gastoConfirmado: val?.gasto_confirmado || null,
+        ticketUrl: val?.ticket_url || null,
+        confirmado: !!val?.confirmado_at
+      }
+    })
+
+    return NextResponse.json({ clientes: resultado })
+  } catch (e) {
+    console.error('Error GET confirmar:', e)
+    return NextResponse.json({ error: 'Error cargando clientes' }, { status: 500 })
   }
-
-  const hoyInicio = new Date()
-  hoyInicio.setHours(0, 0, 0, 0)
-
-  const { data: clientes } = await supabaseAdmin
-    .from('clientes')
-    .select('id, nombre, num_personas, verificado_at, referidores(nombre)')
-    .eq('lugar_id', payload.lugarId)
-    .eq('verificado', true)
-    .gte('verificado_at', hoyInicio.toISOString())
-    .order('verificado_at', { ascending: false })
-
-  if (!clientes?.length) return NextResponse.json({ clientes: [] })
-
-  const ids = clientes.map(c => c.id)
-  const { data: valoraciones } = await supabaseAdmin
-    .from('valoraciones')
-    .select('cliente_id, gasto, gasto_confirmado, ticket_url, confirmado_at')
-    .in('cliente_id', ids)
-
-  const resultado = clientes.map(c => {
-    const val = valoraciones?.find(v => v.cliente_id === c.id)
-    return {
-      id: c.id,
-      nombre: c.nombre,
-      personas: c.num_personas,
-      hora: new Date(c.verificado_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-      referidor: c.referidores?.nombre || '—',
-      gastoEstimado: val?.gasto || null,
-      gastoConfirmado: val?.gasto_confirmado || null,
-      ticketUrl: val?.ticket_url || null,
-      confirmado: !!val?.confirmado_at
-    }
-  })
-
-  return NextResponse.json({ clientes: resultado })
 }
 
 // POST — confirmar consumo real + foto del ticket
 export async function POST(request) {
-  const { bloqueado } = rateLimit(getIP(request), 60, 60000) // 60 confirmaciones/min por IP
+  const { bloqueado } = rateLimit(getIP(request), 60, 60000)
   if (bloqueado) return NextResponse.json({ error: 'Demasiadas peticiones' }, { status: 429 })
 
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'staff') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const { payload, response } = requireAuth(request, 'staff')
+  if (response) return response
 
   const formData = await request.formData()
   const clienteId = formData.get('clienteId')
@@ -68,15 +71,12 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Faltan datos o importe inválido' }, { status: 400 })
   }
 
-  // Validar foto si se proporcionó
-  const MAX_FOTO_SIZE = 5 * 1024 * 1024 // 5MB
-  const VALID_FOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
+  // Validar foto con lib centralizada
   if (foto && foto.size > 0) {
-    if (foto.size > MAX_FOTO_SIZE) return NextResponse.json({ error: 'Imagen demasiado grande (máx 5MB)' }, { status: 400 })
-    if (!VALID_FOTO_TYPES.includes(foto.type)) return NextResponse.json({ error: 'Formato de imagen no válido' }, { status: 400 })
+    const check = validarImagen(foto)
+    if (!check.valid) return check.response
   }
 
-  // Verificar que el cliente pertenece al local del staff
   const { data: cliente } = await supabaseAdmin
     .from('clientes')
     .select('lugar_id, referidor_id')
@@ -86,12 +86,12 @@ export async function POST(request) {
 
   if (!cliente) return NextResponse.json({ error: 'Cliente no encontrado en este local' }, { status: 404 })
 
-  // Subir foto si se proporcionó
+  // Subir foto
   let ticket_url = null
   if (foto && foto.size > 0) {
     try {
       const buffer = Buffer.from(await foto.arrayBuffer())
-      const ext = foto.type === 'image/png' ? 'png' : 'jpg'
+      const { ext } = validarImagen(foto)
       const path = `${clienteId}/${Date.now()}.${ext}`
       const { data: uploadData, error: uploadError } = await supabaseAdmin
         .storage.from('tickets')
@@ -102,58 +102,38 @@ export async function POST(request) {
       }
     } catch (e) {
       console.error('Error subiendo foto:', e)
-      // No bloqueamos la confirmación si falla la foto
     }
   }
 
-  // Calcular comisiones con el importe confirmado
+  // Calcular comisiones con lib centralizada
   const [{ data: lugar }, { data: referidor }] = await Promise.all([
     supabaseAdmin.from('lugares').select('porcentaje_plataforma').eq('id', payload.lugarId).single(),
     supabaseAdmin.from('referidores').select('agencia_id, porcentaje_split').eq('id', cliente.referidor_id).single()
   ])
 
-  const perc_plataforma = lugar?.porcentaje_plataforma != null ? parseFloat(lugar.porcentaje_plataforma) : 20.00
-  const perc_rrpp = referidor?.porcentaje_split != null ? parseFloat(referidor.porcentaje_split) : 50.00
+  const percPlataforma = lugar?.porcentaje_plataforma != null ? parseFloat(lugar.porcentaje_plataforma) : 20
+  const percReferidor = referidor?.porcentaje_split != null ? parseFloat(referidor.porcentaje_split) : 50
 
-  // com_lugar = comisión total que cobra la plataforma al local
-  const com_lugar = gastoConfirmado * (perc_plataforma / 100)
-  let com_agencia = 0
-  let com_rrpp = 0
-
+  let percAgencia = null
   if (referidor?.agencia_id) {
-    // Con agencia: el referidor se lleva su %, la agencia el resto
     const { data: agencia } = await supabaseAdmin.from('agencias').select('porcentaje_split').eq('id', referidor.agencia_id).single()
-    const perc_agencia = agencia?.porcentaje_split != null ? parseFloat(agencia.porcentaje_split) : 30.00
-    // perc_rrpp = % que se lleva el referidor de com_lugar
-    // perc_agencia = % que se lleva la agencia de com_lugar
-    // La plataforma se queda el resto (100 - perc_rrpp - perc_agencia)%
-    com_rrpp = com_lugar * (perc_rrpp / 100)
-    com_agencia = com_lugar * (perc_agencia / 100)
-    // Validar que no supere el 100% de com_lugar
-    if (com_rrpp + com_agencia > com_lugar) {
-      const total = perc_rrpp + perc_agencia
-      com_rrpp = com_lugar * (perc_rrpp / total)
-      com_agencia = com_lugar * (perc_agencia / total)
-    }
-  } else {
-    // Sin agencia: el referidor se lleva su % directo
-    com_rrpp = com_lugar * (perc_rrpp / 100)
+    percAgencia = agencia?.porcentaje_split != null ? parseFloat(agencia.porcentaje_split) : 30
   }
 
-  // Token seguro para el link de valoración del cliente
+  const { comLugar, comReferidor, comAgencia } = calcularComisiones(gastoConfirmado, { percPlataforma, percReferidor, percAgencia })
+
   const tokenValoracion = crypto.randomBytes(32).toString('hex')
 
   const update = {
     gasto_confirmado: gastoConfirmado,
     confirmado_at: new Date().toISOString(),
-    comision_lugar: com_lugar,
-    comision_agencia: com_agencia,
-    comision_referidor: com_rrpp,
+    comision_lugar: comLugar,
+    comision_agencia: comAgencia,
+    comision_referidor: comReferidor,
     token_valoracion: tokenValoracion,
     ...(ticket_url && { ticket_url })
   }
 
-  // Actualizar si ya existe, crear si no
   const { data: existente } = await supabaseAdmin
     .from('valoraciones')
     .select('id')
@@ -173,12 +153,12 @@ export async function POST(request) {
     await supabaseAdmin.from('clientes').update({ gasto: gastoConfirmado }).eq('id', clienteId)
   }
 
-  // Enviar email de valoración al cliente
+  // Email de valoración
   try {
-    const { data: clienteEmail } = await supabaseAdmin
-      .from('clientes').select('nombre, email').eq('id', clienteId).single()
-    const { data: lugarInfo } = await supabaseAdmin
-      .from('lugares').select('nombre').eq('id', payload.lugarId).single()
+    const [{ data: clienteEmail }, { data: lugarInfo }] = await Promise.all([
+      supabaseAdmin.from('clientes').select('nombre, email').eq('id', clienteId).single(),
+      supabaseAdmin.from('lugares').select('nombre').eq('id', payload.lugarId).single()
+    ])
     if (clienteEmail?.email) {
       await enviarEmailValoracion({
         nombre: clienteEmail.nombre,
@@ -193,19 +173,17 @@ export async function POST(request) {
     console.error('Error enviando email valoración:', e)
   }
 
-  // ── Auto-liquidaciones ──────────────────────────────────────────
-  // Obtener nombre del cliente para la nota
+  // Auto-liquidaciones
   const { data: clienteInfo } = await supabaseAdmin
     .from('clientes').select('nombre').eq('id', clienteId).single()
   const hoy = new Date().toISOString().split('T')[0]
   const notaBase = `Auto · ${clienteInfo?.nombre || 'Cliente'} · Consumo: ${gastoConfirmado.toFixed(2)}€`
 
-  // Liquidación para el referidor — INSERT con ON CONFLICT DO NOTHING (atómico, sin race condition)
-  if (cliente.referidor_id && com_rrpp > 0) {
+  if (cliente.referidor_id && comReferidor > 0) {
     await supabaseAdmin.from('liquidaciones').upsert({
       referidor_id: cliente.referidor_id,
       cliente_id: clienteId,
-      importe: parseFloat(com_rrpp.toFixed(2)),
+      importe: comReferidor,
       periodo_desde: hoy,
       periodo_hasta: hoy,
       estado: 'pendiente',
@@ -214,12 +192,11 @@ export async function POST(request) {
     }, { onConflict: 'referidor_id,cliente_id', ignoreDuplicates: true })
   }
 
-  // Liquidación para la agencia — ídem
-  if (referidor?.agencia_id && com_agencia > 0) {
+  if (referidor?.agencia_id && comAgencia > 0) {
     await supabaseAdmin.from('liquidaciones').upsert({
       agencia_id: referidor.agencia_id,
       cliente_id: clienteId,
-      importe: parseFloat(com_agencia.toFixed(2)),
+      importe: comAgencia,
       periodo_desde: hoy,
       periodo_hasta: hoy,
       estado: 'pendiente',

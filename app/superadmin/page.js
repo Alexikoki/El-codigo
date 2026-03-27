@@ -49,14 +49,10 @@ export default function SuperadminPage() {
   }, [tab])
 
   useEffect(() => {
-    const rol = localStorage.getItem('rol')
-    if (rol === 'superadmin') { cargarDatos(); return }
-
     fetch('/api/auth/me', { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         if (data.rol === 'superadmin') {
-          localStorage.setItem('rol', 'superadmin')
           cargarDatos()
         } else { router.push('/login') }
       })

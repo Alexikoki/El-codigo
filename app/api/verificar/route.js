@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../lib/jwt'
+import { requireAuth } from '../../../lib/auth'
 import { enviarNotificacionPush } from '../../../lib/webpush'
 
 export const runtime = 'nodejs' // web-push requiere Node.js runtime
 
 export async function POST(request) {
   try {
-    const payload = verificarToken(extraerTokenDeCookie(request))
-    if (!payload || payload.rol !== 'staff') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const { payload, response } = requireAuth(request, 'staff')
+    if (response) return response
 
     const { clienteId } = await request.json()
 

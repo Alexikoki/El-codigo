@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
+import { requireAuth } from '../../../../lib/auth'
 import bcrypt from 'bcryptjs'
 
 // GET — lista el staff del local del manager
 export async function GET(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'manager') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const { payload, response } = requireAuth(request, 'manager')
+  if (response) return response
 
   const { data } = await supabaseAdmin
     .from('staff')
@@ -21,10 +19,8 @@ export async function GET(request) {
 
 // POST — crea un nuevo camarero en el local del manager
 export async function POST(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'manager') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const { payload, response } = requireAuth(request, 'manager')
+  if (response) return response
 
   const { nombre, email, password } = await request.json()
   if (!nombre || !email || !password || password.length < 6) {
@@ -50,10 +46,8 @@ export async function POST(request) {
 
 // PATCH — activar/desactivar camarero
 export async function PATCH(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'manager') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const { payload, response } = requireAuth(request, 'manager')
+  if (response) return response
 
   const { id, activo } = await request.json()
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })

@@ -1,21 +1,16 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '../../../../lib/stripe'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
+import { requireAuth } from '../../../../lib/auth'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://itrustb2b.com'
 
 // POST — crea o recupera la cuenta Connect Express y devuelve el link de onboarding
 export async function POST(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const { payload, response } = requireAuth(request, ['agencia', 'referidor'])
+  if (response) return response
 
   const esAgencia = payload.rol === 'agencia'
-  const esReferidor = payload.rol === 'referidor'
-  if (!esAgencia && !esReferidor) {
-    return NextResponse.json({ error: 'Solo agencias y referidores pueden conectar cuenta' }, { status: 403 })
-  }
-
   const tabla = esAgencia ? 'agencias' : 'referidores'
   const id = esAgencia ? payload.agenciaId : payload.referidorId
 
@@ -55,15 +50,10 @@ export async function POST(request) {
 
 // GET — comprueba el estado de la cuenta Connect del usuario
 export async function GET(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const { payload, response } = requireAuth(request, ['agencia', 'referidor'])
+  if (response) return response
 
   const esAgencia = payload.rol === 'agencia'
-  const esReferidor = payload.rol === 'referidor'
-  if (!esAgencia && !esReferidor) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
-  }
-
   const tabla = esAgencia ? 'agencias' : 'referidores'
   const id = esAgencia ? payload.agenciaId : payload.referidorId
 

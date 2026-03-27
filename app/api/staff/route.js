@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../lib/jwt'
+import { requireAuth } from '../../../lib/auth'
 import bcrypt from 'bcryptjs'
 
 export async function GET(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'superadmin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const { response } = requireAuth(request, 'superadmin')
+  if (response) return response
 
   const { data } = await supabaseAdmin
     .from('staff')
@@ -18,10 +16,8 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'superadmin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const { response } = requireAuth(request, 'superadmin')
+  if (response) return response
 
   const { nombre, email, password, lugar_id } = await request.json()
   if (!nombre || !email || !password || !lugar_id) {

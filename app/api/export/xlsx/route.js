@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
+import { requireAuth } from '../../../../lib/auth'
 
 export async function GET(request) {
   try {
-    const payload = verificarToken(extraerTokenDeCookie(request))
-    if (!payload || payload.rol !== 'superadmin') {
-      return NextResponse.json({ error: 'Solo superadmin puede exportar datos.' }, { status: 403 })
-    }
+    const { payload, response } = requireAuth(request, 'superadmin')
+    if (response) return response
 
     // Traemos valoraciones con todos los datos relevantes
     const { data: valoraciones, error } = await supabaseAdmin

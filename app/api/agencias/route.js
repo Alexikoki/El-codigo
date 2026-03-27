@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../lib/jwt'
+import { requireAuth } from '../../../lib/auth'
 import bcrypt from 'bcryptjs'
 
 // GET — superadmin lista todas las agencias
 export async function GET(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'superadmin') {
-    return NextResponse.json({ error: 'Solo superadmin' }, { status: 403 })
-  }
+  const { response } = requireAuth(request, 'superadmin')
+  if (response) return response
 
   const { data, error } = await supabaseAdmin
     .from('agencias')
@@ -21,10 +19,8 @@ export async function GET(request) {
 
 // POST — superadmin crea una agencia
 export async function POST(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'superadmin') {
-    return NextResponse.json({ error: 'Solo superadmin' }, { status: 403 })
-  }
+  const { response } = requireAuth(request, 'superadmin')
+  if (response) return response
 
   const { nombre, email, password } = await request.json()
   if (!nombre || !email || !password) {
@@ -49,10 +45,8 @@ export async function POST(request) {
 
 // PATCH — superadmin activa/desactiva agencia
 export async function PATCH(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'superadmin') {
-    return NextResponse.json({ error: 'Solo superadmin' }, { status: 403 })
-  }
+  const { response } = requireAuth(request, 'superadmin')
+  if (response) return response
 
   const { id, activo } = await request.json()
   if (!id || activo === undefined) {

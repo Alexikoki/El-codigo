@@ -35,16 +35,10 @@ export default function ManagerPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const rol = localStorage.getItem('rol')
-    const m = localStorage.getItem('manager')
-    if (m && rol === 'manager') { setManager(JSON.parse(m)); cargarAnalytics('todo'); return }
-
     fetch('/api/auth/me', { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         if (data.rol === 'manager') {
-          localStorage.setItem('rol', 'manager')
-          localStorage.setItem('manager', JSON.stringify(data.manager))
           setManager(data.manager)
           cargarAnalytics('todo')
         } else { router.push('/login') }

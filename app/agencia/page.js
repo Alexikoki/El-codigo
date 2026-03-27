@@ -33,16 +33,10 @@ export default function AgenciaPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const rol = localStorage.getItem('rol')
-    const a = localStorage.getItem('agencia')
-    if (a && rol === 'agencia') { setAgencia(JSON.parse(a)); cargarDatosGenerales(); return }
-
     fetch('/api/auth/me', { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         if (data.rol === 'agencia') {
-          localStorage.setItem('rol', 'agencia')
-          localStorage.setItem('agencia', JSON.stringify(data.agencia))
           setAgencia(data.agencia)
           cargarDatosGenerales()
         } else { router.push('/login') }

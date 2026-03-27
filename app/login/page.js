@@ -53,24 +53,11 @@ export default function LoginPage() {
         return
       }
 
-      localStorage.setItem('rol', data.rol)
-
       if (data.rol === 'superadmin') router.push('/superadmin')
-      else if (data.rol === 'agencia') {
-        localStorage.setItem('agencia', JSON.stringify(data.agencia))
-        router.push('/agencia')
-      }
-      else if (data.rol === 'manager') {
-        localStorage.setItem('manager', JSON.stringify(data.manager))
-        router.push('/manager')
-      }
-      else if (data.rol === 'referidor') {
-        localStorage.setItem('referidor', JSON.stringify(data.referidor))
-        router.push('/referidor')
-      } else {
-        localStorage.setItem('staff', JSON.stringify(data.staff))
-        router.push('/staff')
-      }
+      else if (data.rol === 'agencia') router.push('/agencia')
+      else if (data.rol === 'manager') router.push('/manager')
+      else if (data.rol === 'referidor') router.push('/referidor')
+      else router.push('/staff')
     } catch (err) {
       setError('Error de conexión')
       setCargando(false)

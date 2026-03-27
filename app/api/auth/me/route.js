@@ -1,14 +1,10 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { extraerTokenDeCookie, verificarToken } from '../../../../lib/jwt'
+import { requireAuth } from '../../../../lib/auth'
 
 export async function GET(request) {
-  const rawToken = extraerTokenDeCookie(request)
-  const payload = verificarToken(rawToken)
-
-  if (!payload) {
-    return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-  }
+  const { payload, response } = requireAuth(request)
+  if (response) return response
 
   const { rol } = payload
 

@@ -40,16 +40,10 @@ export default function ReferidorPage() {
   }
 
   useEffect(() => {
-    const rol = localStorage.getItem('rol')
-    const r = localStorage.getItem('referidor')
-    if (r && rol === 'referidor') { iniciarSesion(JSON.parse(r)); return }
-
     fetch('/api/auth/me', { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         if (data.rol === 'referidor') {
-          localStorage.setItem('rol', 'referidor')
-          localStorage.setItem('referidor', JSON.stringify(data.referidor))
           iniciarSesion(data.referidor)
         } else { router.push('/login') }
       })

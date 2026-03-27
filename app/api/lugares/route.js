@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
+import { requireAuth } from '../../../lib/auth'
 import { verificarToken, extraerTokenDeCookie } from '../../../lib/jwt'
 import bcrypt from 'bcryptjs'
 
 export async function GET(request) {
+  // GET es semi-público: superadmin ve todo, el resto ve solo activos
   const payload = verificarToken(extraerTokenDeCookie(request))
 
-  // Superadmin recibe todos los campos + manager asociado; público solo id, nombre, tipo
   if (payload?.rol === 'superadmin') {
     const { data: lugares } = await supabaseAdmin
       .from('lugares')
@@ -26,10 +27,8 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'superadmin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const { response } = requireAuth(request, 'superadmin')
+  if (response) return response
 
   const { nombre, tipo, descripcion, direccion, barrio, descuento, porcentaje_plataforma,
           manager_nombre, manager_email, manager_password } = await request.json()
@@ -44,14 +43,12 @@ export async function POST(request) {
     return NextResponse.json({ error: 'La contraseña del manager debe tener al menos 6 caracteres' }, { status: 400 })
   }
 
-  // Verificar que el email del manager no esté en uso
   const { data: emailExistente } = await supabaseAdmin
     .from('managers_locales').select('id').eq('email', manager_email).single()
   if (emailExistente) {
     return NextResponse.json({ error: 'Ese email de manager ya está registrado' }, { status: 409 })
   }
 
-  // 1. Crear el lugar
   const { data: lugar, error: errorLugar } = await supabaseAdmin
     .from('lugares')
     .insert({
@@ -65,14 +62,12 @@ export async function POST(request) {
 
   if (errorLugar) return NextResponse.json({ error: 'Error al crear el local' }, { status: 500 })
 
-  // 2. Crear el manager vinculado al lugar (rollback si falla)
   const password_hash = await bcrypt.hash(manager_password, 12)
   const { error: errorManager } = await supabaseAdmin
     .from('managers_locales')
     .insert({ nombre: manager_nombre, email: manager_email, password_hash, lugar_id: lugar.id, activo: true })
 
   if (errorManager) {
-    // Rollback: borrar el lugar recién creado
     await supabaseAdmin.from('lugares').delete().eq('id', lugar.id)
     return NextResponse.json({ error: 'Error al crear el manager' }, { status: 500 })
   }
@@ -81,31 +76,24 @@ export async function POST(request) {
 }
 
 export async function DELETE(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'superadmin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const { response } = requireAuth(request, 'superadmin')
+  if (response) return response
 
   const { id } = await request.json()
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
 
-  // Obtener IDs de clientes y referidores del local para borrar liquidaciones
   const { data: clientesLocal } = await supabaseAdmin.from('clientes').select('id').eq('lugar_id', id)
   const clienteIds = (clientesLocal || []).map(c => c.id)
 
-  // Borrar en cascada paralelizando queries independientes
-  // Paso 1: liquidaciones + valoraciones (no dependen entre sí)
   await Promise.all([
     clienteIds.length > 0 ? supabaseAdmin.from('liquidaciones').delete().in('cliente_id', clienteIds) : null,
     supabaseAdmin.from('valoraciones').delete().eq('lugar_id', id)
   ])
-  // Paso 2: clientes + staff + managers (dependen de paso 1 por FK)
   await Promise.all([
     supabaseAdmin.from('clientes').delete().eq('lugar_id', id),
     supabaseAdmin.from('staff').delete().eq('lugar_id', id),
     supabaseAdmin.from('managers_locales').delete().eq('lugar_id', id)
   ])
-  // Paso 3: lugar (depende de paso 2)
   const { error } = await supabaseAdmin.from('lugares').delete().eq('id', id)
   if (error) return NextResponse.json({ error: 'Error al eliminar' }, { status: 500 })
 
@@ -113,10 +101,8 @@ export async function DELETE(request) {
 }
 
 export async function PATCH(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || payload.rol !== 'superadmin') {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const { response } = requireAuth(request, 'superadmin')
+  if (response) return response
 
   const { id, nombre, descuento, porcentaje_plataforma, activo, barrio } = await request.json()
   if (!id) return NextResponse.json({ error: 'Falta id' }, { status: 400 })
