@@ -11,6 +11,7 @@ import DashboardTab from './components/DashboardTab'
 import EquipoTab from './components/EquipoTab'
 import PagosTab from './components/PagosTab'
 import { ModalNuevoStaff, ModalTicketAmpliado } from './components/Modals'
+import ErrorBoundary from '../../components/ErrorBoundary'
 
 export default function ManagerPage() {
   const { t } = useLanguage()
@@ -206,28 +207,30 @@ export default function ManagerPage() {
         </div>
       </div>
 
-      <main className="max-w-3xl mx-auto p-5 mt-4">
-        {tab === 'pagos' && (
-          <PagosTab cargandoPago={cargandoPago} resumenPago={resumenPago} pagando={pagando}
-            iniciarPago={iniciarPago} exportarLiquidacionesPDF={exportarLiquidacionesPDF} />
-        )}
+      <ErrorBoundary>
+        <main className="max-w-3xl mx-auto p-5 mt-4">
+          {tab === 'pagos' && (
+            <PagosTab cargandoPago={cargandoPago} resumenPago={resumenPago} pagando={pagando}
+              iniciarPago={iniciarPago} exportarLiquidacionesPDF={exportarLiquidacionesPDF} />
+          )}
 
-        {tab === 'equipo' && (
-          <EquipoTab t={t} staffList={staffList} cargandoStaff={cargandoStaff}
-            toggleStaff={toggleStaff} setModalNuevoStaff={setModalNuevoStaff} setErrorStaff={setErrorStaff} />
-        )}
+          {tab === 'equipo' && (
+            <EquipoTab t={t} staffList={staffList} cargandoStaff={cargandoStaff}
+              toggleStaff={toggleStaff} setModalNuevoStaff={setModalNuevoStaff} setErrorStaff={setErrorStaff} />
+          )}
 
-        {tab === 'dashboard' && cargando && <SkeletonPanel />}
-        {tab === 'dashboard' && !cargando && (
-          <DashboardTab t={t} analytics={analytics} cargando={cargando}
-            ultimaValidacion={ultimaValidacion} segsDesde={segsDesde}
-            filtroFecha={filtroFecha} setFiltroFecha={setFiltroFecha}
-            fechaDesde={fechaDesde} setFechaDesde={setFechaDesde}
-            fechaHasta={fechaHasta} setFechaHasta={setFechaHasta}
-            cargarAnalytics={cargarAnalytics} exportarHoy={exportarHoy}
-            tickets={tickets} setTicketAmpliado={setTicketAmpliado} />
-        )}
-      </main>
+          {tab === 'dashboard' && cargando && <SkeletonPanel />}
+          {tab === 'dashboard' && !cargando && (
+            <DashboardTab t={t} analytics={analytics} cargando={cargando}
+              ultimaValidacion={ultimaValidacion} segsDesde={segsDesde}
+              filtroFecha={filtroFecha} setFiltroFecha={setFiltroFecha}
+              fechaDesde={fechaDesde} setFechaDesde={setFechaDesde}
+              fechaHasta={fechaHasta} setFechaHasta={setFechaHasta}
+              cargarAnalytics={cargarAnalytics} exportarHoy={exportarHoy}
+              tickets={tickets} setTicketAmpliado={setTicketAmpliado} />
+          )}
+        </main>
+      </ErrorBoundary>
 
       <ModalNuevoStaff t={t} show={modalNuevoStaff} onClose={() => setModalNuevoStaff(false)}
         formStaff={formStaff} setFormStaff={setFormStaff}

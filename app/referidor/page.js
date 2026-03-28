@@ -11,6 +11,7 @@ import DashboardTab from './components/DashboardTab'
 import QRTab from './components/QRTab'
 import ClientesTab from './components/ClientesTab'
 import PagosTab from './components/PagosTab'
+import ErrorBoundary from '../../components/ErrorBoundary'
 
 export default function ReferidorPage() {
   const { t } = useLanguage()
@@ -117,10 +118,10 @@ export default function ReferidorPage() {
   }
 
   const tabs = [
-    { id: 'dashboard', label: 'Rendimiento', icon: <BarChart3 size={15} /> },
-    { id: 'qr', label: 'Mi QR', icon: <QrCode size={15} /> },
-    { id: 'clientes', label: 'Invitados', icon: <Users size={15} /> },
-    { id: 'historial', label: 'Pagos', icon: <Receipt size={15} />, onSelect: () => { cargarHistorial(1); comprobarStripe() } }
+    { id: 'dashboard', label: t('referidor', 'performance'), icon: <BarChart3 size={15} /> },
+    { id: 'qr', label: t('referidor', 'myQR'), icon: <QrCode size={15} /> },
+    { id: 'clientes', label: t('referidor', 'guests'), icon: <Users size={15} /> },
+    { id: 'historial', label: t('referidor', 'payments'), icon: <Receipt size={15} />, onSelect: () => { cargarHistorial(1); comprobarStripe() } }
   ]
 
   const appUrl = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_APP_URL || window.location.origin) : ''
@@ -145,45 +146,47 @@ export default function ReferidorPage() {
         </div>
       </nav>
 
-      <main className="max-w-3xl mx-auto p-5 mt-6">
-        <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-6 gap-1" role="tablist">
-          {tabs.map(tb => (
-            <button
-              key={tb.id}
-              role="tab"
-              aria-selected={tab === tb.id}
-              onClick={() => { setTab(tb.id); tb.onSelect?.() }}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-xs font-medium rounded-lg transition-all ${
-                tab === tb.id ? 'bg-white text-[#111111] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'
-              }`}
-            >
-              {tb.icon}
-              {tb.label}
-            </button>
-          ))}
-        </div>
+      <ErrorBoundary>
+        <main className="max-w-3xl mx-auto p-5 mt-6">
+          <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-6 gap-1" role="tablist">
+            {tabs.map(tb => (
+              <button
+                key={tb.id}
+                role="tab"
+                aria-selected={tab === tb.id}
+                onClick={() => { setTab(tb.id); tb.onSelect?.() }}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-xs font-medium rounded-lg transition-all ${
+                  tab === tb.id ? 'bg-white text-[#111111] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'
+                }`}
+              >
+                {tb.icon}
+                {tb.label}
+              </button>
+            ))}
+          </div>
 
-        {cargando && tab === 'dashboard' && <SkeletonPanel />}
+          {cargando && tab === 'dashboard' && <SkeletonPanel />}
 
-        <motion.div
-          key={tab}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          {tab === 'dashboard' && !cargando && <DashboardTab analytics={analytics} liquidaciones={liquidaciones} />}
-          {tab === 'qr' && <QRTab referidor={referidor} qrImageUrl={qrImageUrl} appUrl={appUrl} handleCopiarUrl={handleCopiarUrl} copiadoMsj={copiadoMsj} />}
-          {tab === 'clientes' && <ClientesTab clientes={clientes} />}
-          {tab === 'historial' && (
-            <PagosTab
-              stripeOnboarded={stripeOnboarded} stripeConectando={stripeConectando} conectarStripe={conectarStripe}
-              historial={historial} historialCargando={historialCargando} historialStats={historialStats}
-              historialPagina={historialPagina} historialTotalPag={historialTotalPag} cargarHistorial={cargarHistorial}
-              liquidaciones={liquidaciones}
-            />
-          )}
-        </motion.div>
-      </main>
+          <motion.div
+            key={tab}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {tab === 'dashboard' && !cargando && <DashboardTab analytics={analytics} liquidaciones={liquidaciones} />}
+            {tab === 'qr' && <QRTab referidor={referidor} qrImageUrl={qrImageUrl} appUrl={appUrl} handleCopiarUrl={handleCopiarUrl} copiadoMsj={copiadoMsj} />}
+            {tab === 'clientes' && <ClientesTab clientes={clientes} />}
+            {tab === 'historial' && (
+              <PagosTab
+                stripeOnboarded={stripeOnboarded} stripeConectando={stripeConectando} conectarStripe={conectarStripe}
+                historial={historial} historialCargando={historialCargando} historialStats={historialStats}
+                historialPagina={historialPagina} historialTotalPag={historialTotalPag} cargarHistorial={cargarHistorial}
+                liquidaciones={liquidaciones}
+              />
+            )}
+          </motion.div>
+        </main>
+      </ErrorBoundary>
     </div>
   )
 }

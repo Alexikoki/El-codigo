@@ -11,6 +11,7 @@ import RankingTab from './components/RankingTab'
 import EquipoTab from './components/EquipoTab'
 import PagosTab from './components/PagosTab'
 import { ModalCrearPromotor, ModalNuevaLiquidacion, ModalConfirmPago } from './components/Modals'
+import ErrorBoundary from '../../components/ErrorBoundary'
 
 export default function AgenciaPage() {
   const { t } = useLanguage()
@@ -135,10 +136,10 @@ export default function AgenciaPage() {
   }
 
   const tabs = [
-    { id: 'dashboard', label: 'Rendimiento', icon: <BarChart3 size={15} /> },
-    { id: 'ranking', label: 'Ranking', icon: <Trophy size={15} /> },
-    { id: 'equipo', label: 'Promotores', icon: <Users size={15} /> },
-    { id: 'pagos', label: 'Pagos', icon: <CreditCard size={15} /> }
+    { id: 'dashboard', label: t('agencia', 'performance'), icon: <BarChart3 size={15} /> },
+    { id: 'ranking', label: t('agencia', 'ranking'), icon: <Trophy size={15} /> },
+    { id: 'equipo', label: t('agencia', 'promoters'), icon: <Users size={15} /> },
+    { id: 'pagos', label: t('agencia', 'payments'), icon: <CreditCard size={15} /> }
   ]
 
   return (
@@ -150,7 +151,7 @@ export default function AgenciaPage() {
             <Briefcase size={15} className="text-[#1e3a5f]" />
           </div>
           <div>
-            <h1 className="text-base font-semibold text-[#111111]">Panel de Agencia</h1>
+            <h1 className="text-base font-semibold text-[#111111]">{t('agencia', 'agencyPanel')}</h1>
             <p className="text-xs text-[#6b7280]">{agencia?.nombre}</p>
           </div>
         </div>
@@ -167,31 +168,33 @@ export default function AgenciaPage() {
         </div>
       </nav>
 
-      <main className="max-w-3xl mx-auto p-5 mt-6">
-        {/* Tabs */}
-        <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-6 gap-1" role="tablist">
-          {tabs.map(tb => (
-            <button key={tb.id} role="tab" aria-selected={tab === tb.id}
-              onClick={() => { setTab(tb.id); if (tb.id === 'pagos') comprobarStripe() }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                tab === tb.id ? 'bg-white text-[#111111] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'
-              }`}
-            >
-              {tb.icon} {tb.label}
-            </button>
-          ))}
-        </div>
+      <ErrorBoundary>
+        <main className="max-w-3xl mx-auto p-5 mt-6">
+          {/* Tabs */}
+          <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-6 gap-1" role="tablist">
+            {tabs.map(tb => (
+              <button key={tb.id} role="tab" aria-selected={tab === tb.id}
+                onClick={() => { setTab(tb.id); if (tb.id === 'pagos') comprobarStripe() }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                  tab === tb.id ? 'bg-white text-[#111111] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'
+                }`}
+              >
+                {tb.icon} {tb.label}
+              </button>
+            ))}
+          </div>
 
-        {cargando ? <SkeletonPanel /> : (
-          <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-            {tab === 'dashboard' && <DashboardTab analytics={analytics} />}
-            {tab === 'ranking' && <RankingTab ranking={ranking} />}
-            {tab === 'equipo' && <EquipoTab equipo={equipo} ranking={ranking} toggleActivo={toggleActivo} setShowAddModal={setShowAddModal} />}
-            {tab === 'pagos' && <PagosTab stripeOnboarded={stripeOnboarded} stripeConectando={stripeConectando}
-              conectarStripe={conectarStripe} liquidaciones={liquidaciones} setModalLiq={setModalLiq} setConfirmPago={setConfirmPago} />}
-          </motion.div>
-        )}
-      </main>
+          {cargando ? <SkeletonPanel /> : (
+            <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+              {tab === 'dashboard' && <DashboardTab analytics={analytics} />}
+              {tab === 'ranking' && <RankingTab ranking={ranking} />}
+              {tab === 'equipo' && <EquipoTab equipo={equipo} ranking={ranking} toggleActivo={toggleActivo} setShowAddModal={setShowAddModal} />}
+              {tab === 'pagos' && <PagosTab stripeOnboarded={stripeOnboarded} stripeConectando={stripeConectando}
+                conectarStripe={conectarStripe} liquidaciones={liquidaciones} setModalLiq={setModalLiq} setConfirmPago={setConfirmPago} />}
+            </motion.div>
+          )}
+        </main>
+      </ErrorBoundary>
 
       <ModalCrearPromotor show={showAddModal} onClose={() => setShowAddModal(false)}
         nuevoRef={nuevoRef} setNuevoRef={setNuevoRef}

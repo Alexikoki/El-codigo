@@ -12,23 +12,34 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const busqueda = searchParams.get('busqueda') || ''
     const lugarId = searchParams.get('lugarId') || ''
+    const pagina = Math.max(1, parseInt(searchParams.get('pagina') || '1', 10))
+    const porPagina = Math.min(100, Math.max(1, parseInt(searchParams.get('porPagina') || '50', 10)))
+    const desde = (pagina - 1) * porPagina
+    const hasta = desde + porPagina - 1
+
+    const selectFields = `id, nombre, email, num_personas, verificado, verificado_at, created_at, lugar_id, referidor_id,
+        lugares(nombre, porcentaje_plataforma),
+        referidores(nombre, porcentaje_split, agencia_id, agencias(nombre, porcentaje_split)),
+        valoraciones(gasto_confirmado, gasto_cliente, discrepancia_pct, comision_lugar, comision_agencia, comision_referidor, valoracion, ticket_url)`
 
     let query = supabaseAdmin
       .from('clientes')
-      .select(`id, nombre, email, num_personas, verificado, verificado_at, created_at, lugar_id, referidor_id,
-        lugares(nombre, porcentaje_plataforma),
-        referidores(nombre, porcentaje_split, agencia_id, agencias(nombre, porcentaje_split)),
-        valoraciones(gasto_confirmado, gasto_cliente, discrepancia_pct, comision_lugar, comision_agencia, comision_referidor, valoracion, ticket_url)`)
+      .select(selectFields, { count: 'exact' })
       .order('created_at', { ascending: false })
-      .limit(200)
+      .range(desde, hasta)
 
     if (busqueda) query = query.ilike('nombre', `%${busqueda}%`)
     if (lugarId) query = query.eq('lugar_id', lugarId)
 
-    const { data, error } = await query
+    const { data, error, count } = await query
     if (error) throw error
 
-    return NextResponse.json({ clientes: data || [] })
+    const totalPaginas = Math.ceil((count || 0) / porPagina)
+
+    return NextResponse.json({
+      clientes: data || [],
+      paginacion: { pagina, porPagina, total: count || 0, totalPaginas }
+    })
   } catch (e) {
     console.error('Error GET clientes admin:', e)
     return NextResponse.json({ error: 'Error cargando clientes' }, { status: 500 })

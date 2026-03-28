@@ -20,6 +20,7 @@ import {
   ModalCrear, ModalEditarLugar, ModalLiquidacion,
   ModalConfirmPago, ModalEditCliente, ModalConfirmEliminar, ModalConfirmBorrar
 } from './components/Modals'
+import ErrorBoundary from '../../components/ErrorBoundary'
 
 export default function SuperadminPage() {
   const { t } = useLanguage()
@@ -45,6 +46,7 @@ export default function SuperadminPage() {
   const [clientesCargando, setClientesCargando] = useState(false)
   const [lugarFiltroClientes, setLugarFiltroClientes] = useState('')
   const [barrioFiltro, setBarrioFiltro] = useState('')
+  const [paginacion, setPaginacion] = useState({ pagina: 1, total: 0, totalPaginas: 1 })
 
   // Filtros analytics
   const [filtroFecha, setFiltroFecha] = useState('mes')
@@ -129,14 +131,20 @@ export default function SuperadminPage() {
     if (resDisc.ok) setDiscrepancias(await resDisc.json())
   }
 
-  const cargarClientes = async (busqueda = '', lugarId = '') => {
+  const cargarClientes = async (busqueda = '', lugarId = '', pagina = 1) => {
     setClientesCargando(true)
     try {
       const params = new URLSearchParams()
       if (busqueda) params.set('busqueda', busqueda)
       if (lugarId) params.set('lugarId', lugarId)
-      const res = await fetch(`/api/admin/clientes${params.toString() ? '?' + params.toString() : ''}`, { credentials: 'include' })
-      if (res.ok) { const data = await res.json(); setClientes(data.clientes || []) }
+      params.set('pagina', pagina.toString())
+      params.set('porPagina', '50')
+      const res = await fetch(`/api/admin/clientes?${params.toString()}`, { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        setClientes(data.clientes || [])
+        if (data.paginacion) setPaginacion(data.paginacion)
+      }
     } finally {
       setClientesCargando(false)
     }
@@ -290,82 +298,85 @@ export default function SuperadminPage() {
         </div>
       </nav>
 
-      <main className="max-w-5xl mx-auto p-5 mt-6">
-        {/* Tabs */}
-        <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-6 gap-1 overflow-x-auto" role="tablist">
-          {tabs.map(t => (
-            <button key={t.id} role="tab" aria-selected={tab === t.id}
-              onClick={() => { setTab(t.id); setBusqueda('') }}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                tab === t.id ? 'bg-white text-[#111111] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'
-              }`}>
-              {t.icon} {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Barra de acciones para tabs con búsqueda */}
-        {['lugares', 'referidores', 'staff'].includes(tab) && (
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
-            <div className="relative w-full sm:w-56">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={15} />
-              <input type="text" placeholder="Buscar..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
-                className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none transition-colors bg-white placeholder:text-[#9ca3af]" />
-            </div>
-            <button
-              onClick={() => { setModal(tab === 'lugares' ? 'lugar' : tab === 'referidores' ? 'referidor' : 'staff'); setForm({ descuento: tab === 'lugares' ? 10 : undefined }) }}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-              <Plus size={15} /> Nuevo {tab === 'lugares' ? 'Local' : tab === 'referidores' ? 'Referidor' : 'Staff'}
-            </button>
+      <ErrorBoundary>
+        <main className="max-w-5xl mx-auto p-5 mt-6">
+          {/* Tabs */}
+          <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-6 gap-1 overflow-x-auto" role="tablist">
+            {tabs.map(t => (
+              <button key={t.id} role="tab" aria-selected={tab === t.id}
+                onClick={() => { setTab(t.id); setBusqueda('') }}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+                  tab === t.id ? 'bg-white text-[#111111] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'
+                }`}>
+                {t.icon} {t.label}
+              </button>
+            ))}
           </div>
-        )}
 
-        {cargando && tab !== 'analytics' ? <SkeletonPanel /> : (
-          <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-            {tab === 'analytics' && (
-              <AnalyticsTab analytics={analytics} discrepancias={discrepancias}
-                filtroFecha={filtroFecha} setFiltroFecha={setFiltroFecha}
-                fechaDesde={fechaDesde} setFechaDesde={setFechaDesde}
-                fechaHasta={fechaHasta} setFechaHasta={setFechaHasta}
-                cargarAnalytics={cargarAnalytics} exportarExcel={exportarExcel} t={t} />
-            )}
-
-            {tab === 'clientes' && (
-              <ClientesTab clientes={clientes} lugares={lugares}
-                lugarFiltroClientes={lugarFiltroClientes} setLugarFiltroClientes={setLugarFiltroClientes}
-                barrioFiltro={barrioFiltro} setBarrioFiltro={setBarrioFiltro}
-                busquedaClientes={busquedaClientes} setBusquedaClientes={setBusquedaClientes}
-                clientesCargando={clientesCargando} cargarClientes={cargarClientes}
-                setModalEditCliente={setModalEditCliente} setFormCliente={setFormCliente}
-                setConfirmBorrar={setConfirmBorrar} setClientes={setClientes} />
-            )}
-
-            {tab === 'agencias' && (
-              <AgenciasTab agencias={agencias} cargando={cargando}
-                toggleActivoAgencia={toggleActivoAgencia} setModal={setModal} setForm={setForm} />
-            )}
-
-            {tab === 'liquidaciones' && (
-              <LiquidacionesTab liquidaciones={liquidaciones} cargando={cargando}
-                referidores={referidores} lugares={lugares}
-                filtroEstado={filtroEstado} setFiltroEstado={setFiltroEstado}
-                filtroReferidor={filtroReferidor} setFiltroReferidor={setFiltroReferidor}
-                filtroLugarPagos={filtroLugarPagos} setFiltroLugarPagos={setFiltroLugarPagos}
-                setModalLiq={setModalLiq} setConfirmPago={setConfirmPago}
-                descargarFactura={descargarFactura} exportarLiquidacionesPDF={exportarLiquidacionesPDF} />
-            )}
-
-            {/* Grid tabs: lugares, referidores, staff */}
-            {['lugares', 'referidores', 'staff'].includes(tab) && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {tab === 'lugares' && <LugaresTab lugares={lugares} busqueda={busqueda} toggleActivo={toggleActivo} setModalEditar={setModalEditar} setForm={setForm} setConfirmEliminarLugar={setConfirmEliminarLugar} appUrl={appUrl} />}
-                {tab === 'referidores' && <ReferidoresTab referidores={referidores} busqueda={busqueda} appUrl={appUrl} descargarFactura={descargarFactura} toggleActivo={toggleActivo} />}
-                {tab === 'staff' && <StaffTab staff={staff} busqueda={busqueda} />}
+          {/* Barra de acciones para tabs con búsqueda */}
+          {['lugares', 'referidores', 'staff'].includes(tab) && (
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
+              <div className="relative w-full sm:w-56">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={15} />
+                <input type="text" placeholder="Buscar..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
+                  className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none transition-colors bg-white placeholder:text-[#9ca3af]" />
               </div>
-            )}
-          </motion.div>
-        )}
-      </main>
+              <button
+                onClick={() => { setModal(tab === 'lugares' ? 'lugar' : tab === 'referidores' ? 'referidor' : 'staff'); setForm({ descuento: tab === 'lugares' ? 10 : undefined }) }}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                <Plus size={15} /> Nuevo {tab === 'lugares' ? 'Local' : tab === 'referidores' ? 'Referidor' : 'Staff'}
+              </button>
+            </div>
+          )}
+
+          {cargando && tab !== 'analytics' ? <SkeletonPanel /> : (
+            <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+              {tab === 'analytics' && (
+                <AnalyticsTab analytics={analytics} discrepancias={discrepancias}
+                  filtroFecha={filtroFecha} setFiltroFecha={setFiltroFecha}
+                  fechaDesde={fechaDesde} setFechaDesde={setFechaDesde}
+                  fechaHasta={fechaHasta} setFechaHasta={setFechaHasta}
+                  cargarAnalytics={cargarAnalytics} exportarExcel={exportarExcel} t={t} />
+              )}
+
+              {tab === 'clientes' && (
+                <ClientesTab clientes={clientes} lugares={lugares}
+                  lugarFiltroClientes={lugarFiltroClientes} setLugarFiltroClientes={setLugarFiltroClientes}
+                  barrioFiltro={barrioFiltro} setBarrioFiltro={setBarrioFiltro}
+                  busquedaClientes={busquedaClientes} setBusquedaClientes={setBusquedaClientes}
+                  clientesCargando={clientesCargando} cargarClientes={cargarClientes}
+                  paginacion={paginacion}
+                  setModalEditCliente={setModalEditCliente} setFormCliente={setFormCliente}
+                  setConfirmBorrar={setConfirmBorrar} setClientes={setClientes} />
+              )}
+
+              {tab === 'agencias' && (
+                <AgenciasTab agencias={agencias} cargando={cargando}
+                  toggleActivoAgencia={toggleActivoAgencia} setModal={setModal} setForm={setForm} />
+              )}
+
+              {tab === 'liquidaciones' && (
+                <LiquidacionesTab liquidaciones={liquidaciones} cargando={cargando}
+                  referidores={referidores} lugares={lugares}
+                  filtroEstado={filtroEstado} setFiltroEstado={setFiltroEstado}
+                  filtroReferidor={filtroReferidor} setFiltroReferidor={setFiltroReferidor}
+                  filtroLugarPagos={filtroLugarPagos} setFiltroLugarPagos={setFiltroLugarPagos}
+                  setModalLiq={setModalLiq} setConfirmPago={setConfirmPago}
+                  descargarFactura={descargarFactura} exportarLiquidacionesPDF={exportarLiquidacionesPDF} />
+              )}
+
+              {/* Grid tabs: lugares, referidores, staff */}
+              {['lugares', 'referidores', 'staff'].includes(tab) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {tab === 'lugares' && <LugaresTab lugares={lugares} busqueda={busqueda} toggleActivo={toggleActivo} setModalEditar={setModalEditar} setForm={setForm} setConfirmEliminarLugar={setConfirmEliminarLugar} appUrl={appUrl} />}
+                  {tab === 'referidores' && <ReferidoresTab referidores={referidores} busqueda={busqueda} appUrl={appUrl} descargarFactura={descargarFactura} toggleActivo={toggleActivo} />}
+                  {tab === 'staff' && <StaffTab staff={staff} busqueda={busqueda} />}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </main>
+      </ErrorBoundary>
 
       {/* Modals */}
       <ModalCrear modal={modal} setModal={setModal} form={form} setForm={setForm} handleSubmit={handleSubmit} lugares={lugares} />

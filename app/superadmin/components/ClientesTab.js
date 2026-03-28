@@ -1,12 +1,12 @@
 'use client'
 import { useState } from 'react'
-import { MapPin, Search, CheckCircle2, Clock, ChevronDown, Pencil, XCircle } from 'lucide-react'
+import { MapPin, Search, CheckCircle2, Clock, ChevronDown, ChevronLeft, ChevronRight, Pencil, XCircle } from 'lucide-react'
 import { SkeletonPanel } from '../../../components/Skeleton'
 
 export default function ClientesTab({
   clientes, lugares, lugarFiltroClientes, setLugarFiltroClientes,
   barrioFiltro, setBarrioFiltro, busquedaClientes, setBusquedaClientes,
-  clientesCargando, cargarClientes,
+  clientesCargando, cargarClientes, paginacion = { pagina: 1, total: 0, totalPaginas: 1 },
   setModalEditCliente, setFormCliente, setConfirmBorrar, setClientes
 }) {
   const barrios = [...new Set(lugares.map(l => l.barrio).filter(Boolean))].sort()
@@ -73,6 +73,30 @@ export default function ClientesTab({
         setFormCliente={setFormCliente}
         setConfirmBorrar={setConfirmBorrar}
       />
+
+      {/* Paginación */}
+      {lugarFiltroClientes && paginacion.totalPaginas > 1 && (
+        <div className="flex items-center justify-center gap-4 mt-5 pt-4 border-t border-[#f3f4f6]">
+          <button
+            onClick={() => cargarClientes(busquedaClientes, lugarFiltroClientes, paginacion.pagina - 1)}
+            disabled={paginacion.pagina <= 1}
+            className="p-2 rounded-lg border border-[#e5e7eb] hover:bg-[#f3f4f6] disabled:opacity-30 transition-colors"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="text-sm text-[#6b7280]">
+            {paginacion.pagina} / {paginacion.totalPaginas}
+            <span className="text-xs text-[#9ca3af] ml-2">({paginacion.total} clientes)</span>
+          </span>
+          <button
+            onClick={() => cargarClientes(busquedaClientes, lugarFiltroClientes, paginacion.pagina + 1)}
+            disabled={paginacion.pagina >= paginacion.totalPaginas}
+            className="p-2 rounded-lg border border-[#e5e7eb] hover:bg-[#f3f4f6] disabled:opacity-30 transition-colors"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
     </>
   )
 }

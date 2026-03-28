@@ -8,7 +8,7 @@ export default function QRTab({ referidor, qrImageUrl, appUrl, handleCopiarUrl, 
   return (
     <div className="glass-panel p-7 flex flex-col items-center">
       <h2 className="text-sm font-semibold text-[#374151] mb-5 flex items-center gap-2 self-start">
-        <QrCode size={15} className="text-[#1e3a5f]" /> Tu QR Personal
+        <QrCode size={15} className="text-[#1e3a5f]" /> {t('referidor', 'yourPersonalQR')}
       </h2>
       <div className="bg-white p-4 rounded-xl border border-[#e5e7eb] mb-5 shadow-sm">
         {qrImageUrl ? (
