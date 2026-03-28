@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { generarToken } from '../../../lib/jwt'
+import { validateBody, loginSchema } from '../../../lib/validation'
 import bcrypt from 'bcryptjs'
 
 // === RATE LIMITER (en memoria, por IP) ===
@@ -56,22 +57,10 @@ export async function POST(request) {
       )
     }
 
-    const { email, password, tipo, cfToken } = await request.json()
-
-    // Validación básica de inputs
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Faltan credenciales' }, { status: 400 })
-    }
-    if (typeof email !== 'string' || email.length > 200) {
-      return NextResponse.json({ error: 'Email inválido' }, { status: 400 })
-    }
-    if (typeof password !== 'string' || password.length > 200) {
-      return NextResponse.json({ error: 'Contraseña inválida' }, { status: 400 })
-    }
-
-    if (!cfToken || cfToken === '') {
-      return NextResponse.json({ error: 'Falta token de seguridad (Turnstile)' }, { status: 400 })
-    }
+    const body = await request.json()
+    const { data: validated, response: valErr } = validateBody(body, loginSchema)
+    if (valErr) return valErr
+    const { email, password, tipo, cfToken } = validated
 
     // Verificación Cloudflare Turnstile
     let isHuman = false

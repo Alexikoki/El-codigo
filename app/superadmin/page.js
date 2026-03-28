@@ -292,9 +292,10 @@ export default function SuperadminPage() {
 
       <main className="max-w-5xl mx-auto p-5 mt-6">
         {/* Tabs */}
-        <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-6 gap-1 overflow-x-auto">
+        <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-6 gap-1 overflow-x-auto" role="tablist">
           {tabs.map(t => (
-            <button key={t.id} onClick={() => { setTab(t.id); setBusqueda('') }}
+            <button key={t.id} role="tab" aria-selected={tab === t.id}
+              onClick={() => { setTab(t.id); setBusqueda('') }}
               className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                 tab === t.id ? 'bg-white text-[#111111] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'
               }`}>

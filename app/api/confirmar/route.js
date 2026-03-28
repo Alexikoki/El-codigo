@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { enviarQRPersonal } from '../../../lib/email'
+import { checkRateLimit } from '../../../lib/rateLimitMiddleware'
+import { validateBody, confirmarCodigoSchema } from '../../../lib/validation'
 
 export async function POST(request) {
-  const { clienteId, codigo } = await request.json()
+  const rl = checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
+  if (rl) return rl
 
-  if (!clienteId || !codigo) {
-    return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
-  }
+  const body = await request.json()
+  const { data: validated, response: valErr } = validateBody(body, confirmarCodigoSchema)
+  if (valErr) return valErr
+  const { clienteId, codigo } = validated
 
   const { data: cliente } = await supabaseAdmin
     .from('clientes')
