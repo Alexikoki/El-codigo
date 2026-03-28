@@ -24,11 +24,18 @@ jobs:
         run: npm ci
 
       - name: Lint
-        run: npx next lint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Unit tests
+        run: npm run test:unit
 
       - name: Build
         run: npm run build
-        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: placeholder
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
