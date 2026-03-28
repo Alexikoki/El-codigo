@@ -3,6 +3,7 @@ import { supabaseAdmin } from '../../../../../lib/supabase'
 import { verificarToken } from '../../../../../lib/jwt'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
+import logger from '../../../../../lib/logger'
 
 export async function POST(request) {
     try {
@@ -62,14 +63,14 @@ export async function POST(request) {
             .eq('id', uid)
 
         if (updateError) {
-            console.error('Update Reset Error:', updateError)
+            logger.error({ err: updateError }, 'Update Reset Error:')
             return NextResponse.json({ error: 'Fallo al guardar en la bóveda.' }, { status: 500 })
         }
 
         return NextResponse.json({ ok: true })
 
     } catch (globalError) {
-        console.error('Crash API /auth/recuperar/cambiar:', globalError)
+        logger.error({ err: globalError }, 'Crash API /auth/recuperar/cambiar:')
         return NextResponse.json({ error: 'Error interno de cifrado.' }, { status: 500 })
     }
 }

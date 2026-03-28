@@ -3,6 +3,7 @@ import { supabaseAdmin } from '../../../lib/supabase'
 import { rateLimit, getIP } from '../../../lib/rateLimit'
 import { generarCodigoConfirmacion } from '../../../lib/qr'
 import { enviarCodigoConfirmacion } from '../../../lib/email'
+import logger from '../../../lib/logger'
 
 export async function POST(request) {
   const ip = getIP(request)
@@ -63,20 +64,20 @@ export async function POST(request) {
       .single()
 
     if (error) {
-      console.error('Error DB Cliente:', error)
+      logger.error({ err: error }, 'Error DB Cliente:')
       return NextResponse.json({ error: 'Error interno guardando tu registro.' }, { status: 500 })
     }
 
     try {
       await enviarCodigoConfirmacion({ nombre, email, codigo })
     } catch (emailError) {
-      console.error('Error Resend:', emailError)
+      logger.error({ err: emailError }, 'Error Resend:')
       // No bloqueamos el registro si el email falla, pero lo logueamos.
     }
 
     return NextResponse.json({ ok: true, clienteId: cliente.id }, { status: 201 })
   } catch (globalError) {
-    console.error('Crash Crítico API /clientes:', globalError)
+    logger.error({ err: globalError }, 'Crash Crítico API /clientes:')
     return NextResponse.json({ error: 'Fallo de conectividad remoto.' }, { status: 500 })
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { requireAuth } from '../../../../lib/auth'
+import logger from '../../../../lib/logger'
 
 export async function GET(request) {
   const { payload, response } = requireAuth(request)
@@ -49,7 +50,7 @@ export async function GET(request) {
 
     return NextResponse.json({ error: 'Rol desconocido' }, { status: 401 })
   } catch (e) {
-    console.error('Error /api/auth/me:', e)
+    logger.error({ err: e }, 'Error /api/auth/me:')
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }

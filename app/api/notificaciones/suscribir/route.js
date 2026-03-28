@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { requireAuth } from '../../../../lib/auth'
+import logger from '../../../../lib/logger'
 
 export const runtime = 'nodejs' // web-push requiere Node.js runtime
 
@@ -32,7 +33,7 @@ export async function POST(request) {
 
     return NextResponse.json({ ok: true })
   } catch (error) {
-    console.error('Error guardando suscripción push:', error)
+    logger.error({ err: error }, 'Error guardando suscripción push:')
     return NextResponse.json({ error: 'Error al registrar suscripción' }, { status: 500 })
   }
 }

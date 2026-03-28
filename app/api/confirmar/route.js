@@ -3,9 +3,10 @@ import { supabaseAdmin } from '../../../lib/supabase'
 import { enviarQRPersonal } from '../../../lib/email'
 import { checkRateLimit } from '../../../lib/rateLimitMiddleware'
 import { validateBody, confirmarCodigoSchema } from '../../../lib/validation'
+import logger from '../../../lib/logger'
 
 export async function POST(request) {
-  const rl = checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
+  const rl = await checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
   if (rl) return rl
 
   const body = await request.json()
@@ -55,7 +56,7 @@ export async function POST(request) {
       descuento: cliente.lugares.descuento
     })
   } catch (e) {
-    console.error('Error enviando QR:', e)
+    logger.error({ err: e }, 'Error enviando QR')
   }
 
   return NextResponse.json({ ok: true })

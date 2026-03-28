@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { requireAuth } from '../../../../lib/auth'
+import logger from '../../../../lib/logger'
 
 export async function GET(request) {
   try {
@@ -138,7 +139,7 @@ export async function GET(request) {
       }
     })
   } catch (e) {
-    console.error('Error exportando xlsx:', e)
+    logger.error({ err: e }, 'Error exportando xlsx:')
     return NextResponse.json({ error: 'Fallo al generar el Excel.' }, { status: 500 })
   }
 }

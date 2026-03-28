@@ -6,6 +6,7 @@ import { rateLimit, getIP } from '../../../../lib/rateLimit'
 import { enviarEmailValoracion } from '../../../../lib/email'
 import { calcularComisiones } from '../../../../lib/commissions'
 import { validarImagen } from '../../../../lib/uploads'
+import logger from '../../../../lib/logger'
 
 // GET — lista de clientes verificados hoy en el local del staff
 export async function GET(request) {
@@ -49,7 +50,7 @@ export async function GET(request) {
 
     return NextResponse.json({ clientes: resultado })
   } catch (e) {
-    console.error('Error GET confirmar:', e)
+    logger.error({ err: e }, 'Error GET confirmar:')
     return NextResponse.json({ error: 'Error cargando clientes' }, { status: 500 })
   }
 }
@@ -101,7 +102,7 @@ export async function POST(request) {
         ticket_url = urlData.publicUrl
       }
     } catch (e) {
-      console.error('Error subiendo foto:', e)
+      logger.error({ err: e }, 'Error subiendo foto:')
     }
   }
 
@@ -170,7 +171,7 @@ export async function POST(request) {
       })
     }
   } catch (e) {
-    console.error('Error enviando email valoración:', e)
+    logger.error({ err: e }, 'Error enviando email valoración:')
   }
 
   // Auto-liquidaciones

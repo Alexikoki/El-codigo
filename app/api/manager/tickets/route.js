@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { requireAuth } from '../../../../lib/auth'
+import logger from '../../../../lib/logger'
 
 export async function GET(request) {
   try {
@@ -48,7 +49,7 @@ export async function GET(request) {
 
     return NextResponse.json({ tickets })
   } catch (e) {
-    console.error('Error tickets manager:', e)
+    logger.error({ err: e }, 'Error tickets manager:')
     return NextResponse.json({ error: 'Error cargando tickets' }, { status: 500 })
   }
 }

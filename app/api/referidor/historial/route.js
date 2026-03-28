@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { requireAuth } from '../../../../lib/auth'
+import logger from '../../../../lib/logger'
 
 export async function GET(request) {
   try {
@@ -48,7 +49,7 @@ export async function GET(request) {
     })
 
   } catch (error) {
-    console.error('Error en /api/referidor/historial:', error)
+    logger.error({ err: error }, 'Error en /api/referidor/historial:')
     return NextResponse.json({ error: 'Error al cargar historial' }, { status: 500 })
   }
 }

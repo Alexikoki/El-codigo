@@ -19,7 +19,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const rl = checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
+  const rl = await checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
   if (rl) return rl
   const { response } = requireAuth(request, 'superadmin')
   if (response) return response
@@ -48,7 +48,7 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
-  const rl = checkRateLimit(request, { limite: 20, ventanaMs: 60000 })
+  const rl = await checkRateLimit(request, { limite: 20, ventanaMs: 60000 })
   if (rl) return rl
   const { response } = requireAuth(request, 'superadmin')
   if (response) return response

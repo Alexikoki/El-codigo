@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { requireAuth } from '../../../../lib/auth'
+import logger from '../../../../lib/logger'
 
 export async function GET(request) {
     const { payload, response } = requireAuth(request, 'manager')
@@ -66,7 +67,7 @@ export async function GET(request) {
 
         return NextResponse.json({ chartData, stats, hoy })
     } catch (e) {
-        console.error('Error /analytics/manager:', e)
+        logger.error({ err: e }, 'Error /analytics/manager:')
         return NextResponse.json({ error: 'Error procesando analytics' }, { status: 500 })
     }
 }

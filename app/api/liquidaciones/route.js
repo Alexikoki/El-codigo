@@ -4,6 +4,7 @@ import { requireAuth } from '../../../lib/auth'
 import { checkRateLimit } from '../../../lib/rateLimitMiddleware'
 import { validateBody, liquidacionSchema, liquidacionPatchSchema } from '../../../lib/validation'
 import { enviarEmailLiquidacionCreada, enviarEmailLiquidacionPagada } from '../../../lib/email'
+import logger from '../../../lib/logger'
 
 // GET — superadmin: todas | agencia: las de sus promotores + las propias | referidor: las suyas
 export async function GET(request) {
@@ -64,14 +65,14 @@ export async function GET(request) {
 
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   } catch (e) {
-    console.error('Error GET liquidaciones:', e)
+    logger.error({ err: e }, 'Error GET liquidaciones')
     return NextResponse.json({ error: 'Error cargando liquidaciones' }, { status: 500 })
   }
 }
 
 // POST — superadmin o agencia crean una liquidación
 export async function POST(request) {
-  const rl = checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
+  const rl = await checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
   if (rl) return rl
   const { payload, response } = requireAuth(request, ['superadmin', 'agencia'])
   if (response) return response
@@ -108,18 +109,18 @@ export async function POST(request) {
       } else if (data.agencias?.email && data.agencias?.nombre) {
         await enviarEmailLiquidacionCreada({ nombre: data.agencias.nombre, email: data.agencias.email, ...data })
       }
-    } catch (e) { console.error('Email liquidación creada:', e) }
+    } catch (e) { logger.error({ err: e }, 'Email liquidación creada') }
 
     return NextResponse.json({ liquidacion: data }, { status: 201 })
   } catch (e) {
-    console.error('Error POST liquidaciones:', e)
+    logger.error({ err: e }, 'Error POST liquidaciones')
     return NextResponse.json({ error: 'Error creando liquidación' }, { status: 500 })
   }
 }
 
 // PATCH — superadmin o agencia marcan como pagado
 export async function PATCH(request) {
-  const rl = checkRateLimit(request, { limite: 20, ventanaMs: 60000 })
+  const rl = await checkRateLimit(request, { limite: 20, ventanaMs: 60000 })
   if (rl) return rl
   const { payload, response } = requireAuth(request, ['superadmin', 'agencia'])
   if (response) return response
@@ -158,12 +159,12 @@ export async function PATCH(request) {
         } else if (liq?.agencias?.email) {
           await enviarEmailLiquidacionPagada({ nombre: liq.agencias.nombre, email: liq.agencias.email, ...liq })
         }
-      } catch (e) { console.error('Email liquidación pagada:', e) }
+      } catch (e) { logger.error({ err: e }, 'Email liquidación pagada') }
     }
 
     return NextResponse.json({ ok: true })
   } catch (e) {
-    console.error('Error PATCH liquidaciones:', e)
+    logger.error({ err: e }, 'Error PATCH liquidaciones')
     return NextResponse.json({ error: 'Error actualizando liquidación' }, { status: 500 })
   }
 }

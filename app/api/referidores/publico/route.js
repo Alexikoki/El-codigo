@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
+import logger from '../../../../lib/logger'
 
 export async function GET(request) {
   try {
@@ -19,7 +20,7 @@ export async function GET(request) {
 
     return NextResponse.json({ nombre: data.nombre })
   } catch (globalError) {
-    console.error('Crash API /referidores/publico:', globalError)
+    logger.error({ err: globalError }, 'Crash API /referidores/publico:')
     return NextResponse.json({ error: 'Fallo interno recuperando datos.' }, { status: 500 })
   }
 }

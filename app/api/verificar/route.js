@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { requireAuth } from '../../../lib/auth'
 import { enviarNotificacionPush } from '../../../lib/webpush'
+import logger from '../../../lib/logger'
 
 export const runtime = 'nodejs' // web-push requiere Node.js runtime
 
@@ -73,7 +74,7 @@ export async function POST(request) {
       }
     })
   } catch (globalError) {
-    console.error('Crash API /verificar:', globalError)
+    logger.error({ err: globalError }, 'Crash API /verificar')
     return NextResponse.json({ error: 'Error procesando la lectura del QR.' }, { status: 500 })
   }
 }

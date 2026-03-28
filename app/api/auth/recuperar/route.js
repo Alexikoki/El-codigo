@@ -3,6 +3,7 @@ import { supabaseAdmin } from '../../../../lib/supabase'
 import { generarToken } from '../../../../lib/jwt'
 import { Resend } from 'resend'
 import crypto from 'crypto'
+import logger from '../../../../lib/logger'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://itrustb2b.com'
@@ -61,7 +62,7 @@ export async function POST(request) {
         return NextResponse.json({ ok: true })
 
     } catch (globalError) {
-        console.error('Crash API /auth/recuperar:', globalError)
+        logger.error({ err: globalError }, 'Crash API /auth/recuperar:')
         // Devolvemos 500 solo si falla la red, no si el usuario no existe.
         return NextResponse.json({ error: 'Fallo enviando correo de recuperación.' }, { status: 500 })
     }

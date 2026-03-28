@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { enviarResumenSemanal } from '../../../../lib/email'
+import logger from '../../../../lib/logger'
 
 export async function GET(request) {
     // Vercel Cron: verifica el secret de autorización
@@ -65,7 +66,7 @@ export async function GET(request) {
         return NextResponse.json({ ok: true, stats, topReferidores, pendientes })
 
     } catch (error) {
-        console.error('Cron resumen semanal error:', error)
+        logger.error({ err: error }, 'Cron resumen semanal error')
         return NextResponse.json({ error: 'Error generando resumen' }, { status: 500 })
     }
 }

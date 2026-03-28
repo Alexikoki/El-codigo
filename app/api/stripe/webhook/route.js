@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '../../../../lib/stripe'
 import { supabaseAdmin } from '../../../../lib/supabase'
+import logger from '../../../../lib/logger'
 
 export const config = { api: { bodyParser: false } }
 
@@ -12,7 +13,7 @@ export async function POST(request) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
   } catch (err) {
-    console.error('Webhook signature error:', err.message)
+    logger.error({ err }, 'Webhook signature error')
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
@@ -60,7 +61,7 @@ export async function POST(request) {
           description: `Comisión ${meta.periodoDesde} → ${meta.periodoHasta}`,
         })
       } catch (err) {
-        console.error(`Transfer a ${t.accountId} fallida:`, err.message)
+        logger.error({ err: err.message }, `Transfer a ${t.accountId} fallida:`)
         // No bloqueamos el webhook por un fallo de transferencia individual
       }
     }

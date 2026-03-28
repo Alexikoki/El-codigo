@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { requireAuth } from '../../../../lib/auth'
+import logger from '../../../../lib/logger'
 
 export async function GET(request) {
   try {
@@ -68,7 +69,7 @@ export async function GET(request) {
       porLocal: Object.values(porLocal).sort((a, b) => b.total - a.total)
     })
   } catch (e) {
-    console.error('Error GET discrepancias:', e)
+    logger.error({ err: e }, 'Error GET discrepancias')
     return NextResponse.json({ error: 'Error cargando discrepancias' }, { status: 500 })
   }
 }

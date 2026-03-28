@@ -3,6 +3,7 @@ import { supabaseAdmin } from '../../../../lib/supabase'
 import { requireAuth } from '../../../../lib/auth'
 import { checkRateLimit } from '../../../../lib/rateLimitMiddleware'
 import { validateBody, clienteUpdateSchema, idSchema } from '../../../../lib/validation'
+import logger from '../../../../lib/logger'
 
 export async function GET(request) {
   const { response } = requireAuth(request, 'superadmin')
@@ -41,13 +42,13 @@ export async function GET(request) {
       paginacion: { pagina, porPagina, total: count || 0, totalPaginas }
     })
   } catch (e) {
-    console.error('Error GET clientes admin:', e)
+    logger.error({ err: e }, 'Error GET clientes admin')
     return NextResponse.json({ error: 'Error cargando clientes' }, { status: 500 })
   }
 }
 
 export async function PATCH(request) {
-  const rl = checkRateLimit(request, { limite: 20, ventanaMs: 60000 })
+  const rl = await checkRateLimit(request, { limite: 20, ventanaMs: 60000 })
   if (rl) return rl
   const { response } = requireAuth(request, 'superadmin')
   if (response) return response
@@ -69,13 +70,13 @@ export async function PATCH(request) {
 
     return NextResponse.json({ ok: true })
   } catch (e) {
-    console.error('Error PATCH cliente admin:', e)
+    logger.error({ err: e }, 'Error PATCH cliente admin')
     return NextResponse.json({ error: 'Error actualizando cliente' }, { status: 500 })
   }
 }
 
 export async function DELETE(request) {
-  const rl = checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
+  const rl = await checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
   if (rl) return rl
   const { response } = requireAuth(request, 'superadmin')
   if (response) return response
@@ -95,7 +96,7 @@ export async function DELETE(request) {
 
     return NextResponse.json({ ok: true })
   } catch (e) {
-    console.error('Error DELETE cliente admin:', e)
+    logger.error({ err: e }, 'Error DELETE cliente admin')
     return NextResponse.json({ error: 'Error eliminando cliente' }, { status: 500 })
   }
 }
