@@ -53,24 +53,11 @@ export default function LoginPage() {
         return
       }
 
-      localStorage.setItem('rol', data.rol)
-
       if (data.rol === 'superadmin') router.push('/superadmin')
-      else if (data.rol === 'agencia') {
-        localStorage.setItem('agencia', JSON.stringify(data.agencia))
-        router.push('/agencia')
-      }
-      else if (data.rol === 'manager') {
-        localStorage.setItem('manager', JSON.stringify(data.manager))
-        router.push('/manager')
-      }
-      else if (data.rol === 'referidor') {
-        localStorage.setItem('referidor', JSON.stringify(data.referidor))
-        router.push('/referidor')
-      } else {
-        localStorage.setItem('staff', JSON.stringify(data.staff))
-        router.push('/staff')
-      }
+      else if (data.rol === 'agencia') router.push('/agencia')
+      else if (data.rol === 'manager') router.push('/manager')
+      else if (data.rol === 'referidor') router.push('/referidor')
+      else router.push('/staff')
     } catch (err) {
       setError('Error de conexión')
       setCargando(false)
@@ -135,10 +122,12 @@ export default function LoginPage() {
         <div className="bg-white border border-[#e5e7eb] rounded-2xl p-8 shadow-sm">
 
           {/* Tabs */}
-          <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-7 gap-1">
+          <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-7 gap-1" role="tablist">
             {tabs.map(t => (
               <button
                 key={t.id}
+                role="tab"
+                aria-selected={form.tipo === t.id}
                 onClick={() => { setForm({ ...form, tipo: t.id }); setError('') }}
                 className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-xs font-medium rounded-lg transition-all relative ${
                   form.tipo === t.id ? 'bg-white text-[#111111] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'
@@ -182,6 +171,7 @@ export default function LoginPage() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
+                  role="alert"
                   className="bg-red-50 border border-red-200 text-red-600 text-sm p-3 rounded-lg flex items-center gap-2"
                 >
                   <ShieldAlert size={15} /> {error}

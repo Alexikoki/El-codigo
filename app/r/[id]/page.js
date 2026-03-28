@@ -4,11 +4,15 @@ import { useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, ChevronRight, Mail, MapPin, Users, TicketPercent } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
+import { useLanguage } from '../../../lib/i18n/LanguageContext'
 
 export default function FormularioClientePage() {
+  const { t } = useLanguage()
   const [qrToken, setQrToken] = useState('')
   const [referidor, setReferidor] = useState(null)
   const [lugares, setLugares] = useState([])
+  const [barrios, setBarrios] = useState([])
+  const [barrioSeleccionado, setBarrioSeleccionado] = useState('')
   const [form, setForm] = useState({ nombre: '', email: '', numPersonas: 1, lugarId: '' })
   const [estado, setEstado] = useState('cargando')
   const [clienteId, setClienteId] = useState(null)
@@ -33,7 +37,10 @@ export default function FormularioClientePage() {
       setReferidor(await resRef.json())
       if (resLug.ok) {
         const data = await resLug.json()
-        setLugares(data.lugares || [])
+        const lugs = data.lugares || []
+        setLugares(lugs)
+        const barriosUnicos = [...new Set(lugs.map(l => l.barrio).filter(Boolean))].sort()
+        setBarrios(barriosUnicos)
       }
       setEstado('formulario')
     } else {
@@ -45,11 +52,11 @@ export default function FormularioClientePage() {
 
   const handleSubmit = async () => {
     if (!form.nombre || !form.email || !form.lugarId) {
-      setError('Por favor rellena el local al que asistes')
+      setError(t('register', 'fillVenue'))
       return
     }
-    if (!form.email.includes('@')) { setError('Email no válido'); return }
-    if (!cfToken) { setError('Por favor, completa el Captcha'); return }
+    if (!form.email.includes('@')) { setError(t('register', 'invalidEmail')); return }
+    if (!cfToken) { setError(t('register', 'completeCaptcha')); return }
 
     setError('')
     setEstado('enviando')
@@ -68,14 +75,14 @@ export default function FormularioClientePage() {
     })
 
     const data = await res.json()
-    if (!res.ok) { setError(data.error || 'Error'); setEstado('formulario'); return }
+    if (!res.ok) { setError(data.error || t('common', 'error')); setEstado('formulario'); return }
 
     setClienteId(data.clienteId)
     setEstado('confirmar')
   }
 
   const handleConfirmar = async () => {
-    if (!codigo || codigo.length !== 5) { setError('Introduce el código de 5 dígitos'); return }
+    if (!codigo || codigo.length !== 5) { setError(t('register', 'enterCode')); return }
     setError('')
     setEstado('enviando')
 
@@ -86,7 +93,7 @@ export default function FormularioClientePage() {
     })
 
     const data = await res.json()
-    if (!res.ok) { setError(data.error || 'Código incorrecto'); setEstado('confirmar'); return }
+    if (!res.ok) { setError(data.error || t('register', 'wrongCode')); setEstado('confirmar'); return }
 
     setEstado('exito')
   }
@@ -111,7 +118,7 @@ export default function FormularioClientePage() {
     <div className="min-h-screen bg-[#fafaf8] flex items-center justify-center p-4">
       <AnimatePresence mode="wait">
 
-        {/* ÉXITO */}
+        {/* SUCCESS */}
         {estado === 'exito' && (
           <motion.div key="exito" variants={cardVars} initial="hidden" animate="visible" exit="exit"
             className="bg-white border border-[#e5e7eb] rounded-2xl p-8 w-full max-w-md text-center shadow-sm"
@@ -124,12 +131,12 @@ export default function FormularioClientePage() {
             >
               <CheckCircle2 size={32} className="text-green-600" />
             </motion.div>
-            <h2 className="text-xl font-bold text-[#111111] mb-2">¡Todo listo!</h2>
+            <h2 className="text-xl font-bold text-[#111111] mb-2">{t('register', 'successTitle')}</h2>
             <p className="text-[#6b7280] text-sm mb-5 leading-relaxed">
-              Te hemos enviado tu código QR de acceso por email.
+              {t('register', 'successDesc')}
             </p>
             <div className="bg-[#f0f4f8] rounded-xl p-4 border border-[#e5e7eb]">
-              <p className="text-sm text-[#1e3a5f] font-medium">Muéstralo a un camarero al llegar al local.</p>
+              <p className="text-sm text-[#1e3a5f] font-medium">{t('register', 'successHint')}</p>
             </div>
           </motion.div>
         )}
@@ -142,12 +149,12 @@ export default function FormularioClientePage() {
             <div className="w-16 h-16 bg-red-50 border border-red-200 rounded-full flex items-center justify-center mx-auto mb-5">
               <CheckCircle2 size={32} className="text-red-400 rotate-45" />
             </div>
-            <h2 className="text-xl font-bold text-[#111111] mb-2">QR Inválido</h2>
-            <p className="text-[#6b7280] text-sm">Este código QR no está enlazado a ningún guía activo.</p>
+            <h2 className="text-xl font-bold text-[#111111] mb-2">{t('register', 'errorQR')}</h2>
+            <p className="text-[#6b7280] text-sm">{t('register', 'errorQRDesc')}</p>
           </motion.div>
         )}
 
-        {/* CONFIRMAR EMAIL */}
+        {/* CONFIRM EMAIL */}
         {estado === 'confirmar' && (
           <motion.div key="confirmar" variants={cardVars} initial="hidden" animate="visible" exit="exit"
             className="bg-white border border-[#e5e7eb] rounded-2xl p-8 w-full max-w-md shadow-sm"
@@ -156,8 +163,8 @@ export default function FormularioClientePage() {
               <div className="w-12 h-12 bg-[#f0f4f8] rounded-xl flex items-center justify-center mx-auto mb-4">
                 <Mail size={22} className="text-[#1e3a5f]" />
               </div>
-              <h2 className="text-lg font-bold text-[#111111]">Confirma tu email</h2>
-              <p className="text-[#6b7280] text-sm mt-1">Te hemos enviado un código de 5 dígitos.</p>
+              <h2 className="text-lg font-bold text-[#111111]">{t('register', 'confirmTitle')}</h2>
+              <p className="text-[#6b7280] text-sm mt-1">{t('register', 'confirmDesc')}</p>
             </div>
 
             <div className="space-y-5">
@@ -168,28 +175,29 @@ export default function FormularioClientePage() {
                 onChange={e => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 5))}
                 className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg px-4 py-4 text-center text-3xl font-bold tracking-[0.5em] text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#d1d5db] bg-white"
                 maxLength={5}
+                aria-label={t('register', 'codeLabel')}
               />
 
-              {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+              {error && <p className="text-red-500 text-sm text-center" role="alert">{error}</p>}
 
               <button
                 onClick={handleConfirmar}
                 className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3 rounded-lg transition-colors"
               >
-                Verificar código <ChevronRight size={16} />
+                {t('register', 'confirmBtn')} <ChevronRight size={16} />
               </button>
             </div>
           </motion.div>
         )}
 
-        {/* FORMULARIO */}
+        {/* FORM */}
         {estado === 'formulario' && (
           <motion.div key="formulario" variants={cardVars} initial="hidden" animate="visible" exit="exit"
             className="bg-white border border-[#e5e7eb] rounded-2xl p-8 w-full max-w-md shadow-sm"
           >
             {referidor && (
               <div className="text-center mb-7 pb-6 border-b border-[#f3f4f6]">
-                <p className="text-xs text-[#9ca3af] uppercase tracking-widest mb-1">Invitación de</p>
+                <p className="text-xs text-[#9ca3af] uppercase tracking-widest mb-1">{t('register', 'invitedBy')}</p>
                 <h2 className="text-xl font-bold text-[#111111]">{referidor.nombre}</h2>
               </div>
             )}
@@ -197,37 +205,57 @@ export default function FormularioClientePage() {
             <div className="space-y-4">
               <div className="relative">
                 <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={16} />
-                <input type="text" name="nombre" placeholder="Tu nombre y apellidos"
-                  value={form.nombre} onChange={handleChange} className={inputClass} />
+                <input type="text" name="nombre" placeholder={t('register', 'name')}
+                  value={form.nombre} onChange={handleChange} className={inputClass}
+                  aria-label={t('register', 'name')} />
               </div>
 
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={16} />
-                <input type="email" name="email" placeholder="Tu correo electrónico"
-                  value={form.email} onChange={handleChange} className={inputClass} />
+                <input type="email" name="email" placeholder={t('register', 'email')}
+                  value={form.email} onChange={handleChange} className={inputClass}
+                  aria-label={t('register', 'email')} />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="relative">
-                  <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={16} />
-                  <select name="numPersonas" value={form.numPersonas} onChange={handleChange}
-                    className={`${inputClass} appearance-none`}>
-                    {Array.from({ length: 20 }, (_, i) => i + 1).map(n => (
-                      <option key={n} value={n}>{n} {n === 1 ? 'persona' : 'personas'}</option>
-                    ))}
-                  </select>
-                </div>
+              <div className="relative">
+                <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={16} />
+                <select name="numPersonas" value={form.numPersonas} onChange={handleChange}
+                  className={`${inputClass} appearance-none`}
+                  aria-label={t('register', 'people')}>
+                  {Array.from({ length: 20 }, (_, i) => i + 1).map(n => (
+                    <option key={n} value={n}>{n} {n === 1 ? t('register', 'person') : t('register', 'persons')}</option>
+                  ))}
+                </select>
+              </div>
 
+              {barrios.length > 0 && (
                 <div className="relative">
                   <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={16} />
-                  <select name="lugarId" value={form.lugarId} onChange={handleChange}
-                    className={`${inputClass} appearance-none`}>
-                    <option value="">Selecciona el local</option>
-                    {lugares.map(l => (
-                      <option key={l.id} value={l.id}>{l.nombre}</option>
+                  <select value={barrioSeleccionado}
+                    onChange={e => { setBarrioSeleccionado(e.target.value); setForm({ ...form, lugarId: '' }) }}
+                    className={`${inputClass} appearance-none`}
+                    aria-label={t('register', 'selectZone')}>
+                    <option value="">{t('register', 'selectZone')}</option>
+                    {barrios.map(b => (
+                      <option key={b} value={b}>{b}</option>
                     ))}
                   </select>
                 </div>
+              )}
+
+              <div className="relative">
+                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" size={16} />
+                <select name="lugarId" value={form.lugarId} onChange={handleChange}
+                  className={`${inputClass} appearance-none`}
+                  disabled={barrios.length > 0 && !barrioSeleccionado}
+                  aria-label={t('register', 'place')}>
+                  <option value="">{barrios.length > 0 && !barrioSeleccionado ? t('register', 'selectZoneFirst') : t('register', 'selectPlace')}</option>
+                  {lugares
+                    .filter(l => !barrioSeleccionado || l.barrio === barrioSeleccionado)
+                    .map(l => (
+                      <option key={l.id} value={l.id}>{l.nombre}</option>
+                    ))}
+                </select>
               </div>
             </div>
 
@@ -240,14 +268,14 @@ export default function FormularioClientePage() {
                 <TicketPercent size={18} className="text-[#1e3a5f] flex-shrink-0" />
                 <div>
                   <p className="text-[#111111] text-sm font-medium">
-                    {lugares.find(l => l.id === form.lugarId)?.descuento}% de descuento para tu grupo
+                    {lugares.find(l => l.id === form.lugarId)?.descuento}% {t('register', 'discountForGroup')}
                   </p>
-                  <p className="text-[#6b7280] text-xs mt-0.5">Válido para todos los del grupo.</p>
+                  <p className="text-[#6b7280] text-xs mt-0.5">{t('register', 'validForAll')}</p>
                 </div>
               </motion.div>
             )}
 
-            {error && <p className="text-red-500 text-sm mt-4 text-center">{error}</p>}
+            {error && <p className="text-red-500 text-sm mt-4 text-center" role="alert">{error}</p>}
 
             <div className="mt-5 flex justify-center">
               <Turnstile
@@ -261,12 +289,12 @@ export default function FormularioClientePage() {
               onClick={handleSubmit}
               className="w-full mt-5 flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3 rounded-lg transition-colors"
             >
-              Generar mi código <ChevronRight size={16} />
+              {t('register', 'submit')} <ChevronRight size={16} />
             </button>
           </motion.div>
         )}
 
-        {/* ENVIANDO */}
+        {/* LOADING */}
         {estado === 'enviando' && (
           <motion.div key="enviando" variants={cardVars} initial="hidden" animate="visible"
             className="flex items-center justify-center py-20"

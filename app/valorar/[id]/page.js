@@ -3,8 +3,10 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Star, CheckCircle2, HeartHandshake, Clock, Upload, X, MapPin } from 'lucide-react'
 import QRCode from 'qrcode'
+import { useLanguage } from '../../../lib/i18n/LanguageContext'
 
 export default function ValorarPage({ params }) {
+  const { t } = useLanguage()
   const [info, setInfo] = useState(null)
   const [estado, setEstado] = useState('cargando')
   const [valoracion, setValoracion] = useState(0)
@@ -15,9 +17,11 @@ export default function ValorarPage({ params }) {
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [clienteId, setClienteId] = useState('')
   const pollingRef = useRef(null)
+  const [token, setToken] = useState('')
 
-  async function consultarEstado(id) {
-    const res = await fetch(`/api/valorar/${id}`)
+  async function consultarEstado(id, t_token) {
+    const res = await fetch(`/api/valorar/${id}${t_token ? `?t=${t_token}` : ''}`)
+    if (res.status === 403) { setEstado('invalido'); return true }
     const data = await res.json()
     if (data.yaValorado) { setEstado('yaValorado'); return true }
     if (!data.pendiente) { setInfo({ ...data, id }); setEstado('formulario'); return true }
@@ -27,12 +31,14 @@ export default function ValorarPage({ params }) {
   async function cargarInfo() {
     if (typeof window === 'undefined') return
     const id = window.location.pathname.split('/').pop()
+    const urlParams = new URLSearchParams(window.location.search)
+    const tk = urlParams.get('t') || ''
+    setToken(tk)
     setClienteId(id)
     try {
-      const done = await consultarEstado(id)
+      const done = await consultarEstado(id, tk)
       if (!done) {
         setEstado('pendiente')
-        // Generar QR de esta misma URL para mostrar al staff
         QRCode.toDataURL(window.location.href, {
           width: 260, margin: 2,
           color: { dark: '#1e3a5f', light: '#ffffff' }
@@ -43,15 +49,21 @@ export default function ValorarPage({ params }) {
     }
   }
 
-  // Polling: mientras pendiente, comprobar cada 4s si el staff ya confirmó
   useEffect(() => {
     if (estado !== 'pendiente' || !clienteId) return
-    pollingRef.current = setInterval(async () => {
-      const done = await consultarEstado(clienteId)
-      if (done) clearInterval(pollingRef.current)
-    }, 4000)
-    return () => clearInterval(pollingRef.current)
-  }, [estado, clienteId])
+    let delay = 4000
+    let attempts = 0
+    const maxAttempts = 60
+    const poll = async () => {
+      const done = await consultarEstado(clienteId, token)
+      attempts++
+      if (done || attempts >= maxAttempts) return
+      delay = Math.min(delay * 1.5, 60000)
+      pollingRef.current = setTimeout(poll, delay)
+    }
+    pollingRef.current = setTimeout(poll, delay)
+    return () => clearTimeout(pollingRef.current)
+  }, [estado, clienteId, token])
 
   useEffect(() => { cargarInfo() }, [])
 
@@ -63,7 +75,7 @@ export default function ValorarPage({ params }) {
   }
 
   const handleSubmit = async () => {
-    if (!valoracion) { setError('Selecciona una valoración'); return }
+    if (!valoracion) { setError(t('valorar', 'selectRating')); return }
     setError('')
     setEstado('enviando')
     try {
@@ -71,16 +83,17 @@ export default function ValorarPage({ params }) {
       fd.append('valoracion', valoracion)
       if (gastoCliente !== '') fd.append('gasto_cliente', gastoCliente)
       if (foto) fd.append('foto', foto)
+      if (token) fd.append('token', token)
 
       const res = await fetch(`/api/valorar/${info.id}`, {
         method: 'POST',
         body: fd
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error || 'Error al enviar valoración'); setEstado('formulario'); return }
+      if (!res.ok) { setError(data.error || t('valorar', 'errorSubmit')); setEstado('formulario'); return }
       setEstado('exito')
     } catch (e) {
-      setError('Error de conexión')
+      setError(t('valorar', 'connectionError'))
       setEstado('formulario')
     }
   }
@@ -103,18 +116,30 @@ export default function ValorarPage({ params }) {
     <div className="min-h-screen bg-[#fafaf8] flex items-center justify-center p-4">
       <AnimatePresence mode="wait">
 
+        {estado === 'invalido' && (
+          <motion.div key="invalido" variants={cardVars} initial="hidden" animate="visible" exit="exit"
+            className="bg-white border border-[#e5e7eb] rounded-2xl p-8 w-full max-w-sm text-center shadow-sm"
+          >
+            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
+              <X size={28} className="text-red-500" />
+            </div>
+            <h2 className="text-lg font-bold text-[#111111] mb-2">{t('valorar', 'invalidLink')}</h2>
+            <p className="text-[#6b7280] text-sm">{t('valorar', 'invalidLinkDesc')}</p>
+          </motion.div>
+        )}
+
         {estado === 'pendiente' && (
           <motion.div key="pendiente" variants={cardVars} initial="hidden" animate="visible" exit="exit"
             className="bg-white border border-[#e5e7eb] rounded-2xl p-6 w-full max-w-sm text-center shadow-sm"
           >
             <div className="mb-5 pb-5 border-b border-[#f3f4f6]">
-              <h2 className="text-base font-bold text-[#111111] mb-1">Tu código de visita</h2>
-              <p className="text-xs text-[#6b7280]">Muestra este QR al camarero al finalizar tu visita</p>
+              <h2 className="text-base font-bold text-[#111111] mb-1">{t('valorar', 'waitingTitle')}</h2>
+              <p className="text-xs text-[#6b7280]">{t('valorar', 'waitingDesc')}</p>
             </div>
 
             {qrDataUrl ? (
               <div className="flex justify-center mb-5">
-                <img src={qrDataUrl} alt="Tu QR" className="w-56 h-56 rounded-xl" />
+                <img src={qrDataUrl} alt="QR" className="w-56 h-56 rounded-xl" />
               </div>
             ) : (
               <div className="w-56 h-56 mx-auto mb-5 bg-[#f3f4f6] rounded-xl animate-pulse" />
@@ -122,7 +147,7 @@ export default function ValorarPage({ params }) {
 
             <div className="flex items-center justify-center gap-2 text-xs text-[#9ca3af]">
               <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              Esperando confirmación del local...
+              {t('valorar', 'waitingStatus')}
             </div>
           </motion.div>
         )}
@@ -134,8 +159,8 @@ export default function ValorarPage({ params }) {
             <div className="w-14 h-14 bg-[#f0f4f8] rounded-full flex items-center justify-center mx-auto mb-5">
               <CheckCircle2 size={28} className="text-[#1e3a5f]" />
             </div>
-            <h2 className="text-lg font-bold text-[#111111] mb-2">Ya enviaste tu valoración</h2>
-            <p className="text-[#6b7280] text-sm">¡Gracias! Tu opinión ya ha sido registrada.</p>
+            <h2 className="text-lg font-bold text-[#111111] mb-2">{t('valorar', 'alreadyRated')}</h2>
+            <p className="text-[#6b7280] text-sm">{t('valorar', 'alreadyRatedDesc')}</p>
           </motion.div>
         )}
 
@@ -150,8 +175,8 @@ export default function ValorarPage({ params }) {
             >
               <HeartHandshake size={28} className="text-green-600" />
             </motion.div>
-            <h2 className="text-lg font-bold text-[#111111] mb-2">¡Mil gracias por tu valoración!</h2>
-            <p className="text-[#6b7280] text-sm">Tu opinión ayuda a mejorar la experiencia de todos.</p>
+            <h2 className="text-lg font-bold text-[#111111] mb-2">{t('valorar', 'thankYou')}</h2>
+            <p className="text-[#6b7280] text-sm">{t('valorar', 'thankYouDesc')}</p>
           </motion.div>
         )}
 
@@ -171,7 +196,7 @@ export default function ValorarPage({ params }) {
                 </h1>
               )}
               {info?.lugar?.descuento != null && (
-                <p className="text-sm text-green-700 font-medium mt-1">Tu descuento: {info.lugar.descuento}%</p>
+                <p className="text-sm text-green-700 font-medium mt-1">{t('valorar', 'yourDiscount')}: {info.lugar.descuento}%</p>
               )}
             </div>
 
@@ -179,14 +204,14 @@ export default function ValorarPage({ params }) {
               {/* Gasto del local (read-only) */}
               {info?.gasto != null && (
                 <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-xl px-4 py-3 flex items-center justify-between">
-                  <span className="text-sm text-[#6b7280]">Consumo registrado por el local</span>
+                  <span className="text-sm text-[#6b7280]">{t('valorar', 'registeredConsumption')}</span>
                   <span className="text-sm font-bold text-[#111111] font-mono">{parseFloat(info.gasto).toFixed(2)}€</span>
                 </div>
               )}
 
               {/* Gasto del cliente (editable) */}
               <div>
-                <label className="text-sm font-medium text-[#374151] mb-1.5 block">¿Cuánto pagaste tú? <span className="text-[#9ca3af] font-normal text-xs">(opcional)</span></label>
+                <label className="text-sm font-medium text-[#374151] mb-1.5 block">{t('valorar', 'howMuchPaid')} <span className="text-[#9ca3af] font-normal text-xs">({t('valorar', 'optional')})</span></label>
                 <div className="relative">
                   <input
                     type="number" min="0" step="0.01"
@@ -201,12 +226,15 @@ export default function ValorarPage({ params }) {
 
               {/* Star rating */}
               <div>
-                <label className="text-sm font-medium text-[#374151] mb-3 block text-center">¿Cómo fue tu experiencia?</label>
-                <div className="flex gap-2 justify-center">
+                <label className="text-sm font-medium text-[#374151] mb-3 block text-center">{t('valorar', 'rateExperience')}</label>
+                <div className="flex gap-2 justify-center" role="radiogroup" aria-label={t('valorar', 'rateExperience')}>
                   {[1, 2, 3, 4, 5].map(n => (
                     <button
                       key={n}
                       onClick={() => setValoracion(n)}
+                      role="radio"
+                      aria-checked={n === valoracion}
+                      aria-label={`${n}/5`}
                       className={`w-13 h-13 rounded-full flex items-center justify-center border-2 transition-all ${
                         n <= valoracion
                           ? 'bg-amber-50 border-amber-400 text-amber-500'
@@ -222,13 +250,14 @@ export default function ValorarPage({ params }) {
 
               {/* Photo upload (optional) */}
               <div>
-                <label className="text-xs text-[#6b7280] mb-1.5 block font-medium">Foto del ticket (opcional)</label>
+                <label className="text-xs text-[#6b7280] mb-1.5 block font-medium">{t('valorar', 'photoLabel')}</label>
                 {preview ? (
                   <div className="relative">
                     <img src={preview} alt="Ticket" className="w-full h-40 object-cover rounded-lg border border-[#e5e7eb]" />
                     <button
                       onClick={() => { setFoto(null); setPreview(null) }}
                       className="absolute top-2 right-2 bg-white border border-[#e5e7eb] rounded-full p-1 shadow-sm"
+                      aria-label={t('common', 'delete')}
                     >
                       <X size={14} className="text-[#6b7280]" />
                     </button>
@@ -236,8 +265,8 @@ export default function ValorarPage({ params }) {
                 ) : (
                   <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#e5e7eb] rounded-lg py-5 cursor-pointer hover:border-[#1e3a5f] hover:bg-[#f9fafb] transition-colors">
                     <Upload size={18} className="text-[#9ca3af]" />
-                    <span className="text-sm text-[#6b7280]">Adjuntar foto del ticket</span>
-                    <span className="text-xs text-[#9ca3af]">JPG, PNG o HEIC · máx. 5MB</span>
+                    <span className="text-sm text-[#6b7280]">{t('valorar', 'attachPhoto')}</span>
+                    <span className="text-xs text-[#9ca3af]">{t('valorar', 'photoFormats')}</span>
                     <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFoto} />
                   </label>
                 )}
@@ -245,7 +274,7 @@ export default function ValorarPage({ params }) {
             </div>
 
             {error && (
-              <div className="text-red-500 text-sm mt-4 text-center bg-red-50 py-2 rounded-lg border border-red-200">
+              <div className="text-red-500 text-sm mt-4 text-center bg-red-50 py-2 rounded-lg border border-red-200" role="alert">
                 {error}
               </div>
             )}
@@ -255,7 +284,7 @@ export default function ValorarPage({ params }) {
               disabled={estado === 'enviando' || !valoracion}
               className="w-full mt-6 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3.5 rounded-xl transition-colors disabled:opacity-50"
             >
-              {estado === 'enviando' ? 'Enviando...' : 'Enviar valoración'}
+              {estado === 'enviando' ? t('valorar', 'sending') : t('valorar', 'send')}
             </button>
           </motion.div>
         )}

@@ -1,0 +1,211 @@
+'use client'
+import { motion, AnimatePresence } from 'framer-motion'
+import { BarChart3, TrendingDown, Receipt, Zap, Users, Download, Image, UserCheck } from 'lucide-react'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+
+export default function DashboardTab({
+  t, analytics, cargando, ultimaValidacion, segsDesde,
+  filtroFecha, setFiltroFecha, fechaDesde, setFechaDesde, fechaHasta, setFechaHasta,
+  cargarAnalytics, exportarHoy, tickets, setTicketAmpliado
+}) {
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-5">
+
+      {/* Ticker Realtime */}
+      <AnimatePresence>
+        {ultimaValidacion && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl p-3.5 text-sm"
+          >
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0" />
+            <Zap size={14} className="text-green-600 flex-shrink-0" />
+            <span className="text-green-700 font-medium">Nueva validación en tiempo real</span>
+            <span className="text-[#9ca3af] text-xs ml-auto">
+              {segsDesde !== null ? `Hace ${segsDesde}s` : 'Ahora'}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Stats cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="glass-panel p-5 border-l-4 border-l-[#1e3a5f]">
+          <p className="text-xs text-[#6b7280] mb-1">{t('manager','volume')}</p>
+          <p className="text-3xl font-bold text-[#111111]">{analytics.stats.volumenEuros.toFixed(2)}€</p>
+          <p className="text-xs text-[#6b7280] mt-2">{analytics.stats.operaciones} clientes validados</p>
+          <div className="mt-3 p-2 bg-[#f0f4f8] rounded-lg w-fit">
+            <BarChart3 size={16} className="text-[#1e3a5f]" />
+          </div>
+        </div>
+        <div className="glass-panel p-5 border-l-4 border-l-red-400">
+          <p className="text-xs text-[#6b7280] mb-1">Deuda Plataforma (Comisión)</p>
+          <p className="text-3xl font-bold text-[#111111]">{analytics.stats.deudaAcumulada.toFixed(2)}€</p>
+          <p className="text-xs text-[#9ca3af] mt-2">Facturación correspondiente al periodo</p>
+          <div className="mt-3 p-2 bg-red-50 rounded-lg w-fit">
+            <Receipt size={16} className="text-red-400" />
+          </div>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="glass-panel p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+          <h3 className="text-sm font-semibold text-[#111111] flex items-center gap-2 flex-shrink-0">
+            <TrendingDown size={15} className="text-red-400" /> {t('manager','commissions')}
+          </h3>
+          <div className="flex flex-wrap gap-1.5 sm:ml-auto">
+            {[['hoy','Hoy'],['semana','Semana'],['mes','Mes'],['año','Año'],['todo','Todo']].map(([key, label]) => (
+              <button key={key}
+                onClick={() => { setFiltroFecha(key); cargarAnalytics(key) }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${filtroFecha === key ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]' : 'bg-white text-[#6b7280] border-[#e5e7eb] hover:bg-[#f3f4f6]'}`}
+              >{label}</button>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1.5 mb-3 items-center">
+          <input type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)}
+            className="text-xs border border-[#e5e7eb] rounded-lg px-2.5 py-1.5 text-[#374151] bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a5f]" />
+          <span className="text-xs text-[#9ca3af]">→</span>
+          <input type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)}
+            className="text-xs border border-[#e5e7eb] rounded-lg px-2.5 py-1.5 text-[#374151] bg-white focus:outline-none focus:ring-1 focus:ring-[#1e3a5f]" />
+          <button onClick={() => { setFiltroFecha('custom'); cargarAnalytics('custom', fechaDesde, fechaHasta) }}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#1e3a5f] text-white border border-[#1e3a5f] hover:bg-[#162d4a] transition-colors">
+            Aplicar
+          </button>
+        </div>
+        <div className="h-[260px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={analytics.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorDeuda" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.12} />
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+              <XAxis dataKey="date" stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `€${v}`} />
+              <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', color: '#111', fontSize: '12px' }} />
+              <Area type="monotone" dataKey="deudaTotal" name="itrustb2b" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorDeuda)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Today's clients */}
+      <div className="glass-panel overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#f3f4f6]">
+          <h3 className="text-sm font-semibold text-[#111111] flex items-center gap-2">
+            <Users size={15} className="text-[#1e3a5f]" />
+            {t('manager','todayTitle')}
+            {analytics.hoy?.length > 0 && (
+              <span className="text-xs font-medium bg-[#f0f4f8] text-[#1e3a5f] px-2 py-0.5 rounded-full">{analytics.hoy.length}</span>
+            )}
+          </h3>
+          {analytics.hoy?.length > 0 && (
+            <button onClick={exportarHoy}
+              className="flex items-center gap-1.5 text-xs text-[#6b7280] hover:text-[#111111] border border-[#e5e7eb] px-3 py-1.5 rounded-lg bg-white hover:bg-[#f3f4f6] transition-colors">
+              <Download size={12} /> Exportar CSV
+            </button>
+          )}
+        </div>
+        {!analytics.hoy?.length ? (
+          <div className="py-10 text-center text-[#9ca3af] text-sm">Aún no hay clientes validados hoy</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[#9ca3af] text-xs border-b border-[#f3f4f6]">
+                <th className="text-left px-5 py-3 font-medium">Hora</th>
+                <th className="text-left px-5 py-3 font-medium hidden sm:table-cell">Cliente</th>
+                <th className="text-left px-5 py-3 font-medium hidden md:table-cell">Referidor</th>
+                <th className="text-right px-5 py-3 font-medium">Pers.</th>
+                <th className="text-right px-5 py-3 font-medium">Gasto</th>
+                <th className="text-right px-5 py-3 font-medium">Comisión</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analytics.hoy.map((r, i) => (
+                <tr key={i} className={`border-b border-[#f3f4f6] last:border-0 hover:bg-[#f9fafb] transition-colors ${i % 2 !== 0 ? 'bg-[#fafaf8]' : ''}`}>
+                  <td className="px-5 py-3 text-[#6b7280] font-mono text-xs">{r.hora}</td>
+                  <td className="px-5 py-3 font-medium text-[#111111] hidden sm:table-cell">{r.cliente}</td>
+                  <td className="px-5 py-3 text-[#6b7280] hidden md:table-cell">{r.referidor}</td>
+                  <td className="px-5 py-3 text-right text-[#6b7280]">{r.personas}</td>
+                  <td className="px-5 py-3 text-right font-mono text-[#111111]">{r.gasto.toFixed(2)}€</td>
+                  <td className="px-5 py-3 text-right font-mono text-red-500">{r.comision.toFixed(2)}€</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-[#f3f4f6] text-xs font-semibold text-[#374151]">
+                <td colSpan={4} className="px-5 py-3 hidden md:table-cell">Total del día</td>
+                <td colSpan={2} className="px-5 py-3 md:hidden">Total</td>
+                <td className="px-5 py-3 text-right font-mono">{analytics.hoy.reduce((s, r) => s + r.gasto, 0).toFixed(2)}€</td>
+                <td className="px-5 py-3 text-right font-mono text-red-500">{analytics.hoy.reduce((s, r) => s + r.comision, 0).toFixed(2)}€</td>
+              </tr>
+            </tfoot>
+          </table>
+        )}
+      </div>
+
+      {/* En Local Ahora */}
+      {(() => {
+        const enLocal = (analytics.hoy || []).filter(r => !r.confirmado)
+        if (enLocal.length === 0) return null
+        return (
+          <div className="glass-panel overflow-hidden border-l-4 border-l-amber-400">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#f3f4f6]">
+              <h3 className="text-sm font-semibold text-[#111111] flex items-center gap-2">
+                <UserCheck size={15} className="text-amber-500" />
+                En Local Ahora
+                <span className="text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                  {enLocal.reduce((s, r) => s + (r.personas || 1), 0)} personas
+                </span>
+              </h3>
+              <span className="flex items-center gap-1.5 text-xs text-amber-600 font-medium">
+                <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+                Mesa abierta
+              </span>
+            </div>
+            <div className="divide-y divide-[#f3f4f6]">
+              {enLocal.map((r, i) => (
+                <div key={i} className="px-5 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-[#111111]">{r.cliente}</p>
+                    <p className="text-xs text-[#9ca3af]">{r.referidor} · {r.personas} {r.personas > 1 ? 'personas' : 'persona'}</p>
+                  </div>
+                  <span className="text-xs text-[#6b7280] font-mono">{r.hora}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Recent Tickets */}
+      {tickets.length > 0 && (
+        <div className="glass-panel overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#f3f4f6]">
+            <h3 className="text-sm font-semibold text-[#111111] flex items-center gap-2">
+              <Image size={15} className="text-[#1e3a5f]" />
+              Tickets Recientes
+              <span className="text-xs font-medium bg-[#f0f4f8] text-[#1e3a5f] px-2 py-0.5 rounded-full">{tickets.length}</span>
+            </h3>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-4">
+            {tickets.map((tk, i) => (
+              <button key={i} onClick={() => setTicketAmpliado(tk)}
+                className="relative aspect-square rounded-lg overflow-hidden border border-[#e5e7eb] hover:border-[#1e3a5f] transition-colors group">
+                <img src={tk.ticketUrl} alt="Ticket" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
+                  <p className="text-white text-[9px] truncate font-medium">{tk.cliente}</p>
+                  <p className="text-white/70 text-[9px]">{tk.gasto?.toFixed(0)}€</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </motion.div>
+  )
+}

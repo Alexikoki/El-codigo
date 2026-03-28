@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
+import { requireAuth } from '../../../../lib/auth'
 
 export async function GET(request) {
   try {
-    const payload = verificarToken(extraerTokenDeCookie(request))
-    if (!payload) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    if (payload.rol !== 'manager') return NextResponse.json({ error: 'Sin permiso' }, { status: 403 })
+    const { payload, response } = requireAuth(request, 'manager')
+    if (response) return response
     if (!payload.lugarId) return NextResponse.json({ error: 'Manager sin lugar asignado' }, { status: 403 })
 
     const managerLugarId = payload.lugarId

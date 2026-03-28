@@ -22,6 +22,17 @@ export async function POST(request) {
 
     if (!meta?.lugarId) return NextResponse.json({ ok: true })
 
+    // Idempotencia: verificar si ya se procesó este pago
+    const { data: existing } = await supabaseAdmin
+      .from('liquidaciones')
+      .select('id')
+      .eq('stripe_payment_intent_id', session.payment_intent)
+      .maybeSingle()
+
+    if (existing) {
+      return NextResponse.json({ ok: true, already_processed: true })
+    }
+
     const comisionTotal = session.amount_total / 100 // de céntimos a euros
     const comisionPlataforma = parseFloat(meta.comisionPlataforma || 0)
     const transferencias = JSON.parse(meta.transferencias || '[]')
@@ -60,7 +71,19 @@ export async function POST(request) {
     const account = event.data.object
     if (account.details_submitted && account.charges_enabled) {
       const meta = account.metadata || {}
-      if (meta.tabla && meta.id) {
+      const TABLAS_PERMITIDAS = ['referidores', 'agencias', 'managers_locales']
+      if (meta.tabla && meta.id && TABLAS_PERMITIDAS.includes(meta.tabla)) {
+        // Idempotencia: verificar si ya está marcado como onboarded
+        const { data: record } = await supabaseAdmin
+          .from(meta.tabla)
+          .select('stripe_onboarded')
+          .eq('id', meta.id)
+          .maybeSingle()
+
+        if (record?.stripe_onboarded) {
+          return NextResponse.json({ ok: true, already_processed: true })
+        }
+
         await supabaseAdmin
           .from(meta.tabla)
           .update({ stripe_onboarded: true })

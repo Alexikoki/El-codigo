@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
-import { verificarToken, extraerTokenDeCookie } from '../../../../lib/jwt'
+import { requireAuth } from '../../../../lib/auth'
 import PDFDocument from 'pdfkit'
 
 export async function GET(request) {
-  const payload = verificarToken(extraerTokenDeCookie(request))
-  if (!payload || !['superadmin', 'manager', 'agencia'].includes(payload.rol)) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const { payload, response } = requireAuth(request, ['superadmin', 'manager', 'agencia'])
+  if (response) return response
 
   const { searchParams } = new URL(request.url)
   const desde = searchParams.get('desde')
