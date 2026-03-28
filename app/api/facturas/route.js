@@ -4,6 +4,7 @@ import React from 'react'
 import { Document, Page, Text, View, StyleSheet, Svg, Line } from '@react-pdf/renderer'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { requireAuth } from '../../../lib/auth'
+import logger from '../../../lib/logger'
 
 const C = {
   navy: '#1e3a5f',
@@ -219,7 +220,7 @@ export async function GET(request) {
       }
     })
   } catch (error) {
-    console.error('Error generando PDF:', error)
+    logger.error({ err: error }, 'Error generando PDF:')
     return NextResponse.json({ error: 'Fallo al generar el PDF.' }, { status: 500 })
   }
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { validarImagen } from '../../../../lib/uploads'
 import { ajustarComisionesPorDiscrepancia } from '../../../../lib/commissions'
+import logger from '../../../../lib/logger'
 
 export async function GET(request, { params }) {
   try {
@@ -37,7 +38,7 @@ export async function GET(request, { params }) {
       cliente: { nombre: val.clientes?.nombre }
     })
   } catch (e) {
-    console.error('Error /valorar GET:', e)
+    logger.error({ err: e }, 'Error /valorar GET:')
     return NextResponse.json({ error: 'Error interno del servidor.' }, { status: 500 })
   }
 }
@@ -163,7 +164,7 @@ export async function POST(request, { params }) {
 
     return NextResponse.json({ ok: true })
   } catch (e) {
-    console.error('Error /valorar POST:', e)
+    logger.error({ err: e }, 'Error /valorar POST:')
     return NextResponse.json({ error: 'Error interno registrando la valoración.' }, { status: 500 })
   }
 }

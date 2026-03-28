@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../../lib/supabase'
 import { requireAuth } from '../../../../../lib/auth'
+import logger from '../../../../../lib/logger'
 
 export async function GET(request) {
   const { payload, response } = requireAuth(request, 'agencia')
@@ -68,7 +69,7 @@ export async function GET(request) {
 
     return NextResponse.json({ promotores: resultado })
   } catch (e) {
-    console.error('Error /analytics/agencia/promotores:', e)
+    logger.error({ err: e }, 'Error /analytics/agencia/promotores:')
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }

@@ -8,7 +8,7 @@ import { getIP } from '../../../lib/rateLimit'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request) {
-  const rl = checkRateLimit(request, { limite: 3, ventanaMs: 3600000 })
+  const rl = await checkRateLimit(request, { limite: 3, ventanaMs: 3600000 })
   if (rl) return rl
 
   const body = await request.json()

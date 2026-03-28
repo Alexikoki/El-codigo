@@ -2,7 +2,7 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, Mail, ShieldAlert, ArrowRight, UserCheck, Shield, Briefcase, Building2 } from 'lucide-react'
+import { Lock, Mail, ShieldAlert, ArrowRight, UserCheck, Shield, Briefcase, Building2, KeyRound } from 'lucide-react'
 import Link from 'next/link'
 import { Turnstile } from '@marsidev/react-turnstile'
 import { useLanguage } from '../../lib/i18n/LanguageContext'
@@ -18,6 +18,8 @@ export default function LoginPage() {
   const [failedAttempts, setFailedAttempts] = useState(0)
   const turnstileRef = useRef(null)
 
+  const [requires2FA, setRequires2FA] = useState(false)
+  const [totpCode, setTotpCode] = useState('')
   const [showRecuperar, setShowRecuperar] = useState(false)
   const [emailRecuperar, setEmailRecuperar] = useState('')
   const [msgRecuperar, setMsgRecuperar] = useState({ tipo: '', texto: '' })
@@ -35,18 +37,26 @@ export default function LoginPage() {
     setError('')
 
     try {
+      const payload = { ...form, cfToken }
+      if (requires2FA && totpCode) payload.totpCode = totpCode
+
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, cfToken })
+        body: JSON.stringify(payload)
       })
 
       const data = await res.json()
 
+      if (data.requires2FA) {
+        setRequires2FA(true)
+        setCargando(false)
+        return
+      }
+
       if (!res.ok) {
         setFailedAttempts(f => f + 1)
         setError(data.error || 'Error al iniciar sesión')
-        // El token Turnstile es de un solo uso: resetear siempre para regenerar uno nuevo
         turnstileRef.current?.reset()
         setCfToken('')
         setCargando(false)
@@ -201,9 +211,31 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {requires2FA && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="space-y-2"
+              >
+                <label className="text-sm font-medium text-[#374151] flex items-center gap-2">
+                  <KeyRound size={14} /> Código 2FA (Google Authenticator)
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="w-full border border-[#e5e7eb] focus:border-[#1e3a5f] rounded-lg px-4 py-3 text-sm text-center tracking-[0.3em] font-mono text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all bg-white"
+                  autoFocus
+                />
+              </motion.div>
+            )}
+
             <button
               type="submit"
-              disabled={cargando}
+              disabled={cargando || (requires2FA && totpCode.length < 6)}
               className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               {cargando ? (

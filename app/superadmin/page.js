@@ -21,6 +21,7 @@ import {
   ModalConfirmPago, ModalEditCliente, ModalConfirmEliminar, ModalConfirmBorrar
 } from './components/Modals'
 import ErrorBoundary from '../../components/ErrorBoundary'
+import TotpSetup from './components/TotpSetup'
 
 export default function SuperadminPage() {
   const { t } = useLanguage()
@@ -312,6 +313,8 @@ export default function SuperadminPage() {
               </button>
             ))}
           </div>
+
+          <TotpSetup />
 
           {/* Barra de acciones para tabs con búsqueda */}
           {['lugares', 'referidores', 'staff'].includes(tab) && (
