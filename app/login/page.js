@@ -14,12 +14,11 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
   const [cfToken, setCfToken] = useState('')
-
-  const [failedAttempts, setFailedAttempts] = useState(0)
   const turnstileRef = useRef(null)
 
   const [requires2FA, setRequires2FA] = useState(false)
   const [totpCode, setTotpCode] = useState('')
+
   const [showRecuperar, setShowRecuperar] = useState(false)
   const [emailRecuperar, setEmailRecuperar] = useState('')
   const [msgRecuperar, setMsgRecuperar] = useState({ tipo: '', texto: '' })
@@ -55,7 +54,6 @@ export default function LoginPage() {
       }
 
       if (!res.ok) {
-        setFailedAttempts(f => f + 1)
         setError(data.error || 'Error al iniciar sesión')
         turnstileRef.current?.reset()
         setCfToken('')
