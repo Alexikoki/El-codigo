@@ -39,21 +39,25 @@ export async function POST(request) {
     const { email, password, tipo, cfToken } = validated
 
     // Verificación Cloudflare Turnstile
-    let isHuman = false
-    const testKey = request.headers.get('x-test-key')
-    if (process.env.TEST_API_KEY && testKey === process.env.TEST_API_KEY) {
-      isHuman = true
-    } else if (process.env.NODE_ENV === 'development' && cfToken.startsWith('1x0000000000000000000000000000000AA')) {
-      isHuman = true
-    } else {
-      const cfFormData = new FormData()
-      cfFormData.append('secret', process.env.TURNSTILE_SECRET_KEY)
-      cfFormData.append('response', cfToken)
-      const cfRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-        method: 'POST', body: cfFormData
-      })
-      const cfResult = await cfRes.json()
-      if (cfResult.success) isHuman = true
+    // Si viene totpCode, es el segundo POST del flujo 2FA — la password ya se verificó con Turnstile
+    const is2FAStep = !!body.totpCode
+    let isHuman = is2FAStep // Skip Turnstile en paso 2FA
+    if (!isHuman) {
+      const testKey = request.headers.get('x-test-key')
+      if (process.env.TEST_API_KEY && testKey === process.env.TEST_API_KEY) {
+        isHuman = true
+      } else if (process.env.NODE_ENV === 'development' && cfToken?.startsWith('1x0000000000000000000000000000000AA')) {
+        isHuman = true
+      } else if (cfToken) {
+        const cfFormData = new FormData()
+        cfFormData.append('secret', process.env.TURNSTILE_SECRET_KEY)
+        cfFormData.append('response', cfToken)
+        const cfRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+          method: 'POST', body: cfFormData
+        })
+        const cfResult = await cfRes.json()
+        if (cfResult.success) isHuman = true
+      }
     }
 
     if (!isHuman) {

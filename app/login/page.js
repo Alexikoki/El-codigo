@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, Mail, ShieldAlert, ArrowRight, UserCheck, Shield, Briefcase, Building2, KeyRound } from 'lucide-react'
@@ -31,7 +31,7 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault()
     if (!form.email || !form.password) { setError('Rellena todos los campos'); return }
-    if (!cfToken) { setError('Por favor, verifica el escaneo humano.'); return }
+    if (!requires2FA && !cfToken) { setError('Por favor, verifica el escaneo humano.'); return }
 
     setCargando(true)
     setError('')
@@ -51,6 +51,9 @@ export default function LoginPage() {
       if (data.requires2FA) {
         setRequires2FA(true)
         setCargando(false)
+        // Resetear Turnstile para generar nuevo token para el segundo POST
+        turnstileRef.current?.reset()
+        setCfToken('')
         return
       }
 
@@ -102,12 +105,18 @@ export default function LoginPage() {
     }
   }
 
+  // Admin solo accesible desde ops.itrustb2b.com
+  const [isOps, setIsOps] = useState(false)
+  useEffect(() => {
+    setIsOps(window.location.host.startsWith('ops.'))
+  }, [])
+
   const tabs = [
     { id: 'staff',      label: 'Staff',     icon: <UserCheck size={15} /> },
     { id: 'manager',    label: 'Manager',   icon: <Building2 size={15} /> },
     { id: 'referidor',  label: 'Referidor', icon: <Lock size={15} /> },
     { id: 'agencia',    label: 'Agencia',   icon: <Briefcase size={15} /> },
-    { id: 'superadmin', label: 'Admin',     icon: <Shield size={15} /> },
+    ...(isOps ? [{ id: 'superadmin', label: 'Admin', icon: <Shield size={15} /> }] : []),
   ]
 
   return (
@@ -235,7 +244,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={cargando || (requires2FA && totpCode.length < 6)}
+              disabled={cargando || (!requires2FA && !cfToken) || (requires2FA && totpCode.length < 6)}
               className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               {cargando ? (
