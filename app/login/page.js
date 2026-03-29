@@ -51,6 +51,9 @@ export default function LoginPage() {
       if (data.requires2FA) {
         setRequires2FA(true)
         setCargando(false)
+        // Resetear Turnstile para generar nuevo token para el segundo POST
+        turnstileRef.current?.reset()
+        setCfToken('')
         return
       }
 
@@ -235,7 +238,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={cargando || (requires2FA && totpCode.length < 6)}
+              disabled={cargando || !cfToken || (requires2FA && totpCode.length < 6)}
               className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               {cargando ? (
