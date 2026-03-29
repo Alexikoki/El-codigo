@@ -168,6 +168,7 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
 
   } catch (globalError) {
+    console.error('AUTH CRASH:', globalError?.message, globalError?.stack)
     logger.error({ err: globalError }, 'Crash API /auth')
     return NextResponse.json({ error: 'Servicio de autenticación temporalmente no disponible.' }, { status: 500 })
   }
