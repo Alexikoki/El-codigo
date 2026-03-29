@@ -69,7 +69,12 @@ export async function POST(request) {
 
     // === DETECCIÓN AUTOMÁTICA DE ROL ===
     // 1. Superadmin (email + password de env vars)
-    if (email === process.env.SUPERADMIN_EMAIL && password === process.env.SUPERADMIN_PASSWORD) {
+    const saEmail = (process.env.SUPERADMIN_EMAIL || '').trim()
+    const saPass = (process.env.SUPERADMIN_PASSWORD || '').trim()
+    const inputEmail = email.trim()
+    const inputPass = password.trim()
+
+    if (saEmail && inputEmail === saEmail && inputPass === saPass) {
       // Check 2FA
       const { data: totpConfig } = await supabaseAdmin
         .from('configuracion')
@@ -160,6 +165,7 @@ export async function POST(request) {
     }
 
     // No encontrado en ninguna tabla
+    logger.warn({ inputEmail, saEmailSet: !!saEmail, saPassSet: !!saPass }, 'Login fallido — sin match en ninguna tabla')
     return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
 
   } catch (globalError) {
