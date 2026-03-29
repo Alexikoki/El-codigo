@@ -7,9 +7,8 @@ import logger from '../../../lib/logger'
 import bcrypt from 'bcryptjs'
 
 // === HELPER: construir respuesta con cookie httpOnly ===
-function respuestaConCookie(payload, cookieOpts = {}) {
-  const { body, status = 200, token } = cookieOpts
-  const response = NextResponse.json(body, { status })
+function respuestaConCookie(body, token) {
+  const response = NextResponse.json(body)
   response.cookies.set('auth_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -18,6 +17,10 @@ function respuestaConCookie(payload, cookieOpts = {}) {
     path: '/'
   })
   return response
+}
+
+async function limpiarRateLimit(ip) {
+  await supabaseAdmin.from('rate_limits').delete().eq('key', `rl:${ip}:login`).catch(() => {})
 }
 
 export async function POST(request) {
@@ -36,12 +39,12 @@ export async function POST(request) {
     const body = await request.json()
     const { data: validated, response: valErr } = validateBody(body, loginSchema)
     if (valErr) return valErr
-    const { email, password, tipo, cfToken } = validated
+    const { email, password, cfToken } = validated
 
     // Verificación Cloudflare Turnstile
-    // Si viene totpCode, es el segundo POST del flujo 2FA — la password ya se verificó con Turnstile
+    // Si viene totpCode, es el segundo POST del flujo 2FA — skip Turnstile
     const is2FAStep = !!body.totpCode
-    let isHuman = is2FAStep // Skip Turnstile en paso 2FA
+    let isHuman = is2FAStep
     if (!isHuman) {
       const testKey = request.headers.get('x-test-key')
       if (process.env.TEST_API_KEY && testKey === process.env.TEST_API_KEY) {
@@ -64,103 +67,100 @@ export async function POST(request) {
       return NextResponse.json({ error: 'El sistema anti-bots ha bloqueado la petición. Recarga la página.' }, { status: 403 })
     }
 
-    // === SUPERADMIN ===
-    if (tipo === 'superadmin') {
-      if (password === process.env.SUPERADMIN_PASSWORD) {
-        // Check si 2FA está configurado
-        const { data: totpConfig } = await supabaseAdmin
-          .from('configuracion')
-          .select('valor')
-          .eq('clave', 'superadmin_totp_secret')
-          .single()
+    // === DETECCIÓN AUTOMÁTICA DE ROL ===
+    // 1. Superadmin (email + password de env vars)
+    if (email === process.env.SUPERADMIN_EMAIL && password === process.env.SUPERADMIN_PASSWORD) {
+      // Check 2FA
+      const { data: totpConfig } = await supabaseAdmin
+        .from('configuracion')
+        .select('valor')
+        .eq('clave', 'superadmin_totp_secret')
+        .single()
 
-        if (totpConfig?.valor) {
-          const { TOTP, Secret } = await import('otpauth')
+      if (totpConfig?.valor) {
+        const { TOTP, Secret } = await import('otpauth')
 
-          if (!body.totpCode) {
-            // Password correcta pero falta código 2FA
-            return NextResponse.json({ requires2FA: true })
-          }
-
-          const totp = new TOTP({
-            issuer: 'El Codigo', label: 'Superadmin',
-            algorithm: 'SHA1', digits: 6, period: 30,
-            secret: Secret.fromBase32(totpConfig.valor),
-          })
-          const delta = totp.validate({ token: body.totpCode, window: 1 })
-          if (delta === null) {
-            return NextResponse.json({ error: 'Código 2FA incorrecto' }, { status: 401 })
-          }
+        if (!body.totpCode) {
+          return NextResponse.json({ requires2FA: true })
         }
 
-        const token = generarToken({ rol: 'superadmin' })
-        await supabaseAdmin.from('rate_limits').delete().eq('key', `rl:${ip}:login`)
-        return respuestaConCookie({ rol: 'superadmin' }, { body: { rol: 'superadmin' }, token })
+        const totp = new TOTP({
+          issuer: 'El Codigo', label: 'Superadmin',
+          algorithm: 'SHA1', digits: 6, period: 30,
+          secret: Secret.fromBase32(totpConfig.valor),
+        })
+        if (totp.validate({ token: body.totpCode, window: 1 }) === null) {
+          return NextResponse.json({ error: 'Código 2FA incorrecto' }, { status: 401 })
+        }
       }
-      return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
+
+      const token = generarToken({ rol: 'superadmin' })
+      await limpiarRateLimit(ip)
+      return respuestaConCookie({ rol: 'superadmin' }, token)
     }
 
-    // === REFERIDOR ===
-    if (tipo === 'referidor') {
-      const { data: referidor } = await supabaseAdmin
-        .from('referidores').select('*').eq('email', email).eq('activo', true).single()
-      if (!referidor) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
-      const ok = await bcrypt.compare(password, referidor.password_hash)
-      if (!ok) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
-
-      const token = generarToken({ rol: 'referidor', referidorId: referidor.id, nombre: referidor.nombre })
-      await supabaseAdmin.from('rate_limits').delete().eq('key', `rl:${ip}:login`)
-      return respuestaConCookie(
-        { rol: 'referidor', referidor: { id: referidor.id, nombre: referidor.nombre, email: referidor.email, qr_token: referidor.qr_token } },
-        { body: { rol: 'referidor', referidor: { id: referidor.id, nombre: referidor.nombre, email: referidor.email, qr_token: referidor.qr_token } }, token }
-      )
-    }
-
-    // === AGENCIA ===
-    if (tipo === 'agencia') {
-      const { data: agencia } = await supabaseAdmin
-        .from('agencias').select('*').eq('email', email).eq('activo', true).single()
-      if (!agencia) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
-      const ok = await bcrypt.compare(password, agencia.password_hash)
-      if (!ok) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
-
-      const token = generarToken({ rol: 'agencia', agenciaId: agencia.id, nombre: agencia.nombre })
-      await supabaseAdmin.from('rate_limits').delete().eq('key', `rl:${ip}:login`)
-      return respuestaConCookie(
-        { rol: 'agencia', agencia: { id: agencia.id, nombre: agencia.nombre, email: agencia.email } },
-        { body: { rol: 'agencia', agencia: { id: agencia.id, nombre: agencia.nombre, email: agencia.email } }, token }
-      )
-    }
-
-    // === MANAGER ===
-    if (tipo === 'manager') {
-      const { data: manager } = await supabaseAdmin
-        .from('managers_locales').select('*, lugares(nombre)').eq('email', email).eq('activo', true).single()
-      if (!manager) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
+    // 2. Manager
+    const { data: manager } = await supabaseAdmin
+      .from('managers_locales').select('*, lugares(nombre)').eq('email', email).eq('activo', true).single()
+    if (manager) {
       const ok = await bcrypt.compare(password, manager.password_hash)
-      if (!ok) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
-
-      const token = generarToken({ rol: 'manager', managerId: manager.id, lugarId: manager.lugar_id, nombre: manager.nombre })
-      await supabaseAdmin.from('rate_limits').delete().eq('key', `rl:${ip}:login`)
-      return respuestaConCookie(
-        { rol: 'manager', manager: { id: manager.id, nombre: manager.nombre, lugarNombre: manager.lugares?.nombre || 'Sin Asignar', lugarId: manager.lugar_id } },
-        { body: { rol: 'manager', manager: { id: manager.id, nombre: manager.nombre, lugarNombre: manager.lugares?.nombre || 'Sin Asignar', lugarId: manager.lugar_id } }, token }
-      )
+      if (ok) {
+        const token = generarToken({ rol: 'manager', managerId: manager.id, lugarId: manager.lugar_id, nombre: manager.nombre })
+        await limpiarRateLimit(ip)
+        return respuestaConCookie(
+          { rol: 'manager', manager: { id: manager.id, nombre: manager.nombre, lugarNombre: manager.lugares?.nombre || 'Sin Asignar', lugarId: manager.lugar_id } },
+          token
+        )
+      }
     }
 
-    // === STAFF ===
+    // 3. Referidor
+    const { data: referidor } = await supabaseAdmin
+      .from('referidores').select('*').eq('email', email).eq('activo', true).single()
+    if (referidor) {
+      const ok = await bcrypt.compare(password, referidor.password_hash)
+      if (ok) {
+        const token = generarToken({ rol: 'referidor', referidorId: referidor.id, nombre: referidor.nombre })
+        await limpiarRateLimit(ip)
+        return respuestaConCookie(
+          { rol: 'referidor', referidor: { id: referidor.id, nombre: referidor.nombre, email: referidor.email, qr_token: referidor.qr_token } },
+          token
+        )
+      }
+    }
+
+    // 4. Agencia
+    const { data: agencia } = await supabaseAdmin
+      .from('agencias').select('*').eq('email', email).eq('activo', true).single()
+    if (agencia) {
+      const ok = await bcrypt.compare(password, agencia.password_hash)
+      if (ok) {
+        const token = generarToken({ rol: 'agencia', agenciaId: agencia.id, nombre: agencia.nombre })
+        await limpiarRateLimit(ip)
+        return respuestaConCookie(
+          { rol: 'agencia', agencia: { id: agencia.id, nombre: agencia.nombre, email: agencia.email } },
+          token
+        )
+      }
+    }
+
+    // 5. Staff (último porque es el más común)
     const { data: staff } = await supabaseAdmin
       .from('staff').select('*, lugares(nombre)').eq('email', email).eq('activo', true).single()
-    if (!staff) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
-    const ok = await bcrypt.compare(password, staff.password_hash)
-    if (!ok) return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
+    if (staff) {
+      const ok = await bcrypt.compare(password, staff.password_hash)
+      if (ok) {
+        const token = generarToken({ rol: 'staff', staffId: staff.id, lugarId: staff.lugar_id, nombre: staff.nombre })
+        await limpiarRateLimit(ip)
+        return respuestaConCookie(
+          { rol: 'staff', staff: { id: staff.id, nombre: staff.nombre, lugarNombre: staff.lugares?.nombre || 'Sin Asignar' } },
+          token
+        )
+      }
+    }
 
-    const token = generarToken({ rol: 'staff', staffId: staff.id, lugarId: staff.lugar_id, nombre: staff.nombre })
-    await supabaseAdmin.from('rate_limits').delete().eq('key', `rl:${ip}:login`)
-    return respuestaConCookie(
-      { rol: 'staff', staff: { id: staff.id, nombre: staff.nombre, lugarNombre: staff.lugares?.nombre || 'Sin Asignar' } },
-      { body: { rol: 'staff', staff: { id: staff.id, nombre: staff.nombre, lugarNombre: staff.lugares?.nombre || 'Sin Asignar' } }, token }
-    )
+    // No encontrado en ninguna tabla
+    return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
 
   } catch (globalError) {
     logger.error({ err: globalError }, 'Crash API /auth')

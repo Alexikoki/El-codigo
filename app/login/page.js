@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, Mail, ShieldAlert, ArrowRight, UserCheck, Shield, Briefcase, Building2, KeyRound } from 'lucide-react'
+import { Lock, Mail, ShieldAlert, ArrowRight, KeyRound } from 'lucide-react'
 import Link from 'next/link'
 import { Turnstile } from '@marsidev/react-turnstile'
 import { useLanguage } from '../../lib/i18n/LanguageContext'
@@ -10,16 +10,15 @@ import LangSelector from '../../components/LangSelector'
 
 export default function LoginPage() {
   const { t } = useLanguage()
-  const [form, setForm] = useState({ email: '', password: '', tipo: 'staff' })
+  const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
   const [cfToken, setCfToken] = useState('')
-
-  const [failedAttempts, setFailedAttempts] = useState(0)
   const turnstileRef = useRef(null)
 
   const [requires2FA, setRequires2FA] = useState(false)
   const [totpCode, setTotpCode] = useState('')
+
   const [showRecuperar, setShowRecuperar] = useState(false)
   const [emailRecuperar, setEmailRecuperar] = useState('')
   const [msgRecuperar, setMsgRecuperar] = useState({ tipo: '', texto: '' })
@@ -51,14 +50,10 @@ export default function LoginPage() {
       if (data.requires2FA) {
         setRequires2FA(true)
         setCargando(false)
-        // Resetear Turnstile para generar nuevo token para el segundo POST
-        turnstileRef.current?.reset()
-        setCfToken('')
         return
       }
 
       if (!res.ok) {
-        setFailedAttempts(f => f + 1)
         setError(data.error || 'Error al iniciar sesión')
         turnstileRef.current?.reset()
         setCfToken('')
@@ -105,20 +100,6 @@ export default function LoginPage() {
     }
   }
 
-  // Admin solo accesible desde ops.itrustb2b.com
-  const [isOps, setIsOps] = useState(false)
-  useEffect(() => {
-    setIsOps(window.location.host.startsWith('ops.'))
-  }, [])
-
-  const tabs = [
-    { id: 'staff',      label: 'Staff',     icon: <UserCheck size={15} /> },
-    { id: 'manager',    label: 'Manager',   icon: <Building2 size={15} /> },
-    { id: 'referidor',  label: 'Referidor', icon: <Lock size={15} /> },
-    { id: 'agencia',    label: 'Agencia',   icon: <Briefcase size={15} /> },
-    ...(isOps ? [{ id: 'superadmin', label: 'Admin', icon: <Shield size={15} /> }] : []),
-  ]
-
   return (
     <div className="min-h-screen bg-[#fafaf8] flex flex-col items-center justify-center p-4 overflow-x-hidden w-full max-w-full">
 
@@ -140,24 +121,6 @@ export default function LoginPage() {
         {/* Card */}
         <div className="bg-white border border-[#e5e7eb] rounded-2xl p-8 shadow-sm">
 
-          {/* Tabs */}
-          <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-7 gap-1" role="tablist">
-            {tabs.map(t => (
-              <button
-                key={t.id}
-                role="tab"
-                aria-selected={form.tipo === t.id}
-                onClick={() => { setForm({ ...form, tipo: t.id }); setError('') }}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-xs font-medium rounded-lg transition-all relative ${
-                  form.tipo === t.id ? 'bg-white text-[#111111] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'
-                }`}
-              >
-                {t.icon}
-                {t.label}
-              </button>
-            ))}
-          </div>
-
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
@@ -168,7 +131,8 @@ export default function LoginPage() {
                 placeholder={t('login', 'userOrEmail')}
                 value={form.email}
                 onChange={handleChange}
-                className="w-full border border-[#e5e7eb] hover:border-[#d1d5db] focus:border-[#1e3a5f] rounded-lg pl-10 pr-4 py-3 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white"
+                disabled={requires2FA}
+                className="w-full border border-[#e5e7eb] hover:border-[#d1d5db] focus:border-[#1e3a5f] rounded-lg pl-10 pr-4 py-3 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white disabled:opacity-60 disabled:bg-[#f9fafb]"
               />
             </div>
 
@@ -180,7 +144,8 @@ export default function LoginPage() {
                 placeholder={t('login', 'password')}
                 value={form.password}
                 onChange={handleChange}
-                className="w-full border border-[#e5e7eb] hover:border-[#d1d5db] focus:border-[#1e3a5f] rounded-lg pl-10 pr-4 py-3 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white"
+                disabled={requires2FA}
+                className="w-full border border-[#e5e7eb] hover:border-[#d1d5db] focus:border-[#1e3a5f] rounded-lg pl-10 pr-4 py-3 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white disabled:opacity-60 disabled:bg-[#f9fafb]"
               />
             </div>
 
@@ -208,17 +173,19 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <div className="flex justify-center py-2 overflow-hidden w-full">
-              <div className="scale-[0.85] sm:scale-100 origin-center">
-                <Turnstile
-                  ref={turnstileRef}
-                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                  onSuccess={(token) => setCfToken(token)}
-                  onExpire={() => setCfToken('')}
-                  options={{ theme: 'light' }}
-                />
+            {!requires2FA && (
+              <div className="flex justify-center py-2 overflow-hidden w-full">
+                <div className="scale-[0.85] sm:scale-100 origin-center">
+                  <Turnstile
+                    ref={turnstileRef}
+                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                    onSuccess={(token) => setCfToken(token)}
+                    onExpire={() => setCfToken('')}
+                    options={{ theme: 'light' }}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {requires2FA && (
               <motion.div
@@ -250,7 +217,7 @@ export default function LoginPage() {
               {cargando ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <>{t('login', 'access')} <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" /></>
+                <>{requires2FA ? 'Verificar' : t('login', 'access')} <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" /></>
               )}
             </button>
           </form>
