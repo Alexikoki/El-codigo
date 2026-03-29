@@ -5,6 +5,7 @@ import { validateBody, loginSchema } from '../../../lib/validation'
 import { rateLimit, getIP } from '../../../lib/rateLimit'
 import logger from '../../../lib/logger'
 import bcrypt from 'bcryptjs'
+import { TOTP, Secret } from 'otpauth'
 
 // === HELPER: construir respuesta con cookie httpOnly ===
 function respuestaConCookie(body, token) {
@@ -83,8 +84,6 @@ export async function POST(request) {
         .single()
 
       if (totpConfig?.valor) {
-        const { TOTP, Secret } = await import('otpauth')
-
         if (!body.totpCode) {
           return NextResponse.json({ requires2FA: true })
         }
