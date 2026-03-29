@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, Mail, ShieldAlert, ArrowRight, UserCheck, Shield, Briefcase, Building2, KeyRound } from 'lucide-react'
@@ -106,7 +106,10 @@ export default function LoginPage() {
   }
 
   // Admin solo accesible desde ops.itrustb2b.com
-  const isOps = typeof window !== 'undefined' && window.location.host.startsWith('ops.')
+  const [isOps, setIsOps] = useState(false)
+  useEffect(() => {
+    setIsOps(window.location.host.startsWith('ops.'))
+  }, [])
 
   const tabs = [
     { id: 'staff',      label: 'Staff',     icon: <UserCheck size={15} /> },
