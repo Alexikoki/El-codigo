@@ -1,8 +1,8 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, Mail, ShieldAlert, ArrowRight, KeyRound } from 'lucide-react'
+import { Lock, Mail, ShieldAlert, ArrowRight, UserCheck, Briefcase, Building2, KeyRound } from 'lucide-react'
 import Link from 'next/link'
 import { Turnstile } from '@marsidev/react-turnstile'
 import { useLanguage } from '../../lib/i18n/LanguageContext'
@@ -10,7 +10,7 @@ import LangSelector from '../../components/LangSelector'
 
 export default function LoginPage() {
   const { t } = useLanguage()
-  const [form, setForm] = useState({ email: '', password: '' })
+  const [form, setForm] = useState({ email: '', password: '', tipo: 'staff' })
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
   const [cfToken, setCfToken] = useState('')
@@ -100,6 +100,13 @@ export default function LoginPage() {
     }
   }
 
+  const tabs = [
+    { id: 'staff',      label: 'Staff',     icon: <UserCheck size={15} /> },
+    { id: 'manager',    label: 'Manager',   icon: <Building2 size={15} /> },
+    { id: 'referidor',  label: 'Referidor', icon: <Lock size={15} /> },
+    { id: 'agencia',    label: 'Agencia',   icon: <Briefcase size={15} /> },
+  ]
+
   return (
     <div className="min-h-screen bg-[#fafaf8] flex flex-col items-center justify-center p-4 overflow-x-hidden w-full max-w-full">
 
@@ -120,6 +127,24 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-white border border-[#e5e7eb] rounded-2xl p-8 shadow-sm">
+
+          {/* Tabs — sin Admin */}
+          <div className="flex bg-[#f3f4f6] p-1 rounded-xl mb-7 gap-1" role="tablist">
+            {tabs.map(t => (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={form.tipo === t.id}
+                onClick={() => { setForm({ ...form, tipo: t.id }); setError('') }}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 text-xs font-medium rounded-lg transition-all relative ${
+                  form.tipo === t.id ? 'bg-white text-[#111111] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'
+                }`}
+              >
+                {t.icon}
+                {t.label}
+              </button>
+            ))}
+          </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
