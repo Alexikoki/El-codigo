@@ -31,7 +31,7 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault()
     if (!form.email || !form.password) { setError('Rellena todos los campos'); return }
-    if (!cfToken) { setError('Por favor, verifica el escaneo humano.'); return }
+    if (!requires2FA && !cfToken) { setError('Por favor, verifica el escaneo humano.'); return }
 
     setCargando(true)
     setError('')
@@ -105,12 +105,15 @@ export default function LoginPage() {
     }
   }
 
+  // Admin solo accesible desde ops.itrustb2b.com
+  const isOps = typeof window !== 'undefined' && window.location.host.startsWith('ops.')
+
   const tabs = [
     { id: 'staff',      label: 'Staff',     icon: <UserCheck size={15} /> },
     { id: 'manager',    label: 'Manager',   icon: <Building2 size={15} /> },
     { id: 'referidor',  label: 'Referidor', icon: <Lock size={15} /> },
     { id: 'agencia',    label: 'Agencia',   icon: <Briefcase size={15} /> },
-    { id: 'superadmin', label: 'Admin',     icon: <Shield size={15} /> },
+    ...(isOps ? [{ id: 'superadmin', label: 'Admin', icon: <Shield size={15} /> }] : []),
   ]
 
   return (
@@ -238,7 +241,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={cargando || !cfToken || (requires2FA && totpCode.length < 6)}
+              disabled={cargando || (!requires2FA && !cfToken) || (requires2FA && totpCode.length < 6)}
               className="w-full flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#15294a] text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               {cargando ? (
