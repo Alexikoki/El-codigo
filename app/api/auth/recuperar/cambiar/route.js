@@ -1,16 +1,20 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../../lib/supabase'
 import { verificarToken } from '../../../../../lib/jwt'
+import { checkRateLimit } from '../../../../../lib/rateLimitMiddleware'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import logger from '../../../../../lib/logger'
 
 export async function POST(request) {
     try {
+        const rl = await checkRateLimit(request, { limite: 5, ventanaMs: 15 * 60 * 1000 })
+        if (rl) return rl
+
         const { token, nuevaPass, cfToken } = await request.json()
 
-        if (!token || !nuevaPass || nuevaPass.length < 6) {
-            return NextResponse.json({ error: 'Datos de restablecimiento corruptos o contraseña corta.' }, { status: 400 })
+        if (!token || !nuevaPass || nuevaPass.length < 6 || !/[A-Z]/.test(nuevaPass)) {
+            return NextResponse.json({ error: 'La contraseña debe tener mínimo 6 caracteres y al menos una mayúscula.' }, { status: 400 })
         }
 
         if (!cfToken) {
