@@ -81,7 +81,7 @@ export default function ManagerPage() {
       ])
       if (resA.ok) setAnalytics(await resA.json())
       if (resT.ok) { const dt = await resT.json(); setTickets(dt.tickets || []) }
-    } catch (e) { console.error(e) }
+    } catch (e) { toast.error('Error cargando datos. Intenta de nuevo.') }
     finally { setCargando(false) }
   }
 

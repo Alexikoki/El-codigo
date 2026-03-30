@@ -12,6 +12,7 @@ import QRTab from './components/QRTab'
 import ClientesTab from './components/ClientesTab'
 import PagosTab from './components/PagosTab'
 import ErrorBoundary from '../../components/ErrorBoundary'
+import { toast } from 'react-hot-toast'
 
 export default function ReferidorPage() {
   const { t } = useLanguage()
@@ -40,7 +41,7 @@ export default function ReferidorPage() {
     QRCode.toDataURL(urlReferido, {
       width: 300, margin: 2,
       color: { dark: '#1e3a5f', light: '#ffffff' }
-    }).then(setQrImageUrl).catch(console.error)
+    }).then(setQrImageUrl).catch(() => toast.error('Error generando código QR.'))
   }
 
   useEffect(() => {
@@ -65,7 +66,7 @@ export default function ReferidorPage() {
       if (resA.ok) { setAnalytics(await resA.json()) }
       if (resL.ok) { const dataL = await resL.json(); setLiquidaciones(dataL.liquidaciones || []) }
     } catch (e) {
-      console.error(e)
+      toast.error('Error cargando datos. Intenta de nuevo.')
     } finally {
       setCargando(false)
     }
@@ -90,7 +91,7 @@ export default function ReferidorPage() {
         setLiquidaciones(dataL.liquidaciones || [])
       }
     } catch (e) {
-      console.error(e)
+      toast.error('Error cargando historial. Intenta de nuevo.')
     } finally {
       setHistorialCargando(false)
     }

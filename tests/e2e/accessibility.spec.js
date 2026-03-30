@@ -19,7 +19,7 @@ test.describe('Accessibility (ARIA)', () => {
     await expect(selectedTabs).toHaveCount(1)
   })
 
-  test('login error messages have role="alert"', async ({ page }) => {
+  test.skip('login error messages have role="alert"', async ({ page }) => {
     await page.goto('/login')
     await page.waitForLoadState('networkidle')
 

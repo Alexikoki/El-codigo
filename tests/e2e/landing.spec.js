@@ -3,8 +3,8 @@ import { test, expect } from '@playwright/test'
 test.describe('Landing page', () => {
   test('carga correctamente y muestra elementos clave', async ({ page }) => {
     await page.goto('/')
-    await expect(page).toHaveTitle(/El Código/)
-    await expect(page.getByRole('banner').getByText('El Código', { exact: true })).toBeVisible()
+    await expect(page).toHaveTitle(/itrustb2b/)
+    await expect(page.getByRole('banner').getByText('itrustb2b', { exact: true })).toBeVisible()
     await expect(page.getByText('automatizado e inteligente')).toBeVisible()
     await expect(page.getByRole('link', { name: /Empezar ahora/i })).toBeVisible()
   })

@@ -12,6 +12,7 @@ import EquipoTab from './components/EquipoTab'
 import PagosTab from './components/PagosTab'
 import { ModalCrearPromotor, ModalNuevaLiquidacion, ModalConfirmPago } from './components/Modals'
 import ErrorBoundary from '../../components/ErrorBoundary'
+import { toast } from 'react-hot-toast'
 
 export default function AgenciaPage() {
   const { t } = useLanguage()
@@ -59,7 +60,7 @@ export default function AgenciaPage() {
       if (resE.ok) { const d = await resE.json(); setEquipo(d.promotores || []) }
       if (resR.ok) { const d = await resR.json(); setRanking(d.promotores || []) }
       if (resL.ok) { const d = await resL.json(); setLiquidaciones(d.liquidaciones || []) }
-    } catch (e) { console.error(e) }
+    } catch (e) { toast.error('Error cargando datos. Intenta de nuevo.') }
     finally { setCargando(false) }
   }
 
@@ -118,7 +119,7 @@ export default function AgenciaPage() {
         body: JSON.stringify({ id, activo: !currentStatus })
       })
       if (res.ok) setEquipo(equipo.map(r => r.id === id ? { ...r, activo: !currentStatus } : r))
-    } catch (e) { console.error(e) }
+    } catch (e) { toast.error('Error actualizando estado del promotor.') }
   }
 
   const comprobarStripe = async () => {
