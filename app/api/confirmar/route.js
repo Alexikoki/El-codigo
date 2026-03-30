@@ -6,7 +6,7 @@ import { validateBody, confirmarCodigoSchema } from '../../../lib/validation'
 import logger from '../../../lib/logger'
 
 export async function POST(request) {
-  const rl = await checkRateLimit(request, { limite: 10, ventanaMs: 60000 })
+  const rl = await checkRateLimit(request, { limite: 3, ventanaMs: 15 * 60 * 1000 })
   if (rl) return rl
 
   const body = await request.json()

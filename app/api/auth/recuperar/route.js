@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { generarToken } from '../../../../lib/jwt'
+import { checkRateLimit } from '../../../../lib/rateLimitMiddleware'
 import { Resend } from 'resend'
 import crypto from 'crypto'
 import logger from '../../../../lib/logger'
@@ -10,6 +11,10 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://itrustb2b.com'
 
 export async function POST(request) {
     try {
+        // 3 intentos por IP cada 15 minutos para evitar email flooding
+        const rl = await checkRateLimit(request, { limite: 3, ventanaMs: 15 * 60 * 1000 })
+        if (rl) return rl
+
         const { email } = await request.json()
 
         if (!email) {

@@ -166,7 +166,7 @@ export async function POST(request) {
     }
 
     // No encontrado en ninguna tabla
-    logger.warn({ inputEmail, saEmailSet: !!saEmail, saPassSet: !!saPass }, 'Login fallido — sin match en ninguna tabla')
+    logger.warn({ ip }, 'Login fallido — sin match')
     return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
 
   } catch (globalError) {

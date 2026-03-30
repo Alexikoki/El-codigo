@@ -58,7 +58,9 @@ export async function PATCH(request) {
     const { data: validated, response: valErr } = validateBody(body, clienteUpdateSchema)
     if (valErr) return valErr
     const { id, nombre, num_personas } = validated
-    const referidor_id = body.referidor_id // optional, not in schema
+    // Validar referidor_id como UUID si viene en el body
+    const rawRefId = body.referidor_id
+    const referidor_id = (rawRefId && idSchema.safeParse(rawRefId).success) ? rawRefId : undefined
 
     const update = {}
     if (nombre !== undefined) update.nombre = nombre.trim()

@@ -52,5 +52,13 @@ export async function POST(request) {
     ip
   })
 
-  return NextResponse.json({ token, empresa }, { status: 201 })
+  const response = NextResponse.json({ empresa }, { status: 201 })
+  response.cookies.set('auth_token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 60 * 60 * 8,
+    path: '/'
+  })
+  return response
 }

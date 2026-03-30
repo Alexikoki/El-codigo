@@ -7,7 +7,7 @@ import logger from '../../../lib/logger'
 
 export async function POST(request) {
   const ip = getIP(request)
-  const { bloqueado } = rateLimit(ip, 20, 60000)
+  const { bloqueado } = await rateLimit(ip, 20, 60000)
   if (bloqueado) {
     return NextResponse.json({ error: 'Demasiados intentos' }, { status: 429 })
   }
