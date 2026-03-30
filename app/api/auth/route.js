@@ -170,6 +170,6 @@ export async function POST(request) {
   } catch (globalError) {
     console.error('AUTH CRASH:', globalError?.message, globalError?.stack)
     logger.error({ err: globalError }, 'Crash API /auth')
-    return NextResponse.json({ error: 'Servicio de autenticación temporalmente no disponible.' }, { status: 500 })
+    return NextResponse.json({ error: 'Servicio de autenticación temporalmente no disponible.', _debug: globalError?.message }, { status: 500 })
   }
 }
