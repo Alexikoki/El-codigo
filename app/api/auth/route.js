@@ -7,6 +7,30 @@ import logger from '../../../lib/logger'
 import bcrypt from 'bcryptjs'
 import { TOTP, Secret } from 'otpauth'
 
+// DEBUG: endpoint temporal para diagnosticar crash
+export async function GET() {
+  try {
+    const checks = {}
+    checks.supabaseAdminType = typeof supabaseAdmin
+    checks.supabaseAdminFrom = typeof supabaseAdmin?.from
+    checks.saEmail = !!(process.env.SUPERADMIN_EMAIL)
+    checks.saPass = !!(process.env.SUPERADMIN_PASSWORD)
+    checks.jwtSecret = !!(process.env.JWT_SECRET)
+    checks.turnstileKey = !!(process.env.TURNSTILE_SECRET_KEY)
+    checks.supabaseUrl = !!(process.env.NEXT_PUBLIC_SUPABASE_URL)
+    checks.serviceKey = !!(process.env.SUPABASE_SERVICE_ROLE_KEY)
+
+    // Test actual DB query
+    const { data, error } = await supabaseAdmin.from('configuracion').select('clave').limit(1)
+    checks.dbQuery = error ? `ERROR: ${error.message}` : 'OK'
+    checks.dbData = data
+
+    return NextResponse.json(checks)
+  } catch (e) {
+    return NextResponse.json({ crash: e?.message, stack: e?.stack?.substring(0, 500) }, { status: 500 })
+  }
+}
+
 // === HELPER: construir respuesta con cookie httpOnly ===
 function respuestaConCookie(body, token) {
   const response = NextResponse.json(body)
