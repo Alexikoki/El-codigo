@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { KeyRound, ShieldAlert, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { KeyRound, ShieldAlert, ArrowRight, CheckCircle2, Check, X } from 'lucide-react'
 import { Turnstile } from '@marsidev/react-turnstile'
 
 function ResetForm() {
@@ -21,10 +21,14 @@ function ResetForm() {
     if (!token) router.push('/login')
   }, [token, router])
 
+  const tieneMinimo = password.length >= 6
+  const tieneMayuscula = /[A-Z]/.test(password)
+  const passValida = tieneMinimo && tieneMayuscula
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!password || !confirm) return setError('Rellena ambos campos')
-    if (password.length < 6) return setError('La contraseña debe tener mínimo 6 caracteres')
+    if (!passValida) return setError('La contraseña no cumple los requisitos')
     if (password !== confirm) return setError('Las contraseñas no coinciden')
     if (!cfToken) return setError('Completa el CAPTCHA')
 
@@ -35,7 +39,7 @@ function ResetForm() {
       const res = await fetch('/api/auth/recuperar/cambiar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, nuevaPass: password })
+        body: JSON.stringify({ token, nuevaPass: password, cfToken })
       })
       const data = await res.json()
       if (res.ok) {
@@ -80,13 +84,25 @@ function ResetForm() {
             <p className="text-[#6b7280] text-sm mb-6">Introduce una nueva clave de acceso para tu cuenta.</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <input
-                type="password"
-                placeholder="Nueva contraseña (mín. 6 caracteres)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-[#e5e7eb] hover:border-[#d1d5db] focus:border-[#1e3a5f] rounded-lg px-4 py-3 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white"
-              />
+              <div>
+                <input
+                  type="password"
+                  placeholder="Nueva contraseña"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full border border-[#e5e7eb] hover:border-[#d1d5db] focus:border-[#1e3a5f] rounded-lg px-4 py-3 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/10 transition-all placeholder:text-[#9ca3af] bg-white"
+                />
+                {password.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    <div className={`flex items-center gap-1.5 text-xs ${tieneMinimo ? 'text-green-600' : 'text-[#9ca3af]'}`}>
+                      {tieneMinimo ? <Check size={11} /> : <X size={11} />} Mínimo 6 caracteres
+                    </div>
+                    <div className={`flex items-center gap-1.5 text-xs ${tieneMayuscula ? 'text-green-600' : 'text-[#9ca3af]'}`}>
+                      {tieneMayuscula ? <Check size={11} /> : <X size={11} />} Al menos una mayúscula
+                    </div>
+                  </div>
+                )}
+              </div>
               <input
                 type="password"
                 placeholder="Repite la contraseña"

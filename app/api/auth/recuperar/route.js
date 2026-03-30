@@ -17,8 +17,8 @@ export async function POST(request) {
 
         const { email } = await request.json()
 
-        if (!email) {
-            return NextResponse.json({ error: 'Falta email' }, { status: 400 })
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return NextResponse.json({ error: 'Email no válido' }, { status: 400 })
         }
 
         // Búsqueda en paralelo para evitar timing attacks por enumeración de usuarios

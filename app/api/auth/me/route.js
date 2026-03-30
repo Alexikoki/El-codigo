@@ -10,22 +10,24 @@ export async function GET(request) {
   const { rol } = payload
 
   try {
+    const exp = payload.exp || null
+
     if (rol === 'superadmin') {
-      return NextResponse.json({ rol: 'superadmin' })
+      return NextResponse.json({ rol: 'superadmin', exp })
     }
 
     if (rol === 'referidor') {
       const { data } = await supabaseAdmin
         .from('referidores').select('id, nombre, email, qr_token').eq('id', payload.referidorId).single()
       if (!data) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-      return NextResponse.json({ rol: 'referidor', referidor: data })
+      return NextResponse.json({ rol: 'referidor', referidor: data, exp })
     }
 
     if (rol === 'agencia') {
       const { data } = await supabaseAdmin
         .from('agencias').select('id, nombre, email').eq('id', payload.agenciaId).single()
       if (!data) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-      return NextResponse.json({ rol: 'agencia', agencia: data })
+      return NextResponse.json({ rol: 'agencia', agencia: data, exp })
     }
 
     if (rol === 'manager') {
@@ -34,7 +36,8 @@ export async function GET(request) {
       if (!data) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
       return NextResponse.json({
         rol: 'manager',
-        manager: { id: data.id, nombre: data.nombre, lugarNombre: data.lugares?.nombre || 'Sin Asignar', lugarId: data.lugar_id }
+        manager: { id: data.id, nombre: data.nombre, lugarNombre: data.lugares?.nombre || 'Sin Asignar', lugarId: data.lugar_id },
+        exp
       })
     }
 
@@ -44,7 +47,8 @@ export async function GET(request) {
       if (!data) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
       return NextResponse.json({
         rol: 'staff',
-        staff: { id: data.id, nombre: data.nombre, lugarNombre: data.lugares?.nombre || 'Sin Asignar' }
+        staff: { id: data.id, nombre: data.nombre, lugarNombre: data.lugares?.nombre || 'Sin Asignar' },
+        exp
       })
     }
 

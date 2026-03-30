@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import CookieBanner from "../components/CookieBanner";
+import SessionWarning from "../components/SessionWarning";
 import { LanguageProvider } from "../lib/i18n/LanguageContext";
 import "./globals.css";
 
@@ -62,6 +63,7 @@ export default function RootLayout({ children }) {
           }}
         />
         <CookieBanner />
+        <SessionWarning />
         </LanguageProvider>
         {/* Registrador del Service Worker PWA */}
         <script dangerouslySetInnerHTML={{

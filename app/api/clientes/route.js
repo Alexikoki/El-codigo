@@ -1,16 +1,13 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../lib/supabase'
-import { rateLimit, getIP } from '../../../lib/rateLimit'
+import { checkRateLimit } from '../../../lib/rateLimitMiddleware'
 import { generarCodigoConfirmacion } from '../../../lib/qr'
 import { enviarCodigoConfirmacion } from '../../../lib/email'
 import logger from '../../../lib/logger'
 
 export async function POST(request) {
-  const ip = getIP(request)
-  const { bloqueado } = await rateLimit(ip, 20, 60000)
-  if (bloqueado) {
-    return NextResponse.json({ error: 'Demasiados intentos' }, { status: 429 })
-  }
+  const rl = await checkRateLimit(request, { limite: 20, ventanaMs: 60000 })
+  if (rl) return rl
 
   try {
     const { nombre, email, numPersonas, qrToken, lugarId, cfToken } = await request.json()
