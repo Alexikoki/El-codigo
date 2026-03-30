@@ -11,6 +11,7 @@ import LangSelector from '../../components/LangSelector'
 export default function LoginPage() {
   const { t } = useLanguage()
   const [form, setForm] = useState({ email: '', password: '', tipo: 'staff' })
+  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
   const [cfToken, setCfToken] = useState('')
@@ -36,7 +37,7 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const payload = { ...form, cfToken }
+      const payload = { ...form, cfToken, rememberMe }
       if (requires2FA && totpCode) payload.totpCode = totpCode
 
       const res = await fetch('/api/auth', {
@@ -188,7 +189,16 @@ export default function LoginPage() {
               )}
             </AnimatePresence>
 
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-[#d1d5db] text-[#1e3a5f] accent-[#1e3a5f] cursor-pointer"
+                />
+                <span className="text-xs text-[#6b7280]">Recuérdame 30 días</span>
+              </label>
               <button
                 type="button"
                 onClick={() => setShowRecuperar(true)}

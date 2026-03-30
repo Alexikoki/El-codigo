@@ -8,13 +8,13 @@ import bcrypt from 'bcryptjs'
 import { TOTP, Secret } from 'otpauth'
 
 // === HELPER: construir respuesta con cookie httpOnly ===
-function respuestaConCookie(body, token) {
+function respuestaConCookie(body, token, rememberMe = false) {
   const response = NextResponse.json(body)
   response.cookies.set('auth_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 60 * 60 * 8,
+    maxAge: rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 8,
     path: '/'
   })
   return response
@@ -42,7 +42,8 @@ export async function POST(request) {
     const body = await request.json()
     const { data: validated, response: valErr } = validateBody(body, loginSchema)
     if (valErr) return valErr
-    const { email, password, cfToken } = validated
+    const { email, password, cfToken, rememberMe } = validated
+    const tokenExpiry = rememberMe ? '30d' : '8h'
 
     // Verificación Cloudflare Turnstile
     // Si viene totpCode, es el segundo POST del flujo 2FA — skip Turnstile
@@ -100,9 +101,9 @@ export async function POST(request) {
         }
       }
 
-      const token = generarToken({ rol: 'superadmin' })
+      const token = generarToken({ rol: 'superadmin' }, '8h') // superadmin siempre 8h
       await limpiarRateLimit(ip)
-      return respuestaConCookie({ rol: 'superadmin' }, token)
+      return respuestaConCookie({ rol: 'superadmin' }, token, false)
     }
 
     // 2. Manager
@@ -111,11 +112,11 @@ export async function POST(request) {
     if (manager) {
       const ok = await bcrypt.compare(password, manager.password_hash)
       if (ok) {
-        const token = generarToken({ rol: 'manager', managerId: manager.id, lugarId: manager.lugar_id, nombre: manager.nombre })
+        const token = generarToken({ rol: 'manager', managerId: manager.id, lugarId: manager.lugar_id, nombre: manager.nombre }, tokenExpiry)
         await limpiarRateLimit(ip)
         return respuestaConCookie(
           { rol: 'manager', manager: { id: manager.id, nombre: manager.nombre, lugarNombre: manager.lugares?.nombre || 'Sin Asignar', lugarId: manager.lugar_id } },
-          token
+          token, rememberMe
         )
       }
     }
@@ -126,11 +127,11 @@ export async function POST(request) {
     if (referidor) {
       const ok = await bcrypt.compare(password, referidor.password_hash)
       if (ok) {
-        const token = generarToken({ rol: 'referidor', referidorId: referidor.id, nombre: referidor.nombre })
+        const token = generarToken({ rol: 'referidor', referidorId: referidor.id, nombre: referidor.nombre }, tokenExpiry)
         await limpiarRateLimit(ip)
         return respuestaConCookie(
           { rol: 'referidor', referidor: { id: referidor.id, nombre: referidor.nombre, email: referidor.email, qr_token: referidor.qr_token } },
-          token
+          token, rememberMe
         )
       }
     }
@@ -141,11 +142,11 @@ export async function POST(request) {
     if (agencia) {
       const ok = await bcrypt.compare(password, agencia.password_hash)
       if (ok) {
-        const token = generarToken({ rol: 'agencia', agenciaId: agencia.id, nombre: agencia.nombre })
+        const token = generarToken({ rol: 'agencia', agenciaId: agencia.id, nombre: agencia.nombre }, tokenExpiry)
         await limpiarRateLimit(ip)
         return respuestaConCookie(
           { rol: 'agencia', agencia: { id: agencia.id, nombre: agencia.nombre, email: agencia.email } },
-          token
+          token, rememberMe
         )
       }
     }
@@ -156,11 +157,11 @@ export async function POST(request) {
     if (staff) {
       const ok = await bcrypt.compare(password, staff.password_hash)
       if (ok) {
-        const token = generarToken({ rol: 'staff', staffId: staff.id, lugarId: staff.lugar_id, nombre: staff.nombre })
+        const token = generarToken({ rol: 'staff', staffId: staff.id, lugarId: staff.lugar_id, nombre: staff.nombre }, tokenExpiry)
         await limpiarRateLimit(ip)
         return respuestaConCookie(
           { rol: 'staff', staff: { id: staff.id, nombre: staff.nombre, lugarNombre: staff.lugares?.nombre || 'Sin Asignar' } },
-          token
+          token, rememberMe
         )
       }
     }
