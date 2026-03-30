@@ -10,7 +10,7 @@ export async function GET(request) {
     try {
         const { data: records, error } = await supabaseAdmin
             .from('valoraciones')
-            .select('gasto, created_at')
+            .select('gasto, comision_referidor, created_at')
             .eq('referidor_id', payload.referidorId)
             .order('created_at', { ascending: true })
 
@@ -23,7 +23,7 @@ export async function GET(request) {
                 rawData[date] = { date, gastoMovido: 0, miComision: 0, turistasValidados: 0 }
             }
             rawData[date].gastoMovido += r.gasto
-            rawData[date].miComision += r.gasto * 0.15
+            rawData[date].miComision += r.comision_referidor || 0
             rawData[date].turistasValidados += 1
         })
 

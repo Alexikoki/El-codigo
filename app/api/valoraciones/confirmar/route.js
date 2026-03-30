@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import { requireAuth } from '../../../../lib/auth'
-import { rateLimit, getIP } from '../../../../lib/rateLimit'
+import { checkRateLimit } from '../../../../lib/rateLimitMiddleware'
 import { enviarEmailValoracion } from '../../../../lib/email'
 import { calcularComisiones } from '../../../../lib/commissions'
 import { validarImagen } from '../../../../lib/uploads'
@@ -57,8 +57,8 @@ export async function GET(request) {
 
 // POST — confirmar consumo real + foto del ticket
 export async function POST(request) {
-  const { bloqueado } = rateLimit(getIP(request), 60, 60000)
-  if (bloqueado) return NextResponse.json({ error: 'Demasiadas peticiones' }, { status: 429 })
+  const rl = await checkRateLimit(request, { limite: 60, ventanaMs: 60000 })
+  if (rl) return rl
 
   const { payload, response } = requireAuth(request, 'staff')
   if (response) return response

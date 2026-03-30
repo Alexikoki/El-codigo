@@ -14,7 +14,7 @@ export async function GET(request) {
 
         let query = supabaseAdmin
             .from('valoraciones')
-            .select('gasto, created_at')
+            .select('gasto, comision_lugar, created_at')
             .order('created_at', { ascending: true })
         if (desde) query = query.gte('created_at', desde)
         if (hasta) query = query.lte('created_at', hasta + 'T23:59:59.999Z')
@@ -29,7 +29,7 @@ export async function GET(request) {
                 rawData[date] = { date, gastoTotal: 0, comisionTotal: 0, afluencia: 0 }
             }
             rawData[date].gastoTotal += r.gasto
-            rawData[date].comisionTotal += r.gasto * 0.15
+            rawData[date].comisionTotal += r.comision_lugar || 0
             rawData[date].afluencia += 1
         })
 
