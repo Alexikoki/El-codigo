@@ -52,7 +52,11 @@ export async function POST(request) {
   try {
     const ip = getIP(request)
 
+    // DEBUG: test rápido de cada paso
+    let step = 'start'
+
     // Rate limit persistente: 5 intentos / 15 min
+    step = 'rateLimit'
     const { bloqueado } = await rateLimit(`${ip}:login`, 5, 15 * 60 * 1000)
     if (bloqueado) {
       return NextResponse.json(
@@ -61,11 +65,13 @@ export async function POST(request) {
       )
     }
 
+    step = 'parseBody'
     const body = await request.json()
     const { data: validated, response: valErr } = validateBody(body, loginSchema)
     if (valErr) return valErr
     const { email, password, cfToken } = validated
 
+    step = 'turnstile'
     // Verificación Cloudflare Turnstile
     // Si viene totpCode, es el segundo POST del flujo 2FA — skip Turnstile
     const is2FAStep = !!body.totpCode
@@ -92,6 +98,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'El sistema anti-bots ha bloqueado la petición. Recarga la página.' }, { status: 403 })
     }
 
+    step = 'superadminCheck'
     // === DETECCIÓN AUTOMÁTICA DE ROL ===
     // 1. Superadmin (email + password de env vars)
     const saEmail = (process.env.SUPERADMIN_EMAIL || '').trim()
@@ -99,7 +106,9 @@ export async function POST(request) {
     const inputEmail = email.trim()
     const inputPass = password.trim()
 
+    step = 'saMatch'
     if (saEmail && inputEmail === saEmail && inputPass === saPass) {
+      step = 'totpQuery'
       // Check 2FA
       const { data: totpConfig } = await supabaseAdmin
         .from('configuracion')
@@ -122,11 +131,13 @@ export async function POST(request) {
         }
       }
 
+      step = 'saToken'
       const token = generarToken({ rol: 'superadmin' })
       await limpiarRateLimit(ip)
       return respuestaConCookie({ rol: 'superadmin' }, token)
     }
 
+    step = 'managerQuery'
     // 2. Manager
     const { data: manager } = await supabaseAdmin
       .from('managers_locales').select('*, lugares(nombre)').eq('email', email).eq('activo', true).single()
@@ -192,8 +203,7 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
 
   } catch (globalError) {
-    console.error('AUTH CRASH:', globalError?.message, globalError?.stack)
-    logger.error({ err: globalError }, 'Crash API /auth')
-    return NextResponse.json({ error: 'Servicio de autenticación temporalmente no disponible.', _debug: globalError?.message }, { status: 500 })
+    console.error('AUTH CRASH at step:', step, '|', globalError?.message)
+    return NextResponse.json({ error: `Auth error at ${step}: ${globalError?.message}` }, { status: 500 })
   }
 }
