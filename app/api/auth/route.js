@@ -49,11 +49,9 @@ async function limpiarRateLimit(ip) {
 }
 
 export async function POST(request) {
+  let step = 'init'
   try {
     const ip = getIP(request)
-
-    // DEBUG: test rápido de cada paso
-    let step = 'start'
 
     // Rate limit persistente: 5 intentos / 15 min
     step = 'rateLimit'
