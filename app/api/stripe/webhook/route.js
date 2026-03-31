@@ -3,7 +3,7 @@ import { stripe } from '../../../../lib/stripe'
 import { supabaseAdmin } from '../../../../lib/supabase'
 import logger from '../../../../lib/logger'
 
-export const config = { api: { bodyParser: false } }
+export const dynamic = 'force-dynamic'
 
 export async function POST(request) {
   const body = await request.text()

@@ -13,7 +13,6 @@ import QRTab from './components/QRTab'
 import ClientesTab from './components/ClientesTab'
 import PagosTab from './components/PagosTab'
 import ErrorBoundary from '../../components/ErrorBoundary'
-import { toast } from 'react-hot-toast'
 
 export default function ReferidorPage() {
   const { t } = useLanguage()

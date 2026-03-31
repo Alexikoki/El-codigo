@@ -40,6 +40,9 @@ export const metadata = {
     description: "Plataforma de referidos QR para hostelería y turismo.",
     images: ["/icon-512.png"],
   },
+  alternates: {
+    canonical: "https://itrustb2b.com",
+  },
 };
 
 export const viewport = {

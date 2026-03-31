@@ -13,7 +13,6 @@ import EquipoTab from './components/EquipoTab'
 import PagosTab from './components/PagosTab'
 import { ModalCrearPromotor, ModalNuevaLiquidacion, ModalConfirmPago } from './components/Modals'
 import ErrorBoundary from '../../components/ErrorBoundary'
-import { toast } from 'react-hot-toast'
 
 export default function AgenciaPage() {
   const { t } = useLanguage()
