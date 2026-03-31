@@ -6,6 +6,7 @@ import { LogOut, BarChart3, Briefcase, Users, Trophy, CreditCard } from 'lucide-
 import { SkeletonPanel } from '../../components/Skeleton'
 import LangSelector from '../../components/LangSelector'
 import { useLanguage } from '../../lib/i18n/LanguageContext'
+import { toast } from 'react-hot-toast'
 import DashboardTab from './components/DashboardTab'
 import RankingTab from './components/RankingTab'
 import EquipoTab from './components/EquipoTab'
