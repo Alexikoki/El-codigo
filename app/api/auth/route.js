@@ -7,13 +7,13 @@ import logger from '../../../lib/logger'
 import bcrypt from 'bcryptjs'
 
 // === HELPER: construir respuesta con cookie httpOnly ===
-function respuestaConCookie(body, token) {
+function respuestaConCookie(body, token, rememberMe = false) {
   const response = NextResponse.json(body)
   response.cookies.set('auth_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 60 * 60 * 8,
+    maxAge: rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 8,
     path: '/'
   })
   return response
@@ -39,7 +39,7 @@ export async function POST(request) {
     const body = await request.json()
     const { data: validated, response: valErr } = validateBody(body, loginSchema)
     if (valErr) return valErr
-    const { email, password, cfToken } = validated
+    const { email, password, cfToken, rememberMe } = validated
 
     // Verificación Cloudflare Turnstile
     // Si viene totpCode, es el segundo POST del flujo 2FA — skip Turnstile
@@ -69,7 +69,12 @@ export async function POST(request) {
 
     // === DETECCIÓN AUTOMÁTICA DE ROL ===
     // 1. Superadmin (email + password de env vars)
-    if (email === process.env.SUPERADMIN_EMAIL && password === process.env.SUPERADMIN_PASSWORD) {
+    const saEmail = (process.env.SUPERADMIN_EMAIL || '').trim()
+    const saPass = (process.env.SUPERADMIN_PASSWORD || '').trim()
+    const inputEmail = email.trim()
+    const inputPass = password.trim()
+
+    if (saEmail && inputEmail === saEmail && inputPass === saPass) {
       // Check 2FA
       const { data: totpConfig } = await supabaseAdmin
         .from('configuracion')
@@ -96,7 +101,7 @@ export async function POST(request) {
 
       const token = generarToken({ rol: 'superadmin' })
       await limpiarRateLimit(ip)
-      return respuestaConCookie({ rol: 'superadmin' }, token)
+      return respuestaConCookie({ rol: 'superadmin' }, token, rememberMe)
     }
 
     // 2. Manager
@@ -109,7 +114,7 @@ export async function POST(request) {
         await limpiarRateLimit(ip)
         return respuestaConCookie(
           { rol: 'manager', manager: { id: manager.id, nombre: manager.nombre, lugarNombre: manager.lugares?.nombre || 'Sin Asignar', lugarId: manager.lugar_id } },
-          token
+          token, rememberMe
         )
       }
     }
@@ -124,7 +129,7 @@ export async function POST(request) {
         await limpiarRateLimit(ip)
         return respuestaConCookie(
           { rol: 'referidor', referidor: { id: referidor.id, nombre: referidor.nombre, email: referidor.email, qr_token: referidor.qr_token } },
-          token
+          token, rememberMe
         )
       }
     }
@@ -139,7 +144,7 @@ export async function POST(request) {
         await limpiarRateLimit(ip)
         return respuestaConCookie(
           { rol: 'agencia', agencia: { id: agencia.id, nombre: agencia.nombre, email: agencia.email } },
-          token
+          token, rememberMe
         )
       }
     }
@@ -154,12 +159,13 @@ export async function POST(request) {
         await limpiarRateLimit(ip)
         return respuestaConCookie(
           { rol: 'staff', staff: { id: staff.id, nombre: staff.nombre, lugarNombre: staff.lugares?.nombre || 'Sin Asignar' } },
-          token
+          token, rememberMe
         )
       }
     }
 
     // No encontrado en ninguna tabla
+    logger.warn({ inputEmail, saEmailSet: !!saEmail, saPassSet: !!saPass }, 'Login fallido — sin match en ninguna tabla')
     return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
 
   } catch (globalError) {

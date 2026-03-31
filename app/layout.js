@@ -24,6 +24,21 @@ export const metadata = {
     statusBarStyle: "black-translucent",
     title: "itrustb2b",
   },
+  openGraph: {
+    title: "itrustb2b — Sistema de Referidos QR",
+    description: "Plataforma de referidos QR para hostelería y turismo. Traquea comisiones, valida clientes y gestiona tu equipo.",
+    url: process.env.NEXT_PUBLIC_APP_URL || "https://itrustb2b.com",
+    siteName: "itrustb2b",
+    images: [{ url: "/icon-512.png", width: 512, height: 512, alt: "itrustb2b" }],
+    locale: "es_ES",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "itrustb2b — Sistema de Referidos QR",
+    description: "Plataforma de referidos QR para hostelería y turismo.",
+    images: ["/icon-512.png"],
+  },
 };
 
 export const viewport = {

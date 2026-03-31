@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import LangSelector from '../../components/LangSelector'
 import { useLanguage } from '../../lib/i18n/LanguageContext'
 import { Camera, LogOut, CheckCircle2, AlertCircle, History, Maximize, Users, Receipt, Upload, X, Euro } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 export default function StaffPage() {
   const { t } = useLanguage()
   const [staff, setStaff] = useState(null)
@@ -34,7 +35,7 @@ export default function StaffPage() {
     try {
       const res = await fetch('/api/valoraciones/confirmar', { credentials: 'include' })
       if (res.ok) { const d = await res.json(); setVerificadosHoy(d.clientes || []) }
-    } catch (e) { console.error(e) }
+    } catch (e) { toast.error('Error cargando verificaciones. Intenta de nuevo.') }
   }
 
   const iniciarEscaner = async () => {

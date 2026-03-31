@@ -6,6 +6,7 @@ import { LogOut, BarChart3, Briefcase, Users, Trophy, CreditCard } from 'lucide-
 import { SkeletonPanel } from '../../components/Skeleton'
 import LangSelector from '../../components/LangSelector'
 import { useLanguage } from '../../lib/i18n/LanguageContext'
+import { toast } from 'react-hot-toast'
 import DashboardTab from './components/DashboardTab'
 import RankingTab from './components/RankingTab'
 import EquipoTab from './components/EquipoTab'
@@ -59,7 +60,7 @@ export default function AgenciaPage() {
       if (resE.ok) { const d = await resE.json(); setEquipo(d.promotores || []) }
       if (resR.ok) { const d = await resR.json(); setRanking(d.promotores || []) }
       if (resL.ok) { const d = await resL.json(); setLiquidaciones(d.liquidaciones || []) }
-    } catch (e) { console.error(e) }
+    } catch (e) { toast.error('Error cargando datos. Intenta de nuevo.') }
     finally { setCargando(false) }
   }
 
@@ -118,7 +119,7 @@ export default function AgenciaPage() {
         body: JSON.stringify({ id, activo: !currentStatus })
       })
       if (res.ok) setEquipo(equipo.map(r => r.id === id ? { ...r, activo: !currentStatus } : r))
-    } catch (e) { console.error(e) }
+    } catch (e) { toast.error('Error actualizando estado del promotor.') }
   }
 
   const comprobarStripe = async () => {

@@ -7,6 +7,12 @@ export default function AnalyticsTab({
   fechaDesde, setFechaDesde, fechaHasta, setFechaHasta,
   cargarAnalytics, exportarExcel, t
 }) {
+  if (!analytics?.stats) return (
+    <div className="flex items-center justify-center py-20">
+      <div className="w-6 h-6 border-2 border-[#1e3a5f]/30 border-t-[#1e3a5f] rounded-full animate-spin" />
+    </div>
+  )
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row justify-between gap-3">
@@ -85,6 +91,8 @@ export default function AnalyticsTab({
 }
 
 function DiscrepanciasPanel({ discrepancias }) {
+  if (!discrepancias?.resumen) return null
+
   return (
     <div className="glass-panel p-5">
       <h3 className="text-sm font-semibold text-[#111111] mb-4 flex items-center gap-2">
