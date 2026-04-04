@@ -143,7 +143,7 @@ const FacturaPDF = ({ datos }) => {
                 {v.gasto.toFixed(2)}€
               </Text>
               <Text style={[styles.tableCell, styles.colComision, { textAlign: 'right', color: C.green }]}>
-                {(v.gasto * 0.15).toFixed(2)}€
+                {(v.comision_referidor || 0).toFixed(2)}€
               </Text>
             </View>
           ))}
@@ -196,7 +196,7 @@ export async function GET(request) {
       .from('referidores').select('nombre, email').eq('id', referidorId).single()
     const { data: valData } = await supabaseAdmin
       .from('valoraciones')
-      .select('gasto, num_personas, created_at')
+      .select('gasto, comision_referidor, num_personas, created_at')
       .eq('referidor_id', referidorId)
       .order('created_at', { ascending: false })
 
@@ -207,7 +207,7 @@ export async function GET(request) {
       referidor: refData,
       valoraciones: vals,
       totalGasto: vals.reduce((acc, v) => acc + (v.gasto || 0), 0),
-      totalComision: vals.reduce((acc, v) => acc + (v.gasto * 0.15), 0),
+      totalComision: vals.reduce((acc, v) => acc + (v.comision_referidor || 0), 0),
       totalPersonas: vals.reduce((acc, v) => acc + (v.num_personas || 1), 0),
     }
 

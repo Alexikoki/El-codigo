@@ -70,7 +70,7 @@ export default function StaffPage() {
   const pararEscaner = async () => {
     try {
       if (html5QrRef.current) { await html5QrRef.current.stop(); html5QrRef.current = null }
-    } catch (e) {}
+    } catch (e) { /* scanner ya parado */ }
     setEscaneando(false)
   }
 

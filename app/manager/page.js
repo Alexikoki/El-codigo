@@ -113,12 +113,15 @@ export default function ManagerPage() {
   }
 
   const toggleStaff = async (id, activo) => {
-    await fetch('/api/manager/staff', {
-      method: 'PATCH', credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, activo: !activo })
-    })
-    setStaffList(prev => prev.map(s => s.id === id ? { ...s, activo: !activo } : s))
+    try {
+      const res = await fetch('/api/manager/staff', {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, activo: !activo })
+      })
+      if (res.ok) setStaffList(prev => prev.map(s => s.id === id ? { ...s, activo: !activo } : s))
+      else toast.error('Error actualizando estado del staff.')
+    } catch (e) { toast.error('Error de conexión.') }
   }
 
   const cargarResumenPago = async () => {

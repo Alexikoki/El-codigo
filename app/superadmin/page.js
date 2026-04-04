@@ -89,21 +89,23 @@ export default function SuperadminPage() {
   // ── Data loading ───────────────────────────────────────
   const cargarDatos = async () => {
     setCargando(true)
-    const [resL, resR, resS, resLiq, resAg] = await Promise.all([
-      fetch('/api/lugares', { credentials: 'include' }),
-      fetch('/api/referidores', { credentials: 'include' }),
-      fetch('/api/staff', { credentials: 'include' }),
-      fetch('/api/liquidaciones', { credentials: 'include' }),
-      fetch('/api/agencias', { credentials: 'include' })
-    ])
-    const [dataL, dataR, dataS, dataLiq, dataAg] = await Promise.all([resL.json(), resR.json(), resS.json(), resLiq.json(), resAg.json()])
-    setLugares(dataL.lugares || [])
-    setReferidores(dataR.referidores || [])
-    setStaff(dataS.staff || [])
-    setLiquidaciones(dataLiq.liquidaciones || [])
-    setAgencias(dataAg.agencias || [])
-    setCargando(false)
-    cargarAnalytics('mes')
+    try {
+      const [resL, resR, resS, resLiq, resAg] = await Promise.all([
+        fetch('/api/lugares', { credentials: 'include' }),
+        fetch('/api/referidores', { credentials: 'include' }),
+        fetch('/api/staff', { credentials: 'include' }),
+        fetch('/api/liquidaciones', { credentials: 'include' }),
+        fetch('/api/agencias', { credentials: 'include' })
+      ])
+      const [dataL, dataR, dataS, dataLiq, dataAg] = await Promise.all([resL.json(), resR.json(), resS.json(), resLiq.json(), resAg.json()])
+      setLugares(dataL.lugares || [])
+      setReferidores(dataR.referidores || [])
+      setStaff(dataS.staff || [])
+      setLiquidaciones(dataLiq.liquidaciones || [])
+      setAgencias(dataAg.agencias || [])
+      cargarAnalytics('mes')
+    } catch (e) { toast.error('Error cargando datos. Intenta de nuevo.') }
+    finally { setCargando(false) }
   }
 
   const cargarAnalytics = async (preset, customDesde, customHasta) => {
